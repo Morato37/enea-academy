@@ -4,6 +4,7 @@ import { Trash2, Download, Loader2, Plus, Minus, Save, CreditCard as Edit2, Refr
 import { generatePDF } from '../lib/pdfExport';
 import { generateMoodboardPDF } from '../lib/moodboardExport';
 import { generateBloomingCalendarPDF } from '../lib/bloomingCalendarExport';
+import { generatePlantSelectionPDF } from '../lib/plantSelectionExport';
 import { LanguageSelectionModal } from '../components/LanguageSelectionModal';
 
 export const SelectionsPage: React.FC = () => {
@@ -28,6 +29,7 @@ export const SelectionsPage: React.FC = () => {
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [generatingMoodboard, setGeneratingMoodboard] = useState(false);
   const [generatingCalendar, setGeneratingCalendar] = useState(false);
+  const [generatingPlantSelection, setGeneratingPlantSelection] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
@@ -38,7 +40,7 @@ export const SelectionsPage: React.FC = () => {
   const [editingProject, setEditingProject] = useState<{ id: string; name: string; description: string } | null>(null);
 
   const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const [pendingExport, setPendingExport] = useState<'pdf' | 'moodboard' | 'calendar' | null>(null);
+  const [pendingExport, setPendingExport] = useState<'pdf' | 'moodboard' | 'calendar' | 'plantselection' | null>(null);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -85,6 +87,16 @@ export const SelectionsPage: React.FC = () => {
     setShowLanguageModal(true);
   };
 
+  const handleExportPlantSelection = async () => {
+    const plantSelections = selections.filter(s => s.plant_id);
+    if (plantSelections.length === 0) {
+      alert('No plant selections to export.');
+      return;
+    }
+    setPendingExport('plantselection');
+    setShowLanguageModal(true);
+  };
+
   const handleLanguageSelection = async (language: 'de' | 'en') => {
     setShowLanguageModal(false);
 
@@ -104,6 +116,11 @@ export const SelectionsPage: React.FC = () => {
         const plantSelections = selections.filter(s => s.plant_id);
         const projectName = currentProject?.name;
         await generateBloomingCalendarPDF(plantSelections, projectName, language);
+      } else if (pendingExport === 'plantselection') {
+        setGeneratingPlantSelection(true);
+        const plantSelections = selections.filter(s => s.plant_id);
+        const projectName = currentProject?.name;
+        await generatePlantSelectionPDF(plantSelections, projectName, language);
       }
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -112,6 +129,7 @@ export const SelectionsPage: React.FC = () => {
       setGeneratingPDF(false);
       setGeneratingMoodboard(false);
       setGeneratingCalendar(false);
+      setGeneratingPlantSelection(false);
       setPendingExport(null);
     }
   };
@@ -346,7 +364,7 @@ export const SelectionsPage: React.FC = () => {
                   <button
                     onClick={handleExportBloomingCalendar}
                     disabled={generatingCalendar || plantSelections.length === 0}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     title="Export blooming calendar"
                   >
                     {generatingCalendar ? (
@@ -358,6 +376,25 @@ export const SelectionsPage: React.FC = () => {
                       <>
                         <Calendar className="w-5 h-5" />
                         Blooming Calendar
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleExportPlantSelection}
+                    disabled={generatingPlantSelection || plantSelections.length === 0}
+                    className="px-4 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    title="Export plant selection"
+                  >
+                    {generatingPlantSelection ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Image className="w-5 h-5" />
+                        Plant Selection
                       </>
                     )}
                   </button>
@@ -745,7 +782,9 @@ export const SelectionsPage: React.FC = () => {
             ? 'Pflanzenliste Export'
             : pendingExport === 'moodboard'
             ? 'Moodboard Export'
-            : 'Blütekalender Export'
+            : pendingExport === 'calendar'
+            ? 'Blütekalender Export'
+            : 'Pflanzenauswahl Export'
         }
       />
     </div>
