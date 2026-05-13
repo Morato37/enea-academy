@@ -47,13 +47,13 @@ export const generateBloomingCalendarPDF = async (
   projectName?: string,
   language: 'de' | 'en' = 'de'
 ): Promise<void> => {
-  const doc = new jsPDF('landscape', 'mm', 'a4');
+  const doc = new jsPDF('landscape', 'mm', 'a3');
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
   const MONTHS = language === 'de' ? MONTHS_DE : MONTHS_EN;
 
-  const margin = 15;
+  const margin = 20;
   const headerHeight = 20;
 
   let currentY = margin;
@@ -153,9 +153,9 @@ export const generateBloomingCalendarPDF = async (
 
   const drawTableHeader = () => {
     const colNameGerman = margin;
-    const colNameBotanic = margin + 55;
-    const monthColStart = margin + 115;
-    const monthColWidth = 9;
+    const colNameBotanic = margin + 75;
+    const monthColStart = margin + 165;
+    const monthColWidth = 12;
     const colRemarks = monthColStart + (MONTHS.length * monthColWidth) + 5;
     const headerRowHeight = 6;
 
@@ -238,9 +238,9 @@ export const generateBloomingCalendarPDF = async (
   await addHeader();
 
   const colNameGerman = margin;
-  const colNameBotanic = margin + 55;
-  const monthColStart = margin + 115;
-  const monthColWidth = 9;
+  const colNameBotanic = margin + 75;
+  const monthColStart = margin + 165;
+  const monthColWidth = 12;
   const colRemarks = monthColStart + (MONTHS.length * monthColWidth) + 5;
   const rowHeight = 7;
   const categoryTitleHeight = 6;
@@ -299,10 +299,10 @@ export const generateBloomingCalendarPDF = async (
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       doc.setTextColor(60, 60, 60);
-      doc.text(commonName, colNameGerman + 2, currentY + 4.5, { maxWidth: 50 });
+      doc.text(commonName, colNameGerman + 2, currentY + 4.5, { maxWidth: 70 });
 
       doc.setFont('helvetica', 'italic');
-      doc.text(nameBotanic, colNameBotanic + 2, currentY + 4.5, { maxWidth: 55 });
+      doc.text(nameBotanic, colNameBotanic + 2, currentY + 4.5, { maxWidth: 85 });
 
       MONTHS.forEach((month, index) => {
         const x = monthColStart + (index * monthColWidth);
@@ -337,7 +337,7 @@ export const generateBloomingCalendarPDF = async (
 
       const remarksText = remarks.join(', ');
       if (remarksText) {
-        doc.text(remarksText, colRemarks + 2, currentY + 4.5, { maxWidth: 40 });
+        doc.text(remarksText, colRemarks + 2, currentY + 4.5, { maxWidth: 60 });
       }
 
       currentY += rowHeight;
@@ -346,6 +346,6 @@ export const generateBloomingCalendarPDF = async (
 
   addFooter(pageNumber);
 
-  const fileName = `Bluehkalender_${new Date().toISOString().split('T')[0]}.pdf`;
+  const fileName = `Bluehkalender_A3_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
 };
