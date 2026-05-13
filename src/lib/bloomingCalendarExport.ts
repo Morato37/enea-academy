@@ -344,7 +344,7 @@ export const generateBloomingCalendarPDF = async (
     }
   }
 
-  addFooter(pageNumber);
+  await addFooter(pageNumber);
 
   const fileName = `Bluehkalender_A3_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
