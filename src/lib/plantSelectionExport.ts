@@ -52,21 +52,31 @@ const loadImageAsDataURL = async (url: string): Promise<string> => {
   });
 };
 
-const cropToSquareDataURL = async (dataUrl: string, targetPx = 600): Promise<string> => {
+// Crop image to target aspect ratio (cover fit), targetW:targetH
+const cropToRatioDataURL = async (dataUrl: string, targetW = 400, targetH = 500): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      const size = Math.min(img.width, img.height);
-      const sx = (img.width - size) / 2;
-      const sy = (img.height - size) / 2;
+      const targetRatio = targetW / targetH;
+      const imgRatio = img.width / img.height;
+      let sx = 0, sy = 0, sW = img.width, sH = img.height;
+      if (imgRatio > targetRatio) {
+        // wider than target — crop sides
+        sW = img.height * targetRatio;
+        sx = (img.width - sW) / 2;
+      } else {
+        // taller than target — crop top/bottom
+        sH = img.width / targetRatio;
+        sy = (img.height - sH) / 2;
+      }
       const canvas = document.createElement('canvas');
-      canvas.width = targetPx;
-      canvas.height = targetPx;
+      canvas.width = targetW;
+      canvas.height = targetH;
       const ctx = canvas.getContext('2d');
       if (!ctx) { reject(new Error('No canvas context')); return; }
       ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, targetPx, targetPx);
-      ctx.drawImage(img, sx, sy, size, size, 0, 0, targetPx, targetPx);
+      ctx.fillRect(0, 0, targetW, targetH);
+      ctx.drawImage(img, sx, sy, sW, sH, 0, 0, targetW, targetH);
       resolve(canvas.toDataURL('image/jpeg', 0.85));
     };
     img.onerror = reject;
@@ -141,7 +151,7 @@ export const generatePlantSelectionPDF = async (
   const colGap = 3;
   const availW = pageWidth - 2 * margin;
   const cellW = (availW - (cols - 1) * colGap) / cols;
-  const cellH = cellW; // square images
+  const cellH = cellW * 1.35; // portrait rectangle like in the reference
   const labelH = 10; // space below image for names
   const cellTotalH = cellH + labelH;
   const categoryLabelH = 7;
@@ -181,43 +191,124 @@ export const generatePlantSelectionPDF = async (
     currentY = margin + headerH;
   };
 
+  // Draw a small icon using jsPDF primitives (no Unicode)
+  const drawLegendIcon = (type: string, cx: number, cy: number) => {
+    const r = 1.5;
+    doc.setDrawColor(80, 80, 80);
+    doc.setFillColor(80, 80, 80);
+    doc.setLineWidth(0.4);
+    switch (type) {
+      case 'circle-empty':
+        doc.circle(cx, cy, r, 'S');
+        break;
+      case 'circle-half': {
+        // full circle outline + filled left half
+        doc.circle(cx, cy, r, 'S');
+        doc.setFillColor(80, 80, 80);
+        // draw filled semicircle via rect clip approximation
+        doc.rect(cx - r, cy - r, r, r * 2, 'F');
+        break;
+      }
+      case 'circle-full':
+        doc.circle(cx, cy, r, 'F');
+        break;
+      case 'star': {
+        // small 4-point cross/star
+        doc.setLineWidth(0.5);
+        doc.line(cx - r, cy, cx + r, cy);
+        doc.line(cx, cy - r, cx, cy + r);
+        doc.line(cx - r * 0.7, cy - r * 0.7, cx + r * 0.7, cy + r * 0.7);
+        doc.line(cx - r * 0.7, cy + r * 0.7, cx + r * 0.7, cy - r * 0.7);
+        break;
+      }
+      case 'diamond': {
+        // small diamond shape
+        doc.setFillColor(80, 80, 80);
+        const pts = [
+          { x: cx, y: cy - r * 1.2 },
+          { x: cx + r * 0.8, y: cy },
+          { x: cx, y: cy + r * 1.2 },
+          { x: cx - r * 0.8, y: cy },
+        ];
+        doc.lines(
+          [[pts[1].x - pts[0].x, pts[1].y - pts[0].y],
+           [pts[2].x - pts[1].x, pts[2].y - pts[1].y],
+           [pts[3].x - pts[2].x, pts[3].y - pts[2].y],
+           [pts[0].x - pts[3].x, pts[0].y - pts[3].y]],
+          pts[0].x, pts[0].y, [1, 1], 'F', true
+        );
+        break;
+      }
+      case 'snowflake': {
+        // asterisk with 6 lines
+        doc.setLineWidth(0.4);
+        for (let a = 0; a < 3; a++) {
+          const angle = (a * Math.PI) / 3;
+          doc.line(
+            cx + Math.cos(angle) * r * 1.2, cy + Math.sin(angle) * r * 1.2,
+            cx - Math.cos(angle) * r * 1.2, cy - Math.sin(angle) * r * 1.2
+          );
+        }
+        break;
+      }
+      case 'leaf': {
+        // simple small filled circle as leaf proxy
+        doc.setFillColor(80, 80, 80);
+        doc.circle(cx, cy, r * 0.9, 'F');
+        break;
+      }
+      case 'herb': {
+        // small Y shape
+        doc.setLineWidth(0.4);
+        doc.line(cx, cy + r, cx, cy);
+        doc.line(cx, cy, cx - r * 0.8, cy - r * 0.8);
+        doc.line(cx, cy, cx + r * 0.8, cy - r * 0.8);
+        break;
+      }
+      default:
+        doc.circle(cx, cy, r, 'S');
+    }
+    doc.setLineWidth(0.1);
+    doc.setFillColor(0, 0, 0);
+    doc.setDrawColor(0, 0, 0);
+  };
+
   const drawLegend = () => {
-    // Two-column icon legend like in the reference PDF
     const items_de = [
-      { symbol: '✦', label: 'Schmetterlingsweide', key: 'characteristic_butterflies' },
-      { symbol: '✦', label: 'einheimisch', key: 'characteristic_native' },
-      { symbol: '❧', label: 'Bienenweide', key: 'characteristic_bees' },
-      { symbol: '✦', label: 'Klimaprofiteur', key: 'characteristic_climate' },
-      { symbol: '♦', label: 'Vogelnährgehölz', key: 'characteristic_birds' },
-      { symbol: '✳', label: 'immergrün', key: 'characteristic_evergreen' },
-      { symbol: '✿', label: 'saisonale Aspekte', key: 'usage_seasonal' },
-      { symbol: '○', label: 'sonnig', key: 'exposure_sun' },
-      { symbol: '◑', label: 'essbar', key: 'usage_edible' },
-      { symbol: '●', label: 'halbschattig', key: 'exposure_halfshade' },
-      { symbol: '☙', label: 'Heilpflanze', key: 'usage_medicinal_herbs' },
-      { symbol: '●', label: 'schattig', key: 'exposure_shade' },
+      { icon: 'star',         label: 'Schmetterlingsweide' },
+      { icon: 'star',         label: 'einheimisch' },
+      { icon: 'leaf',         label: 'Bienenweide' },
+      { icon: 'star',         label: 'Klimaprofiteur' },
+      { icon: 'diamond',      label: 'Vogelnährgehölz' },
+      { icon: 'snowflake',    label: 'immergrün' },
+      { icon: 'leaf',         label: 'saisonale Aspekte' },
+      { icon: 'circle-empty', label: 'sonnig' },
+      { icon: 'leaf',         label: 'essbar' },
+      { icon: 'circle-half',  label: 'halbschattig' },
+      { icon: 'herb',         label: 'Heilpflanze' },
+      { icon: 'circle-full',  label: 'schattig' },
     ];
     const items_en = [
-      { symbol: '✦', label: 'butterflies' },
-      { symbol: '✦', label: 'native' },
-      { symbol: '❧', label: 'bees' },
-      { symbol: '✦', label: 'climate beneficiary' },
-      { symbol: '♦', label: 'bird food plant' },
-      { symbol: '✳', label: 'evergreen' },
-      { symbol: '✿', label: 'seasonal aspects' },
-      { symbol: '○', label: 'sunny' },
-      { symbol: '◑', label: 'edible' },
-      { symbol: '●', label: 'half shade' },
-      { symbol: '☙', label: 'medicinal herb' },
-      { symbol: '●', label: 'shady' },
+      { icon: 'star',         label: 'butterflies' },
+      { icon: 'star',         label: 'native' },
+      { icon: 'leaf',         label: 'bees' },
+      { icon: 'star',         label: 'climate beneficiary' },
+      { icon: 'diamond',      label: 'bird food plant' },
+      { icon: 'snowflake',    label: 'evergreen' },
+      { icon: 'leaf',         label: 'seasonal aspects' },
+      { icon: 'circle-empty', label: 'sunny' },
+      { icon: 'leaf',         label: 'edible' },
+      { icon: 'circle-half',  label: 'half shade' },
+      { icon: 'herb',         label: 'medicinal herb' },
+      { icon: 'circle-full',  label: 'shady' },
     ];
     const items = language === 'de' ? items_de : items_en;
 
-    // 3 columns, 4 rows
-    const legendCols = 3;
+    // 3 columns of 4 items
     const itemsPerCol = 4;
-    const colW = 80;
-    const itemH = 4;
+    const colW = 85;
+    const itemH = 4.2;
+    const iconR = 1.5;
 
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
@@ -228,7 +319,8 @@ export const generatePlantSelectionPDF = async (
       const row = i % itemsPerCol;
       const x = margin + col * colW;
       const y = currentY + row * itemH + 3;
-      doc.text(`${items[i].symbol}  ${items[i].label}`, x, y);
+      drawLegendIcon(items[i].icon, x + iconR, y - iconR * 0.5);
+      doc.text(items[i].label, x + iconR * 2 + 2, y);
     }
 
     currentY += legendH;
@@ -311,7 +403,7 @@ export const generatePlantSelectionPDF = async (
 
         if (imageUrls[0]) {
           const raw = await loadImageAsDataURL(imageUrls[0]);
-          const cropped = await cropToSquareDataURL(raw);
+          const cropped = await cropToRatioDataURL(raw, 400, Math.round(400 * 1.35));
           doc.addImage(cropped, 'JPEG', x, imageY, cellW, cellH);
         }
       } catch {
