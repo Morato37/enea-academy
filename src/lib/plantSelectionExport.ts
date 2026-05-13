@@ -10,7 +10,6 @@ const loadPlantImages = async (plantId: number): Promise<string[]> => {
       .order('is_primary', { ascending: false })
       .order('display_order', { ascending: true })
       .limit(1);
-
     if (error) throw error;
     if (data && data.length > 0) return data.map(img => img.image_url);
     return [];
@@ -22,9 +21,7 @@ const loadPlantImages = async (plantId: number): Promise<string[]> => {
 const loadImageAsDataURL = async (url: string): Promise<string> => {
   const isSupabaseStorage = url.includes('/storage/v1/object/public/');
   const headers: HeadersInit = {};
-  if (isSupabaseStorage) {
-    headers['apikey'] = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-  }
+  if (isSupabaseStorage) headers['apikey'] = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
   const response = await fetch(url, { mode: 'cors', credentials: 'omit', headers });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -34,7 +31,6 @@ const loadImageAsDataURL = async (url: string): Promise<string> => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     const objectUrl = URL.createObjectURL(blob);
-
     img.onload = () => {
       const canvas = document.createElement('canvas');
       canvas.width = img.width;
@@ -52,8 +48,7 @@ const loadImageAsDataURL = async (url: string): Promise<string> => {
   });
 };
 
-// Crop image to target aspect ratio (cover fit), targetW:targetH
-const cropToRatioDataURL = async (dataUrl: string, targetW = 400, targetH = 500): Promise<string> => {
+const cropToRatioDataURL = async (dataUrl: string, targetW: number, targetH: number): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -61,11 +56,9 @@ const cropToRatioDataURL = async (dataUrl: string, targetW = 400, targetH = 500)
       const imgRatio = img.width / img.height;
       let sx = 0, sy = 0, sW = img.width, sH = img.height;
       if (imgRatio > targetRatio) {
-        // wider than target — crop sides
         sW = img.height * targetRatio;
         sx = (img.width - sW) / 2;
       } else {
-        // taller than target — crop top/bottom
         sH = img.width / targetRatio;
         sy = (img.height - sH) / 2;
       }
@@ -85,28 +78,20 @@ const cropToRatioDataURL = async (dataUrl: string, targetW = 400, targetH = 500)
 };
 
 const CATEGORIES_DE = {
-  trees: 'Bäume',
-  shrubs: 'Sträucher',
-  grasses: 'Gräser',
-  bamboo: 'Bambus',
-  climbing: 'Kletterpflanzen',
-  bulbs: 'Frühblüher',
-  perennials: 'Stauden',
-  other: 'Sonstige',
+  trees: 'Bäume', shrubs: 'Sträucher', grasses: 'Gräser', bamboo: 'Bambus',
+  climbing: 'Kletterpflanzen', bulbs: 'Frühblüher', perennials: 'Stauden', other: 'Sonstige',
 };
-
 const CATEGORIES_EN = {
-  trees: 'Trees',
-  shrubs: 'Shrubs',
-  grasses: 'Grasses',
-  bamboo: 'Bamboo',
-  climbing: 'Climbing Plants',
-  bulbs: 'Spring Bulbs',
-  perennials: 'Perennials',
-  other: 'Other',
+  trees: 'Trees', shrubs: 'Shrubs', grasses: 'Grasses', bamboo: 'Bamboo',
+  climbing: 'Climbing Plants', bulbs: 'Spring Bulbs', perennials: 'Perennials', other: 'Other',
 };
 
-const groupByCategory = (selections: UserSelection[], language: 'de' | 'en') => {
+interface PlantItem {
+  selection: UserSelection;
+  categoryLabel: string; // set only on first plant of each category
+}
+
+const buildFlatList = (selections: UserSelection[], language: 'de' | 'en'): PlantItem[] => {
   const labels = language === 'de' ? CATEGORIES_DE : CATEGORIES_EN;
   const groups: { [key: string]: UserSelection[] } = {};
 
@@ -120,18 +105,23 @@ const groupByCategory = (selections: UserSelection[], language: 'de' | 'en') => 
     else if (p.usage_climbing) cat = labels.climbing;
     else if (p.category_bulb) cat = labels.bulbs;
     else if (p.category_perennial) cat = labels.perennials;
-
     if (!groups[cat]) groups[cat] = [];
     groups[cat].push(sel);
   });
 
-  const order = language === 'de'
-    ? [labels.trees, labels.shrubs, labels.grasses, labels.bamboo, labels.climbing, labels.bulbs, labels.perennials, labels.other]
-    : [labels.trees, labels.shrubs, labels.grasses, labels.bamboo, labels.climbing, labels.bulbs, labels.perennials, labels.other];
+  const order = [
+    labels.trees, labels.shrubs, labels.grasses, labels.bamboo,
+    labels.climbing, labels.bulbs, labels.perennials, labels.other,
+  ];
 
-  return order
-    .filter(cat => groups[cat] && groups[cat].length > 0)
-    .map(cat => ({ category: cat, items: groups[cat] }));
+  const flat: PlantItem[] = [];
+  for (const cat of order) {
+    if (!groups[cat] || groups[cat].length === 0) continue;
+    groups[cat].forEach((sel, idx) => {
+      flat.push({ selection: sel, categoryLabel: idx === 0 ? cat : '' });
+    });
+  }
+  return flat;
 };
 
 export const generatePlantSelectionPDF = async (
@@ -140,107 +130,116 @@ export const generatePlantSelectionPDF = async (
   language: 'de' | 'en' = 'de'
 ): Promise<void> => {
   const doc = new jsPDF('landscape', 'mm', 'a3');
-  const pageWidth = doc.internal.pageSize.getWidth();   // 420mm
-  const pageHeight = doc.internal.pageSize.getHeight(); // 297mm
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
   const margin = 12;
   const bottomMargin = 18;
-  const headerH = 22;
-  const legendH = 16;
   const cols = 6;
   const colGap = 3;
   const availW = pageWidth - 2 * margin;
   const cellW = (availW - (cols - 1) * colGap) / cols;
-  const cellH = cellW * 1.35; // portrait rectangle like in the reference
-  const labelH = 10; // space below image for names
-  const cellTotalH = cellH + labelH;
-  const categoryLabelH = 7;
+  const cellH = cellW * 1.35; // portrait rectangle
+  const nameH = 9;            // height reserved below image for names
+  const catLabelH = 6;        // height of category label above image
 
-  let currentY = margin;
   let pageNumber = 1;
+  let currentY = margin;
 
-  // ---- helpers ----
+  // ---- header ----
 
   const drawHeader = async () => {
-    // Top-right: enea logo
+    // Load enea landscape design logo (top-right)
+    let logoRendered = false;
     try {
       const logoDataUrl = await loadImageAsDataURL('/Enea_landscape_design_grey.pdf.jpg');
       const img = new Image();
       img.src = logoDataUrl;
       await new Promise(r => { img.onload = r; img.onerror = r; });
-      const logoW = 70;
+      const logoW = 55;
       const logoH = (img.height / img.width) * logoW;
       doc.addImage(logoDataUrl, 'JPEG', pageWidth - margin - logoW, margin, logoW, logoH);
+      logoRendered = true;
+
+      // Subtitle lines right-aligned beneath logo
+      const subtitleY = margin + logoH + 1;
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(120, 120, 120);
+      const conceptLabel = language === 'de' ? 'Konzept | Bereich' : 'Concept | Area';
+      const titleLabel = language === 'de' ? 'Pflanzenauswahl' : 'Plant Selection';
+      const line1 = projectName ? `${projectName} | ${conceptLabel}` : conceptLabel;
+      doc.text(line1, pageWidth - margin, subtitleY + 3.5, { align: 'right' });
+      doc.text(titleLabel, pageWidth - margin, subtitleY + 7.5, { align: 'right' });
+
+      currentY = margin + logoH + 13;
     } catch {
-      doc.setFontSize(14);
-      doc.setTextColor(80, 80, 80);
-      doc.setFont('helvetica', 'bold');
-      doc.text('enea landart', pageWidth - margin, margin + 6, { align: 'right' });
+      // fallback text logo
     }
 
-    // Subtitle under logo
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(120, 120, 120);
-    const conceptLabel = language === 'de' ? 'Konzept | Bereich' : 'Concept | Area';
-    const titleLabel = language === 'de' ? 'Pflanzenauswahl' : 'Plant Selection';
-    const subtitleLine1 = projectName ? `${projectName} | ${conceptLabel}` : conceptLabel;
-    doc.text(subtitleLine1, pageWidth - margin, margin + (70 * 0.28) + 5, { align: 'right' });
-    doc.text(titleLabel, pageWidth - margin, margin + (70 * 0.28) + 10, { align: 'right' });
+    if (!logoRendered) {
+      // Text fallback resembling reference
+      const logoX = pageWidth - margin;
+      const logoY = margin + 4;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(60, 60, 60);
+      doc.text('enea', logoX - 28, logoY, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text('landart', logoX, logoY, { align: 'right' });
 
-    currentY = margin + headerH;
+      doc.setFontSize(7.5);
+      const conceptLabel = language === 'de' ? 'Konzept | Bereich' : 'Concept | Area';
+      const titleLabel = language === 'de' ? 'Pflanzenauswahl' : 'Plant Selection';
+      const line1 = projectName ? `${projectName} | ${conceptLabel}` : conceptLabel;
+      doc.text(line1, logoX, logoY + 5, { align: 'right' });
+      doc.text(titleLabel, logoX, logoY + 9.5, { align: 'right' });
+
+      currentY = margin + 22;
+    }
   };
 
-  // Draw a small icon using jsPDF primitives (no Unicode)
+  // ---- legend ----
+
   const drawLegendIcon = (type: string, cx: number, cy: number) => {
-    const r = 1.5;
-    doc.setDrawColor(80, 80, 80);
-    doc.setFillColor(80, 80, 80);
+    const r = 1.4;
+    doc.setDrawColor(90, 90, 90);
+    doc.setFillColor(90, 90, 90);
     doc.setLineWidth(0.4);
     switch (type) {
       case 'circle-empty':
         doc.circle(cx, cy, r, 'S');
         break;
-      case 'circle-half': {
-        // full circle outline + filled left half
+      case 'circle-half':
         doc.circle(cx, cy, r, 'S');
-        doc.setFillColor(80, 80, 80);
-        // draw filled semicircle via rect clip approximation
         doc.rect(cx - r, cy - r, r, r * 2, 'F');
         break;
-      }
       case 'circle-full':
         doc.circle(cx, cy, r, 'F');
         break;
-      case 'star': {
-        // small 4-point cross/star
+      case 'star':
         doc.setLineWidth(0.5);
         doc.line(cx - r, cy, cx + r, cy);
         doc.line(cx, cy - r, cx, cy + r);
         doc.line(cx - r * 0.7, cy - r * 0.7, cx + r * 0.7, cy + r * 0.7);
         doc.line(cx - r * 0.7, cy + r * 0.7, cx + r * 0.7, cy - r * 0.7);
         break;
-      }
       case 'diamond': {
-        // small diamond shape
-        doc.setFillColor(80, 80, 80);
         const pts = [
-          { x: cx, y: cy - r * 1.2 },
-          { x: cx + r * 0.8, y: cy },
-          { x: cx, y: cy + r * 1.2 },
-          { x: cx - r * 0.8, y: cy },
-        ];
+          [cx, cy - r * 1.2], [cx + r * 0.8, cy], [cx, cy + r * 1.2], [cx - r * 0.8, cy],
+        ] as [number, number][];
         doc.lines(
-          [[pts[1].x - pts[0].x, pts[1].y - pts[0].y],
-           [pts[2].x - pts[1].x, pts[2].y - pts[1].y],
-           [pts[3].x - pts[2].x, pts[3].y - pts[2].y],
-           [pts[0].x - pts[3].x, pts[0].y - pts[3].y]],
-          pts[0].x, pts[0].y, [1, 1], 'F', true
+          [[pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]],
+           [pts[2][0] - pts[1][0], pts[2][1] - pts[1][1]],
+           [pts[3][0] - pts[2][0], pts[3][1] - pts[2][1]],
+           [pts[0][0] - pts[3][0], pts[0][1] - pts[3][1]]],
+          pts[0][0], pts[0][1], [1, 1], 'F', true
         );
         break;
       }
-      case 'snowflake': {
-        // asterisk with 6 lines
+      case 'snowflake':
         doc.setLineWidth(0.4);
         for (let a = 0; a < 3; a++) {
           const angle = (a * Math.PI) / 3;
@@ -250,21 +249,12 @@ export const generatePlantSelectionPDF = async (
           );
         }
         break;
-      }
-      case 'leaf': {
-        // simple small filled circle as leaf proxy
-        doc.setFillColor(80, 80, 80);
-        doc.circle(cx, cy, r * 0.9, 'F');
-        break;
-      }
-      case 'herb': {
-        // small Y shape
+      case 'herb':
         doc.setLineWidth(0.4);
         doc.line(cx, cy + r, cx, cy);
         doc.line(cx, cy, cx - r * 0.8, cy - r * 0.8);
         doc.line(cx, cy, cx + r * 0.8, cy - r * 0.8);
         break;
-      }
       default:
         doc.circle(cx, cy, r, 'S');
     }
@@ -273,7 +263,7 @@ export const generatePlantSelectionPDF = async (
     doc.setDrawColor(0, 0, 0);
   };
 
-  const drawLegend = () => {
+  const drawLegend = (startY: number): number => {
     const items_de = [
       { icon: 'star',         label: 'Schmetterlingsweide' },
       { icon: 'star',         label: 'einheimisch' },
@@ -304,11 +294,10 @@ export const generatePlantSelectionPDF = async (
     ];
     const items = language === 'de' ? items_de : items_en;
 
-    // 3 columns of 4 items
     const itemsPerCol = 4;
-    const colW = 85;
-    const itemH = 4.2;
-    const iconR = 1.5;
+    const colW = 80;
+    const itemH = 4.0;
+    const iconOffset = 1.5;
 
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
@@ -318,133 +307,144 @@ export const generatePlantSelectionPDF = async (
       const col = Math.floor(i / itemsPerCol);
       const row = i % itemsPerCol;
       const x = margin + col * colW;
-      const y = currentY + row * itemH + 3;
-      drawLegendIcon(items[i].icon, x + iconR, y - iconR * 0.5);
-      doc.text(items[i].label, x + iconR * 2 + 2, y);
+      const y = startY + row * itemH + 3;
+      drawLegendIcon(items[i].icon, x + iconOffset, y - 1);
+      doc.text(items[i].label, x + iconOffset * 2 + 2.5, y);
     }
 
-    currentY += legendH;
+    return startY + itemsPerCol * itemH + 2; // return Y after legend
   };
 
+  // ---- footer ----
+
   const drawFooter = async (page: number) => {
-    // Page number bottom left
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(120, 120, 120);
-    doc.text(String(page), margin, pageHeight - 6);
+    doc.text(String(page), margin, pageHeight - 5);
 
-    // enea copyright logo bottom right
     try {
       const logoDataUrl = await loadImageAsDataURL('/enea-logo-copyright.png');
       const img = new Image();
       img.src = logoDataUrl;
       await new Promise(r => { img.onload = r; img.onerror = r; });
-      const logoH = 10;
+      const logoH = 9;
       const logoW = (img.width / img.height) * logoH;
       doc.addImage(logoDataUrl, 'PNG', pageWidth - margin - logoW, pageHeight - margin - logoH + 4, logoW, logoH);
     } catch {
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
-      doc.text(`© ${new Date().getFullYear()} enea`, pageWidth - margin, pageHeight - 6, { align: 'right' });
+      doc.text(`© ${new Date().getFullYear()} enea`, pageWidth - margin, pageHeight - 5, { align: 'right' });
     }
   };
 
-  const newPage = async () => {
+  const startNewPage = async () => {
     await drawFooter(pageNumber);
     doc.addPage();
     pageNumber++;
     currentY = margin;
     await drawHeader();
-    // No legend on subsequent pages
   };
 
   // ---- render ----
 
   await drawHeader();
-  drawLegend();
+  currentY = drawLegend(currentY);
 
-  const groups = groupByCategory(selections, language);
+  // Build flat list: each item knows if it starts a new category
+  const flatList = buildFlatList(selections, language);
 
-  for (const group of groups) {
-    // Category label
-    if (currentY + categoryLabelH + cellTotalH > pageHeight - bottomMargin) {
-      await newPage();
+  // We track column position across all categories (seamless flow)
+  let colIndex = 0;
+  // Track the Y of the current row (all 6 columns in a row share the same rowY)
+  let rowY = currentY;
+  // We need to draw category labels above the first plant of each category.
+  // Since plants flow seamlessly, the label sits above the image in its column.
+  // If a category starts mid-row, its label appears above that column only.
+
+  for (let i = 0; i < flatList.length; i++) {
+    const item = flatList[i];
+    const plant = item.selection.plant;
+    if (!plant) continue;
+
+    const isCategoryStart = item.categoryLabel !== '';
+
+    // Space needed for this cell: catLabel (if first of category) + cellH + nameH
+    const extraTop = isCategoryStart ? catLabelH : 0;
+    const totalCellH = extraTop + cellH + nameH;
+
+    // If starting a new row (colIndex === 0), check if it fits on page
+    if (colIndex === 0) {
+      if (rowY + totalCellH > pageHeight - bottomMargin) {
+        await startNewPage();
+        rowY = currentY;
+      }
     }
 
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text(group.category, margin, currentY + 5);
-    currentY += categoryLabelH;
+    const x = margin + colIndex * (cellW + colGap);
 
-    // Plants in rows of 6
-    let colIndex = 0;
-
-    for (const selection of group.items) {
-      const plant = selection.plant;
-      if (!plant) continue;
-
-      // New row overflow check
-      if (colIndex === 0 && currentY + cellTotalH > pageHeight - bottomMargin) {
-        await newPage();
-      }
-
-      const x = margin + colIndex * (cellW + colGap);
-      const imageY = currentY;
-
-      // Draw image placeholder (light grey)
-      doc.setFillColor(230, 230, 230);
-      doc.rect(x, imageY, cellW, cellH, 'F');
-
-      // Load & draw plant image
-      try {
-        let imageUrls = await loadPlantImages(plant.id);
-        if (imageUrls.length === 0 && plant.image_url) imageUrls = [plant.image_url];
-
-        if (imageUrls[0]) {
-          const raw = await loadImageAsDataURL(imageUrls[0]);
-          const cropped = await cropToRatioDataURL(raw, 400, Math.round(400 * 1.35));
-          doc.addImage(cropped, 'JPEG', x, imageY, cellW, cellH);
-        }
-      } catch {
-        // Keep grey placeholder
-      }
-
-      // Names below image
-      const nameY = imageY + cellH + 3.5;
-      const commonName = language === 'de'
-        ? (plant.common_name_de || plant.common_name_en || '')
-        : (plant.common_name_en || plant.common_name_de || '');
-      const botanicName = plant.botanical_name || '';
-
-      doc.setFontSize(7);
+    // Draw category label above this cell if it's the first of its category
+    if (isCategoryStart) {
+      doc.setFontSize(8.5);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(60, 60, 60);
-      const commonLines = doc.splitTextToSize(commonName, cellW);
-      doc.text(commonLines[0] || '', x, nameY);
-
-      doc.setFontSize(6.5);
-      doc.setFont('helvetica', 'italic');
       doc.setTextColor(100, 100, 100);
-      const botanicLines = doc.splitTextToSize(botanicName, cellW);
-      doc.text(botanicLines[0] || '', x, nameY + 3.5);
+      doc.text(item.categoryLabel, x, rowY + catLabelH - 1.5);
+    }
 
-      colIndex++;
+    // Image top: rowY + catLabelH if category start, else rowY
+    // But rows must be aligned — we always use a fixed rowY for the image top.
+    // When a category label is present, it sits in the catLabelH space above.
+    // We need the image baseline to be consistent across all cols in the row.
+    // Solution: track rowImageY = rowY + maxExtraTop for this row.
+    // Since we don't know future items, we use a simple rule:
+    // rowImageY is set when colIndex === 0 (start of row).
 
-      if (colIndex >= cols) {
-        colIndex = 0;
-        currentY += cellTotalH + 2;
+    // Draw image placeholder
+    const imageY = rowY + catLabelH; // always reserve catLabelH at top of row
+    doc.setFillColor(228, 228, 228);
+    doc.rect(x, imageY, cellW, cellH, 'F');
+
+    // Load image
+    try {
+      let imageUrls = await loadPlantImages(plant.id);
+      if (imageUrls.length === 0 && plant.image_url) imageUrls = [plant.image_url];
+      if (imageUrls[0]) {
+        const raw = await loadImageAsDataURL(imageUrls[0]);
+        const cropped = await cropToRatioDataURL(raw, 400, Math.round(400 * 1.35));
+        doc.addImage(cropped, 'JPEG', x, imageY, cellW, cellH);
       }
+    } catch {
+      // keep placeholder
     }
 
-    // Finish partial row
-    if (colIndex > 0) {
-      currentY += cellTotalH + 2;
+    // Names below image
+    const nameY = imageY + cellH + 3;
+    const commonName = language === 'de'
+      ? (plant.common_name_de || plant.common_name_en || '')
+      : (plant.common_name_en || plant.common_name_de || '');
+    const botanicName = plant.botanical_name || '';
+
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    doc.text(doc.splitTextToSize(commonName, cellW)[0] || '', x, nameY);
+
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 100, 100);
+    doc.text(doc.splitTextToSize(botanicName, cellW)[0] || '', x, nameY + 3.5);
+
+    colIndex++;
+
+    if (colIndex >= cols) {
       colIndex = 0;
+      rowY += catLabelH + cellH + nameH + 2;
     }
+  }
 
-    // Gap between categories
-    currentY += 2;
+  // Flush last partial row
+  if (colIndex > 0) {
+    // rowY already set — nothing needed, footer will be placed below
   }
 
   await drawFooter(pageNumber);
