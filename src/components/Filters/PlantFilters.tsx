@@ -426,25 +426,27 @@ export const PlantFilters: React.FC<PlantFiltersProps> = ({ filters, onFilterCha
         onChange={(zones) => onFilterChange({ ...filters, climateZones: zones })}
       />
 
-      <div>
-        <label className="flex items-center gap-3 cursor-pointer p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-          <input
-            type="checkbox"
-            checked={filters.treeOfTheFuture}
-            onChange={(e) => onFilterChange({ ...filters, treeOfTheFuture: e.target.checked })}
-            className="w-5 h-5 rounded border-gray-300 bg-white text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
-          />
-          <div className="flex items-center gap-2">
-            <img
-              src="/trees_of_the_future.png"
-              alt="Tree of the Future"
-              className="w-6 h-6 object-contain flex-shrink-0"
-              title="Tree of the Future"
+      {filters.plantTypes.includes('tree') && (
+        <div>
+          <label className="flex items-center gap-3 cursor-pointer p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <input
+              type="checkbox"
+              checked={filters.treeOfTheFuture}
+              onChange={(e) => onFilterChange({ ...filters, treeOfTheFuture: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-300 bg-white text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
             />
-            <span className="text-sm font-medium text-gray-900">Tree of the Future</span>
-          </div>
-        </label>
-      </div>
+            <div className="flex items-center gap-2">
+              <img
+                src="/trees_of_the_future.png"
+                alt="Tree of the Future"
+                className="w-6 h-6 object-contain flex-shrink-0"
+                title="Tree of the Future"
+              />
+              <span className="text-sm font-medium text-gray-900">Tree of the Future</span>
+            </div>
+          </label>
+        </div>
+      )}
 
       <MultiSelectDropdown
         label="Leaf persistence"
