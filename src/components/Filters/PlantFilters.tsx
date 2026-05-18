@@ -28,7 +28,7 @@ const CLIMATE_ZONE_GROUPS = {
   mediterranean: { name: 'Mediterranean', zones: ['9a', '9b', '10a', '10b'], color: 'bg-rose-50 border-rose-200' },
 };
 
-const PLANT_TYPES = ['tree', 'shrub', 'perennial', 'annual', 'grass', 'bulb', 'acquatic', 'tuberous_rooted', 'medicinal_herbs'];
+const PLANT_TYPES = ['tree', 'shrub', 'perennial', 'grass', 'bulb', 'acquatic', 'medicinal_herbs'];
 const SUN_REQUIREMENTS = ['sun', 'halfshade', 'shade'];
 const LAYERS = ['Structural', 'Companion', 'Ground Cover', 'Free Floaters'];
 const PLANT_SIZES = ['short', 'medium', 'tall'];
@@ -65,11 +65,9 @@ const formatLabel = (value: string): string => {
   if (value === 'tree') return 'Trees';
   if (value === 'shrub') return 'Shrubs';
   if (value === 'perennial') return 'Perennials';
-  if (value === 'annual') return 'Annuals';
   if (value === 'grass') return 'Grasses';
   if (value === 'bulb') return 'Bulbs';
   if (value === 'acquatic') return 'Aquatic Plants';
-  if (value === 'tuberous_rooted') return 'Tuberous-rooted';
   if (value === 'medicinal_herbs') return 'Medicinal Herbs';
   if (value === 'ch_native') return 'CH Native';
 

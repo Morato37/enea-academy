@@ -315,11 +315,9 @@ export const PlantDetailPage: React.FC = () => {
                   { key: 'category_tree', label: 'Tree' },
                   { key: 'category_shrub', label: 'Shrub' },
                   { key: 'category_perennial', label: 'Perennial' },
-                  { key: 'category_annual', label: 'Annual' },
                   { key: 'category_grass', label: 'Grass' },
                   { key: 'category_bulb', label: 'Bulb' },
                   { key: 'category_acquatic', label: 'Aquatic Plants' },
-                  { key: 'category_tuberous_rooted', label: 'Tuberous-rooted' },
                   { key: 'category_medicinal_herbs', label: 'Medicinal Herbs' },
                 ].map(({ key, label }) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
