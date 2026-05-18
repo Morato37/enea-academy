@@ -273,6 +273,11 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
       if (plant.category_nonvascular) plantTypes.push('Non-vascular');
       if (plant.category_fern) plantTypes.push('Fern');
       if (plant.category_climbing_plant) plantTypes.push('Climbing Plant');
+      if (plant.category_formal_hedge) plantTypes.push('Formal Hedge');
+      if (plant.category_wild_hedge) plantTypes.push('Wild Hedge');
+      if (plant.category_toxic_plant) plantTypes.push('Toxic Plant');
+      if (plant.category_ground_cover) plantTypes.push('Ground Cover');
+      if (plant.category_culinary_plant) plantTypes.push('Culinary Plant');
       if (plantTypes.length > 0) {
         doc.text(`Category: ${plantTypes.join(', ')}`, textStartX, textY);
         textY += 4;

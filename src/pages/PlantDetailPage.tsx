@@ -318,6 +318,11 @@ export const PlantDetailPage: React.FC = () => {
                   { key: 'category_medicinal_herbs', label: 'Medicinal Herbs' },
                   { key: 'category_fern', label: 'Ferns' },
                   { key: 'category_climbing_plant', label: 'Climbing Plants' },
+                  { key: 'category_formal_hedge', label: 'Formal Hedge' },
+                  { key: 'category_wild_hedge', label: 'Wild Hedge' },
+                  { key: 'category_toxic_plant', label: 'Toxic Plant' },
+                  { key: 'category_ground_cover', label: 'Ground Cover' },
+                  { key: 'category_culinary_plant', label: 'Culinary Plant' },
                 ].map(({ key, label }) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -561,8 +566,6 @@ export const PlantDetailPage: React.FC = () => {
                   { key: 'usage_solitary_garden', label: 'Private Garden' },
                   { key: 'usage_solitary_park', label: 'Private Park' },
                   { key: 'usage_solitary_terrace', label: 'Private Terrace' },
-                  { key: 'usage_formal_hedge', label: 'Formal Hedge' },
-                  { key: 'usage_wild_hedge', label: 'Wild Hedge' },
                 ].map(({ key, label }) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
                     <input

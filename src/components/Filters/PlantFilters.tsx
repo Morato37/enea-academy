@@ -28,7 +28,7 @@ const CLIMATE_ZONE_GROUPS = {
   mediterranean: { name: 'Mediterranean', zones: ['9a', '9b', '10a', '10b'], color: 'bg-rose-50 border-rose-200' },
 };
 
-const PLANT_TYPES = ['tree', 'shrub', 'perennial', 'grass', 'bulb', 'acquatic', 'medicinal_herbs', 'fern', 'climbing_plant'];
+const PLANT_TYPES = ['tree', 'shrub', 'perennial', 'grass', 'bulb', 'acquatic', 'medicinal_herbs', 'fern', 'climbing_plant', 'formal_hedge', 'wild_hedge', 'toxic_plant', 'ground_cover', 'culinary_plant'];
 const SUN_REQUIREMENTS = ['sun', 'halfshade', 'shade'];
 const LAYERS = ['Structural', 'Companion', 'Ground Cover', 'Free Floaters'];
 const PLANT_SIZES = ['short', 'medium', 'tall'];
@@ -40,8 +40,6 @@ const USAGE_CATEGORIES = [
   'solitary_garden',
   'solitary_park',
   'solitary_terrace',
-  'formal_hedge',
-  'wild_hedge',
 ];
 
 const formatLabel = (value: string): string => {
@@ -71,6 +69,11 @@ const formatLabel = (value: string): string => {
   if (value === 'medicinal_herbs') return 'Medicinal Herbs';
   if (value === 'fern') return 'Ferns';
   if (value === 'climbing_plant') return 'Climbing Plants';
+  if (value === 'formal_hedge') return 'Formal Hedge';
+  if (value === 'wild_hedge') return 'Wild Hedge';
+  if (value === 'toxic_plant') return 'Toxic Plant';
+  if (value === 'ground_cover') return 'Ground Cover';
+  if (value === 'culinary_plant') return 'Culinary Plant';
   if (value === 'ch_native') return 'CH Native';
 
   return value

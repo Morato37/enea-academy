@@ -37,6 +37,11 @@ export interface Plant {
   category_nonvascular?: boolean;
   category_fern?: boolean;
   category_climbing_plant?: boolean;
+  category_formal_hedge?: boolean;
+  category_wild_hedge?: boolean;
+  category_toxic_plant?: boolean;
+  category_ground_cover?: boolean;
+  category_culinary_plant?: boolean;
 
   // Exposure requirements
   exposure_sun?: boolean;
