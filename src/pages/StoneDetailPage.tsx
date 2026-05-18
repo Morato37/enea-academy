@@ -249,9 +249,9 @@ export const StoneDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Climate Zones */}
+            {/* Hardiness Zones */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Climate Zones</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Hardiness Zones</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {[
                   { key: 'mediterranean_zone', label: 'Mediterranean' },

@@ -94,7 +94,7 @@ export const LocationFilter: React.FC<LocationFilterProps> = ({
         onRegionDetected?.([region]);
       }
     } catch (err) {
-      setError('Failed to detect climate zones for this location.');
+      setError('Failed to detect hardiness zones for this location.');
     } finally {
       setLoading(false);
     }
@@ -320,7 +320,7 @@ export const LocationFilter: React.FC<LocationFilterProps> = ({
             {zoneResult && (
               <div className="space-y-1">
                 <p className="text-xs text-emerald-300">
-                  Climate zone: <span className="font-semibold">{zoneResult.zone}</span>
+                  Hardiness zone: <span className="font-semibold">{zoneResult.zone}</span>
                 </p>
 
                 <div className="flex items-center gap-2 text-xs text-emerald-300">
@@ -345,7 +345,7 @@ export const LocationFilter: React.FC<LocationFilterProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">
                   {mode === 'zones'
-                    ? (selectedZones.length === 0 ? 'All Climate Zones' : `${selectedZones.length} zone${selectedZones.length > 1 ? 's' : ''} selected`)
+                    ? (selectedZones.length === 0 ? 'All Hardiness Zones' : `${selectedZones.length} zone${selectedZones.length > 1 ? 's' : ''} selected`)
                     : (selectedRegions.length === 0 ? 'All Regions' : `${selectedRegions.length} region${selectedRegions.length > 1 ? 's' : ''} selected`)}
                 </span>
                 <div className="flex items-center gap-2">

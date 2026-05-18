@@ -250,7 +250,7 @@ const ClimateZoneSelector: React.FC<ClimateZoneSelectorProps> = ({ selectedZones
   return (
     <div className="relative">
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Climate Zone
+        Hardiness Zone
       </label>
 
       <div className="relative">

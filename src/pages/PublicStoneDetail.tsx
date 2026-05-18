@@ -280,7 +280,7 @@ export const PublicStoneDetail: React.FC = () => {
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Mountain className="w-5 h-5 text-blue-600" />
-                Climate Zones
+                Hardiness Zones
               </h2>
               <div className="space-y-2">
                 {zones.map((zone, index) => (

@@ -535,7 +535,7 @@ export const PlantDetailPage: React.FC = () => {
 
             {/* Climate Zones */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Climate Zones</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Hardiness Zones</h2>
               <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                 {[
                   'zone_5a', 'zone_5b', 'zone_6a', 'zone_6b', 'zone_7a', 'zone_7b',
