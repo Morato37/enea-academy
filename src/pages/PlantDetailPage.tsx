@@ -254,18 +254,10 @@ export const PlantDetailPage: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
               {isNewPlant ? 'Add New Plant' : 'Edit Plant'}
             </h1>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save'}
-            </button>
           </div>
 
           <div className="space-y-6">
@@ -757,6 +749,18 @@ export const PlantDetailPage: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Fixed save button — bottom right */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl shadow-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors text-sm font-medium"
+        >
+          <Save className="w-4 h-4" />
+          {saving ? 'Saving...' : 'Save'}
+        </button>
       </div>
     </div>
   );
