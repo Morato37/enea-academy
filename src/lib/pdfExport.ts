@@ -271,6 +271,8 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
       if (plant.category_bulb) plantTypes.push('Bulb');
       if (plant.category_acquatic) plantTypes.push('Aquatic');
       if (plant.category_nonvascular) plantTypes.push('Non-vascular');
+      if (plant.category_fern) plantTypes.push('Fern');
+      if (plant.category_climbing_plant) plantTypes.push('Climbing Plant');
       if (plantTypes.length > 0) {
         doc.text(`Category: ${plantTypes.join(', ')}`, textStartX, textY);
         textY += 4;

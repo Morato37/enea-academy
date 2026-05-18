@@ -35,6 +35,8 @@ export interface Plant {
   category_bulb?: boolean;
   category_acquatic?: boolean;
   category_nonvascular?: boolean;
+  category_fern?: boolean;
+  category_climbing_plant?: boolean;
 
   // Exposure requirements
   exposure_sun?: boolean;

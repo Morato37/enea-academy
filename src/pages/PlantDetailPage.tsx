@@ -316,6 +316,8 @@ export const PlantDetailPage: React.FC = () => {
                   { key: 'category_bulb', label: 'Bulb' },
                   { key: 'category_acquatic', label: 'Aquatic Plants' },
                   { key: 'category_medicinal_herbs', label: 'Medicinal Herbs' },
+                  { key: 'category_fern', label: 'Ferns' },
+                  { key: 'category_climbing_plant', label: 'Climbing Plants' },
                 ].map(({ key, label }) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
                     <input
