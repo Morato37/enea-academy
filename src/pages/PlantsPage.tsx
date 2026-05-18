@@ -21,6 +21,7 @@ export const PlantsPage: React.FC = () => {
   } = usePlantsPage();
 
   const [page, setPage] = useState(1);
+  const [layerPanelOpen, setLayerPanelOpen] = useState(true);
 
   // Reset to first page whenever filters change
   useEffect(() => {
@@ -171,8 +172,20 @@ export const PlantsPage: React.FC = () => {
       </div>
 
       {filters.naturalisticPlantingDesign && (
-        <aside className="fixed right-8 top-32 w-64 sticky-right max-h-[calc(100vh-10rem)] overflow-y-auto">
-          <LayerDistribution />
+        <aside
+          className="fixed top-32 z-50 transition-transform duration-300 ease-in-out"
+          style={{ right: layerPanelOpen ? '2rem' : '-16rem' }}
+        >
+          <button
+            onClick={() => setLayerPanelOpen(o => !o)}
+            className="absolute -left-8 top-4 bg-white border border-gray-200 rounded-l-lg px-1.5 py-3 shadow-md hover:bg-gray-50 transition-colors flex items-center justify-center"
+            title={layerPanelOpen ? 'Hide panel' : 'Show Layer Distribution'}
+          >
+            {layerPanelOpen ? <ChevronRight size={14} className="text-gray-600" /> : <ChevronLeft size={14} className="text-gray-600" />}
+          </button>
+          <div className="w-64 max-h-[calc(100vh-10rem)] overflow-y-auto">
+            <LayerDistribution />
+          </div>
         </aside>
       )}
     </div>
