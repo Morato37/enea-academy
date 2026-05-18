@@ -101,6 +101,11 @@ export const PlantDetailPage: React.FC = () => {
           }
         });
 
+        // Convert undefined/empty layer to null so it actually clears in DB
+        if (cleanedPlant.layer === undefined || cleanedPlant.layer === '') {
+          cleanedPlant.layer = null as any;
+        }
+
         console.log('Updating plant with cleaned data:', cleanedPlant);
         console.log('Color values after cleaning:', {
           jan: cleanedPlant.color_jan,
