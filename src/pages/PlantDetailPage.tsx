@@ -584,23 +584,25 @@ export const PlantDetailPage: React.FC = () => {
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Special Attributes</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={plant.tree_of_the_future || false}
-                    onChange={(e) => setPlant({ ...plant, tree_of_the_future: e.target.checked })}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-900 flex items-center gap-2">
-                    Tree of the Future
-                    <img
-                      src="/image.png"
-                      alt="Badge"
-                      className="w-5 h-5"
-                      title="This badge will be displayed on the plant card"
+                {plant.category_tree && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={plant.tree_of_the_future || false}
+                      onChange={(e) => setPlant({ ...plant, tree_of_the_future: e.target.checked })}
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                     />
-                  </span>
-                </label>
+                    <span className="text-sm text-gray-900 flex items-center gap-2">
+                      Tree of the Future
+                      <img
+                        src="/image.png"
+                        alt="Badge"
+                        className="w-5 h-5"
+                        title="This badge will be displayed on the plant card"
+                      />
+                    </span>
+                  </label>
+                )}
               </div>
             </div>
 
