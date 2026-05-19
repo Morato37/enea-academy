@@ -22,6 +22,10 @@ export const PlantDetailPage: React.FC = () => {
   const isNewPlant = id === 'new';
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     if (!isNewPlant) {
       loadPlant();
     } else {
