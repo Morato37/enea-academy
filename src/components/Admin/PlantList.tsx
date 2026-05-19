@@ -55,18 +55,15 @@ export const PlantList: React.FC = () => {
     }
   }, [searchTerm]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      try {
-        sessionStorage.setItem(SCROLL_POSITION_KEY, window.scrollY.toString());
-      } catch (error) {
-        console.error('Error saving scroll position:', error);
-      }
-    };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const saveScrollAndNavigate = (path: string) => {
+    try {
+      sessionStorage.setItem(SCROLL_POSITION_KEY, window.scrollY.toString());
+    } catch {
+      // ignore
+    }
+    navigate(path);
+  };
 
   const loadPlants = async () => {
     setLoading(true);
@@ -154,7 +151,7 @@ export const PlantList: React.FC = () => {
           />
         </div>
         <button
-          onClick={() => navigate('/admin/plant/new?from=plants')}
+          onClick={() => saveScrollAndNavigate('/admin/plant/new?from=plants')}
           className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -217,7 +214,7 @@ export const PlantList: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => navigate(`/admin/plant/${plant.id}?from=plants`)}
+                          onClick={() => saveScrollAndNavigate(`/admin/plant/${plant.id}?from=plants`)}
                           className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                         >
                           <Edit className="w-3 h-3" />
