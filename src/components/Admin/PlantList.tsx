@@ -34,9 +34,11 @@ export const PlantList: React.FC = () => {
         const savedScroll = sessionStorage.getItem(SCROLL_POSITION_KEY);
         if (savedScroll) {
           const scrollPosition = parseInt(savedScroll, 10);
-          setTimeout(() => {
-            window.scrollTo(0, scrollPosition);
-          }, 0);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              window.scrollTo(0, scrollPosition);
+            });
+          });
         }
         scrollRestoredRef.current = true;
       } catch (error) {
