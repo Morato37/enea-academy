@@ -317,6 +317,7 @@ export const PlantDetailPage: React.FC = () => {
                   { key: 'category_shrub', label: 'Shrub' },
                   { key: 'category_perennial', label: 'Perennial' },
                   { key: 'category_annual', label: 'Annual' },
+                  { key: 'category_succulent', label: 'Succulent' },
                   { key: 'category_grass', label: 'Grass' },
                   { key: 'category_bulb', label: 'Bulb' },
                   { key: 'category_acquatic', label: 'Aquatic Plants' },

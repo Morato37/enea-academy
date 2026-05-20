@@ -28,7 +28,7 @@ const CLIMATE_ZONE_GROUPS = {
   mediterranean: { name: 'Mediterranean', zones: ['9a', '9b', '10a', '10b'], color: 'bg-rose-50 border-rose-200' },
 };
 
-const PLANT_TYPES = ['tree', 'shrub', 'perennial', 'annual', 'grass', 'bulb', 'acquatic', 'medicinal_herbs', 'fern', 'climbing_plant', 'formal_hedge', 'wild_hedge', 'toxic_plant', 'ground_cover', 'culinary_plant'];
+const PLANT_TYPES = ['tree', 'shrub', 'perennial', 'annual', 'grass', 'bulb', 'succulent', 'acquatic', 'medicinal_herbs', 'fern', 'climbing_plant', 'formal_hedge', 'wild_hedge', 'toxic_plant', 'ground_cover', 'culinary_plant'];
 const SUN_REQUIREMENTS = ['sun', 'halfshade', 'shade'];
 const LAYERS = ['Structural', 'Companion', 'Ground Cover', 'Free Floaters'];
 const PLANT_SIZES = ['short', 'medium', 'tall'];
@@ -64,6 +64,7 @@ const formatLabel = (value: string): string => {
   if (value === 'shrub') return 'Shrubs';
   if (value === 'perennial') return 'Perennials';
   if (value === 'annual') return 'Annuals';
+  if (value === 'succulent') return 'Succulents';
   if (value === 'grass') return 'Grasses';
   if (value === 'bulb') return 'Bulbs';
   if (value === 'acquatic') return 'Aquatic Plants';
