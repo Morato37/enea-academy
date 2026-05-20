@@ -60,17 +60,17 @@ const formatLabel = (value: string): string => {
   }
 
   // Special formatting for specific categories
-  if (value === 'tree') return 'Trees';
-  if (value === 'shrub') return 'Shrubs';
-  if (value === 'perennial') return 'Perennials';
-  if (value === 'annual') return 'Annuals';
-  if (value === 'succulent') return 'Succulents';
-  if (value === 'grass') return 'Grasses';
-  if (value === 'bulb') return 'Bulbs';
-  if (value === 'acquatic') return 'Aquatic Plants';
-  if (value === 'medicinal_herbs') return 'Medicinal Herbs';
-  if (value === 'fern') return 'Ferns';
-  if (value === 'climbing_plant') return 'Climbing Plants';
+  if (value === 'tree') return 'Tree';
+  if (value === 'shrub') return 'Shrub';
+  if (value === 'perennial') return 'Perennial';
+  if (value === 'annual') return 'Annual';
+  if (value === 'succulent') return 'Succulent';
+  if (value === 'grass') return 'Grass';
+  if (value === 'bulb') return 'Bulb';
+  if (value === 'acquatic') return 'Aquatic Plant';
+  if (value === 'medicinal_herbs') return 'Medicinal Herb';
+  if (value === 'fern') return 'Fern';
+  if (value === 'climbing_plant') return 'Climbing Plant';
   if (value === 'formal_hedge') return 'Formal Hedge';
   if (value === 'wild_hedge') return 'Wild Hedge';
   if (value === 'toxic_plant') return 'Toxic Plant';
@@ -410,7 +410,7 @@ export const PlantFilters: React.FC<PlantFiltersProps> = ({ filters, onFilterCha
       />
 
       <MultiSelectDropdown
-        label="Size (Perennials & Grasses)"
+        label="Size (Perennial & Grass)"
         options={PLANT_SIZES}
         selectedValues={filters.sizes}
         onChange={(values) => onFilterChange({ ...filters, sizes: values })}
