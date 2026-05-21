@@ -63,15 +63,15 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       setError(null);
       setSuccess(false);
 
-      const pngBlob = await convertToPng(file);
-      const fileName = `${type}-${itemId}-${Date.now()}.webp`;
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${type}-${itemId}-${Date.now()}.${ext}`;
       const bucket = type === 'plant' ? 'plant-images' : 'stone-images';
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(fileName, pngBlob, {
-          contentType: 'image/webp',
-          cacheControl: '3600',
+        .upload(fileName, file, {
+          contentType: file.type,
+          cacheControl: '31536000',
           upsert: false,
         });
 

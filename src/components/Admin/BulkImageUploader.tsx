@@ -86,13 +86,15 @@ export const BulkImageUploader: React.FC = () => {
               throw new Error(`Image '${fileName}' is too large (${fileSizeMB.toFixed(1)}MB). Maximum size is 100MB.`);
             }
 
-            const blob = await convertToPng(arrayBuffer);
-            const storageFileName = `${plantId}_${j + 1}.webp`;
+            const ext = fileName.split('.').pop()?.toLowerCase() || 'jpg';
+            const storageFileName = `${plantId}_${j + 1}.${ext}`;
+            const rawBlob = new Blob([arrayBuffer]);
 
             const { error: uploadError } = await supabase.storage
               .from('plant-images')
-              .upload(storageFileName, blob, {
-                contentType: 'image/webp',
+              .upload(storageFileName, rawBlob, {
+                contentType: imageFile.name.endsWith('.png') ? 'image/png' : 'image/jpeg',
+                cacheControl: '31536000',
                 upsert: true
               });
 
