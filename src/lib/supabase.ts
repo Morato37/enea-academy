@@ -42,6 +42,7 @@ export interface Plant {
   category_toxic_plant?: boolean;
   category_ground_cover?: boolean;
   category_culinary_plant?: boolean;
+  category_medicinal_herbs?: boolean;
 
   // Exposure requirements
   exposure_sun?: boolean;
