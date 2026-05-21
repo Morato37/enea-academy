@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase, Stone } from '../lib/supabase';
-import { ArrowLeft, Save, Loader } from 'lucide-react';
+import { ArrowLeft, Save, Loader, Check, AlertCircle, Clock } from 'lucide-react';
+import { useAutoSave } from '../lib/useAutoSave';
 import { ImageUploader } from '../components/Admin/ImageUploader';
 import { StoneCombinationsManager } from '../components/Admin/StoneCombinationsManager';
 import { FinishImageManager } from '../components/Admin/FinishImageManager';
@@ -33,6 +34,20 @@ export const StoneDetailPage: React.FC = () => {
     }
   }, [id]);
 
+  const saveExistingStone = useCallback(async (data: Partial<Stone>) => {
+    const { error } = await supabase
+      .from('stones')
+      .update(data)
+      .eq('id', id);
+    if (error) throw error;
+  }, [id]);
+
+  const { status: autoSaveStatus } = useAutoSave(
+    stone,
+    saveExistingStone,
+    { enabled: !isNewStone && !loading }
+  );
+
   const loadStone = async () => {
     setLoading(true);
     try {
@@ -59,10 +74,9 @@ export const StoneDetailPage: React.FC = () => {
       return;
     }
 
-    setSaving(true);
-    try {
-      if (isNewStone) {
-        // Remove id and any undefined/null fields for new stones
+    if (isNewStone) {
+      setSaving(true);
+      try {
         const { id: _id, ...rest } = stone;
         const stoneData = Object.fromEntries(
           Object.entries(rest).filter(([_, v]) => v !== undefined && v !== null && v !== '')
@@ -75,28 +89,28 @@ export const StoneDetailPage: React.FC = () => {
 
         if (error) throw error;
 
-        // If there's a pending image, upload it now
         if (pendingImageFile && newStone) {
           await uploadPendingImage(newStone.id, pendingImageFile);
         }
 
         alert('Stone created successfully');
         navigate(`/admin?tab=${fromTab}`);
-      } else {
-        const { error } = await supabase
-          .from('stones')
-          .update(stone)
-          .eq('id', id);
-
-        if (error) throw error;
-        alert('Stone updated successfully');
-        await loadStone();
+      } catch (err: any) {
+        console.error('Error saving stone:', err);
+        alert(`Failed to save stone: ${err.message || JSON.stringify(err)}`);
+      } finally {
+        setSaving(false);
       }
-    } catch (err: any) {
-      console.error('Error saving stone:', err);
-      alert(`Failed to save stone: ${err.message || JSON.stringify(err)}`);
-    } finally {
-      setSaving(false);
+    } else {
+      setSaving(true);
+      try {
+        await saveExistingStone(stone);
+      } catch (err: any) {
+        console.error('Error saving stone:', err);
+        alert(`Failed to save stone: ${err.message || JSON.stringify(err)}`);
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -158,14 +172,31 @@ export const StoneDetailPage: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">
               {isNewStone ? 'Add New Stone' : 'Edit Stone'}
             </h1>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save'}
-            </button>
+            <div className="flex items-center gap-3">
+              {!isNewStone && (
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
+                  autoSaveStatus === 'saving'  ? 'bg-blue-50 text-blue-600 border border-blue-200' :
+                  autoSaveStatus === 'saved'   ? 'bg-green-50 text-green-700 border border-green-200' :
+                  autoSaveStatus === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                  autoSaveStatus === 'error'   ? 'bg-red-50 text-red-600 border border-red-200' :
+                  'bg-gray-50 text-gray-400 border border-gray-200'
+                }`}>
+                  {autoSaveStatus === 'saving'  && <><Loader className="w-3 h-3 animate-spin" /> Saving…</>}
+                  {autoSaveStatus === 'saved'   && <><Check className="w-3 h-3" /> Saved</>}
+                  {autoSaveStatus === 'pending' && <><Clock className="w-3 h-3" /> Unsaved changes</>}
+                  {autoSaveStatus === 'error'   && <><AlertCircle className="w-3 h-3" /> Save failed</>}
+                  {autoSaveStatus === 'idle'    && <><Check className="w-3 h-3" /> Up to date</>}
+                </div>
+              )}
+              <button
+                onClick={handleSave}
+                disabled={saving || autoSaveStatus === 'saving'}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+              >
+                {saving || autoSaveStatus === 'saving' ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving || autoSaveStatus === 'saving' ? 'Saving...' : isNewStone ? 'Create Stone' : 'Save'}
+              </button>
+            </div>
           </div>
 
           <div className="space-y-6">

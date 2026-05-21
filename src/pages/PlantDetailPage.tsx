@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase, Plant } from '../lib/supabase';
-import { ArrowLeft, Save, Loader, X, Star, Upload } from 'lucide-react';
+import { ArrowLeft, Save, Loader, X, Star, Upload, Check, AlertCircle, Clock } from 'lucide-react';
 import { ImageUploader } from '../components/Admin/ImageUploader';
+import { useAutoSave } from '../lib/useAutoSave';
 
 export const PlantDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +34,35 @@ export const PlantDetailPage: React.FC = () => {
     }
   }, [id]);
 
+  const saveExistingPlant = useCallback(async (data: Partial<Plant>) => {
+    const cleanedPlant = { ...data };
+    const colorFields = [
+      'color_jan', 'color_feb', 'color_mar', 'color_apr',
+      'color_may', 'color_jun', 'color_jul', 'color_aug',
+      'color_sep', 'color_oct', 'color_nov', 'color_dec'
+    ];
+    colorFields.forEach(field => {
+      const key = field as keyof typeof cleanedPlant;
+      if (cleanedPlant[key] === '' || cleanedPlant[key] === undefined) {
+        cleanedPlant[key] = null as any;
+      }
+    });
+    if (cleanedPlant.layer === undefined || cleanedPlant.layer === '') {
+      cleanedPlant.layer = null as any;
+    }
+    const { error } = await supabase
+      .from('plants_flat')
+      .update(cleanedPlant)
+      .eq('id', id);
+    if (error) throw error;
+  }, [id]);
+
+  const { status: autoSaveStatus } = useAutoSave(
+    plant,
+    saveExistingPlant,
+    { enabled: !isNewPlant && !loading }
+  );
+
   const loadPlant = async () => {
     setLoading(true);
     try {
@@ -59,19 +89,16 @@ export const PlantDetailPage: React.FC = () => {
       return;
     }
 
-    setSaving(true);
-    try {
-      if (isNewPlant) {
-        // Remove id field - only send fields with actual values (but keep false booleans)
+    if (isNewPlant) {
+      setSaving(true);
+      try {
         const { id: _id, ...rest } = plant;
         const plantData = Object.fromEntries(
           Object.entries(rest).filter(([_, v]) => {
-            // Keep false booleans, but remove undefined, null, and empty strings
             if (typeof v === 'boolean') return true;
             return v !== undefined && v !== null && v !== '';
           })
         );
-        console.log('Inserting plant data:', plantData);
         const { data: newPlant, error } = await supabase
           .from('plants_flat')
           .insert([plantData])
@@ -80,58 +107,29 @@ export const PlantDetailPage: React.FC = () => {
 
         if (error) throw error;
 
-        // If there are pending images, upload them now
         if (pendingImages.length > 0 && newPlant) {
           await uploadPendingImages(newPlant.id);
         }
 
         alert('Plant created successfully');
         navigate(`/admin?tab=${fromTab}`);
-      } else {
-        // Clean up the plant data before sending
-        const cleanedPlant = { ...plant };
-
-        // Convert empty strings to null for color fields
-        const colorFields = [
-          'color_jan', 'color_feb', 'color_mar', 'color_apr',
-          'color_may', 'color_jun', 'color_jul', 'color_aug',
-          'color_sep', 'color_oct', 'color_nov', 'color_dec'
-        ];
-
-        colorFields.forEach(field => {
-          const key = field as keyof typeof cleanedPlant;
-          if (cleanedPlant[key] === '' || cleanedPlant[key] === undefined) {
-            cleanedPlant[key] = null as any;
-          }
-        });
-
-        // Convert undefined/empty layer to null so it actually clears in DB
-        if (cleanedPlant.layer === undefined || cleanedPlant.layer === '') {
-          cleanedPlant.layer = null as any;
-        }
-
-        console.log('Updating plant with cleaned data:', cleanedPlant);
-        console.log('Color values after cleaning:', {
-          jan: cleanedPlant.color_jan,
-          feb: cleanedPlant.color_feb,
-          mar: cleanedPlant.color_mar,
-          apr: cleanedPlant.color_apr,
-        });
-
-        const { error } = await supabase
-          .from('plants_flat')
-          .update(cleanedPlant)
-          .eq('id', id);
-
-        if (error) throw error;
-        alert('Plant updated successfully');
-        await loadPlant();
+      } catch (err: any) {
+        console.error('Error saving plant:', err);
+        alert(`Failed to save plant: ${err.message || JSON.stringify(err)}`);
+      } finally {
+        setSaving(false);
       }
-    } catch (err: any) {
-      console.error('Error saving plant:', err);
-      alert(`Failed to save plant: ${err.message || JSON.stringify(err)}`);
-    } finally {
-      setSaving(false);
+    } else {
+      // For existing plants, trigger an immediate save via the auto-save function
+      setSaving(true);
+      try {
+        await saveExistingPlant(plant);
+      } catch (err: any) {
+        console.error('Error saving plant:', err);
+        alert(`Failed to save plant: ${err.message || JSON.stringify(err)}`);
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -764,15 +762,30 @@ export const PlantDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Fixed save button — bottom right */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* Fixed save button + auto-save indicator — bottom right */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+        {!isNewPlant && (
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
+            autoSaveStatus === 'saving' ? 'bg-blue-50 text-blue-600 border border-blue-200' :
+            autoSaveStatus === 'saved'  ? 'bg-green-50 text-green-700 border border-green-200' :
+            autoSaveStatus === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+            autoSaveStatus === 'error'  ? 'bg-red-50 text-red-600 border border-red-200' :
+            'bg-gray-50 text-gray-400 border border-gray-200'
+          }`}>
+            {autoSaveStatus === 'saving'  && <><Loader className="w-3 h-3 animate-spin" /> Saving…</>}
+            {autoSaveStatus === 'saved'   && <><Check className="w-3 h-3" /> Saved</>}
+            {autoSaveStatus === 'pending' && <><Clock className="w-3 h-3" /> Unsaved changes</>}
+            {autoSaveStatus === 'error'   && <><AlertCircle className="w-3 h-3" /> Save failed</>}
+            {autoSaveStatus === 'idle'    && <><Check className="w-3 h-3" /> Up to date</>}
+          </div>
+        )}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || autoSaveStatus === 'saving'}
           className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl shadow-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors text-sm font-medium"
         >
-          <Save className="w-4 h-4" />
-          {saving ? 'Saving...' : 'Save'}
+          {saving || autoSaveStatus === 'saving' ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving || autoSaveStatus === 'saving' ? 'Saving...' : isNewPlant ? 'Create Plant' : 'Save'}
         </button>
       </div>
     </div>
