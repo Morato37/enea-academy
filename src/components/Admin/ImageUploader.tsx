@@ -217,20 +217,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     setUploading(true);
     setError(null);
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    const valid = Array.from(files).filter(file => {
+      if (file.size > 100 * 1024 * 1024) { setError(`${file.name}: File size must be less than 100MB`); return false; }
+      if (!file.type.startsWith('image/')) { setError(`${file.name}: File must be an image`); return false; }
+      return true;
+    });
 
-      if (file.size > 100 * 1024 * 1024) {
-        setError(`${file.name}: File size must be less than 100MB`);
-        continue;
-      }
-      if (!file.type.startsWith('image/')) {
-        setError(`${file.name}: File must be an image`);
-        continue;
-      }
-
-      await uploadImage(file);
-    }
+    await Promise.all(valid.map(f => uploadImage(f)));
 
     setUploading(false);
     e.target.value = '';
@@ -259,18 +252,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     setUploading(true);
     setError(null);
 
-    for (const file of files) {
-      if (file.size > 100 * 1024 * 1024) {
-        setError(`${file.name}: File size must be less than 100MB`);
-        continue;
-      }
-      if (!file.type.startsWith('image/')) {
-        setError(`${file.name}: File must be an image`);
-        continue;
-      }
+    const valid = files.filter(file => {
+      if (file.size > 100 * 1024 * 1024) { setError(`${file.name}: File size must be less than 100MB`); return false; }
+      if (!file.type.startsWith('image/')) { setError(`${file.name}: File must be an image`); return false; }
+      return true;
+    });
 
-      await uploadImage(file);
-    }
+    await Promise.all(valid.map(f => uploadImage(f)));
 
     setUploading(false);
   };
