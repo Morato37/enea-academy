@@ -1,6 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
-import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.2.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,8 +66,38 @@ async function getOrCreateSharedLink(
   return null;
 }
 
+// Calls Gemini REST API directly — no Node.js library needed in Deno.
+// Uses gemini-1.5-flash which supports vision and is available via AI Studio key.
+async function tagImageWithGeminiRest(base64: string, mimeType: string, apiKey: string): Promise<string[]> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const body = {
+    contents: [
+      {
+        parts: [
+          { text: "Analysiere dieses Bild. Antworte NUR mit einer kommagetrennten Liste von 10 passenden Schlagwörtern auf Deutsch (Materialien, Pflanzen, Stimmung, Farbe). Keine Einleitung, keine Nummerierung." },
+          { inlineData: { mimeType, data: base64 } },
+        ],
+      },
+    ],
+  };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gemini API error ${res.status}: ${err}`);
+  }
+
+  const json = await res.json();
+  const text: string = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  return text.trim().split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+}
+
 // ── action: list_files ──────────────────────────────────────────────────────
-// Returns only an array of file paths — no images downloaded, minimal memory.
 async function handleListFiles(
   folderPath: string,
   dropboxToken: string,
@@ -112,15 +141,14 @@ async function handleListFiles(
 }
 
 // ── action: process_single_image ────────────────────────────────────────────
-// Downloads exactly one image, tags it via Gemini, saves to DB, then releases.
 async function handleProcessSingleImage(
   imagePath: string,
   dropboxToken: string,
   rootNamespaceId: string | null,
-  genAI: GoogleGenerativeAI,
+  geminiApiKey: string,
   supabase: ReturnType<typeof createClient>
 ): Promise<Response> {
-  // 1. Download image — cap at 4 MB to stay within memory budget
+  // 1. Download image — cap at 4 MB
   const dlHeaders: Record<string, string> = {
     Authorization: `Bearer ${dropboxToken}`,
     "Dropbox-API-Arg": JSON.stringify({ path: imagePath }),
@@ -151,7 +179,7 @@ async function handleProcessSingleImage(
   let offset = 0;
   for (const chunk of chunks) { merged.set(chunk, offset); offset += chunk.length; }
 
-  // 2. Base64-encode for Gemini
+  // 2. Base64-encode
   let binary = "";
   for (let i = 0; i < merged.length; i++) binary += String.fromCharCode(merged[i]);
   const base64 = btoa(binary);
@@ -159,13 +187,8 @@ async function handleProcessSingleImage(
   const ext = imagePath.split(".").pop()?.toLowerCase() ?? "jpg";
   const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
 
-  // 3. Tag with Gemini
-  const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
-  const result = await model.generateContent([
-    "Analysiere dieses Bild. Antworte NUR mit einer kommagetrennten Liste von 10 passenden Schlagwörtern (Materialien, Pflanzen, Stimmung, Farbe). Keine Einleitung.",
-    { inlineData: { data: base64, mimeType } },
-  ]);
-  const tags = result.response.text().trim().split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+  // 3. Tag via Gemini REST
+  const tags = await tagImageWithGeminiRest(base64, mimeType, geminiApiKey);
 
   // 4. Shared link for preview
   const sharedLink = await getOrCreateSharedLink(dropboxToken, imagePath, rootNamespaceId);
@@ -253,8 +276,7 @@ Deno.serve(async (req: Request) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const genAI = new GoogleGenerativeAI(geminiApiKey);
-      return await handleProcessSingleImage(imagePath, dropboxToken, rootNamespaceId, genAI, supabase);
+      return await handleProcessSingleImage(imagePath, dropboxToken, rootNamespaceId, geminiApiKey, supabase);
     }
 
     return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
