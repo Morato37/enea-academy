@@ -80,7 +80,7 @@ async function listDropboxFolder(
       ? "https://api.dropboxapi.com/2/files/list_folder/continue"
       : "https://api.dropboxapi.com/2/files/list_folder";
 
-    const body = cursor ? { cursor } : { path: folderPath, recursive: false };
+    const body = cursor ? { cursor } : { path: folderPath, recursive: true, include_media_info: false };
 
     const res = await fetch(url, {
       method: "POST",
