@@ -160,9 +160,9 @@ async function handleProcessSingleImage(
   const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
 
   // 3. Tag with Gemini
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
   const result = await model.generateContent([
-    "Analysiere dieses Bild. Antworte NUR mit einer kommagetrennten Liste von maximal 15 passenden Schlagwörtern auf Deutsch (Materialien, Pflanzen, Stimmung, Farbe, Stil). Keine Einleitung, keine Nummerierung.",
+    "Analysiere dieses Bild. Antworte NUR mit einer kommagetrennten Liste von 10 passenden Schlagwörtern (Materialien, Pflanzen, Stimmung, Farbe). Keine Einleitung.",
     { inlineData: { data: base64, mimeType } },
   ]);
   const tags = result.response.text().trim().split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
