@@ -20,7 +20,6 @@ interface DropboxListResult {
   has_more: boolean;
 }
 
-// Exchange refresh token for a short-lived access token
 async function getDropboxAccessToken(appKey: string, appSecret: string, refreshToken: string): Promise<string> {
   const credentials = btoa(`${appKey}:${appSecret}`);
   const res = await fetch("https://api.dropbox.com/oauth2/token", {
@@ -42,7 +41,36 @@ async function getDropboxAccessToken(appKey: string, appSecret: string, refreshT
   return data.access_token as string;
 }
 
-async function listDropboxFolder(token: string, folderPath: string): Promise<DropboxEntry[]> {
+// Fetches the root namespace ID required for Dropbox Business/Team accounts.
+// Returns null for personal accounts (no header needed).
+async function getRootNamespaceId(token: string): Promise<string | null> {
+  const res = await fetch("https://api.dropboxapi.com/2/users/get_current_account", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  return data?.root_info?.root_namespace_id ?? null;
+}
+
+function buildDropboxHeaders(token: string, rootNamespaceId: string | null): Record<string, string> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+  if (rootNamespaceId) {
+    headers["Dropbox-API-Path-Root"] = JSON.stringify({
+      ".tag": "root",
+      root: rootNamespaceId,
+    });
+  }
+  return headers;
+}
+
+async function listDropboxFolder(
+  token: string,
+  folderPath: string,
+  rootNamespaceId: string | null
+): Promise<DropboxEntry[]> {
   const entries: DropboxEntry[] = [];
   let cursor: string | null = null;
   let hasMore = true;
@@ -56,10 +84,7 @@ async function listDropboxFolder(token: string, folderPath: string): Promise<Dro
 
     const res = await fetch(url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: buildDropboxHeaders(token, rootNamespaceId),
       body: JSON.stringify(body),
     });
 
@@ -69,6 +94,10 @@ async function listDropboxFolder(token: string, folderPath: string): Promise<Dro
     }
 
     const data: DropboxListResult = await res.json();
+    if ((data as any).error) {
+      throw new Error(`Dropbox list_folder error: ${JSON.stringify((data as any).error)}`);
+    }
+
     for (const entry of data.entries) {
       if (entry[".tag"] === "file" && /\.(jpe?g|png|webp|heic|tiff?)$/i.test(entry.name)) {
         entries.push(entry);
@@ -81,15 +110,18 @@ async function listDropboxFolder(token: string, folderPath: string): Promise<Dro
   return entries;
 }
 
-async function getOrCreateSharedLink(token: string, path: string): Promise<string | null> {
+async function getOrCreateSharedLink(
+  token: string,
+  path: string,
+  rootNamespaceId: string | null
+): Promise<string | null> {
   const res = await fetch("https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: buildDropboxHeaders(token, rootNamespaceId),
     body: JSON.stringify({ path }),
   });
   const data = await res.json();
   if (data.url) return data.url.replace("dl=0", "raw=1");
-  // Link already exists — extract from error payload
   if (data.error_summary?.startsWith("shared_link_already_exists")) {
     const existing = data.error?.["shared_link_already_exists"]?.metadata?.url;
     return existing ? existing.replace("dl=0", "raw=1") : null;
@@ -99,9 +131,32 @@ async function getOrCreateSharedLink(token: string, path: string): Promise<strin
 
 async function tagImageWithGemini(
   genAI: GoogleGenerativeAI,
-  imageBuffer: ArrayBuffer,
-  mimeType: string
+  token: string,
+  path: string,
+  rootNamespaceId: string | null
 ): Promise<string[]> {
+  const dlHeaders: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Dropbox-API-Arg": JSON.stringify({ path }),
+  };
+  if (rootNamespaceId) {
+    dlHeaders["Dropbox-API-Path-Root"] = JSON.stringify({
+      ".tag": "root",
+      root: rootNamespaceId,
+    });
+  }
+
+  const dlRes = await fetch("https://content.dropboxapi.com/2/files/download", {
+    method: "POST",
+    headers: dlHeaders,
+  });
+
+  if (!dlRes.ok) throw new Error(`Download failed for ${path}`);
+
+  const imageBuffer = await dlRes.arrayBuffer();
+  const ext = path.split(".").pop()?.toLowerCase() ?? "jpg";
+  const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+
   const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   const prompt =
@@ -131,7 +186,7 @@ Deno.serve(async (req: Request) => {
     const dropboxAppSecret = Deno.env.get("DROPBOX_APP_SECRET")!;
     const dropboxRefreshToken = Deno.env.get("DROPBOX_REFRESH_TOKEN")!;
 
-    // Authenticate calling user and verify admin role
+    // Verify calling user is admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -152,7 +207,6 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabase = createClient(supabaseUrl, serviceKey);
-
     const { data: profile } = await supabase
       .from("user_profiles")
       .select("role")
@@ -174,11 +228,26 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Get a fresh access token using the refresh token
     const dropboxToken = await getDropboxAccessToken(dropboxAppKey, dropboxAppSecret, dropboxRefreshToken);
 
+    // Resolve root namespace (required for Business/Team accounts)
+    const rootNamespaceId = await getRootNamespaceId(dropboxToken);
+    console.log(`Root namespace ID: ${rootNamespaceId ?? "none (personal account)"}`);
+
+    // Verify folder exists before scanning
+    const metaRes = await fetch("https://api.dropboxapi.com/2/files/get_metadata", {
+      method: "POST",
+      headers: buildDropboxHeaders(dropboxToken, rootNamespaceId),
+      body: JSON.stringify({ path: folderPath }),
+    });
+    const metaData = await metaRes.json();
+    if (metaData.error) {
+      throw new Error(`Ordner nicht gefunden oder kein Zugriff: ${JSON.stringify(metaData)}`);
+    }
+    console.log(`Ordner gefunden: ${folderPath}`);
+
     const genAI = new GoogleGenerativeAI(geminiApiKey);
-    const entries = await listDropboxFolder(dropboxToken, folderPath);
+    const entries = await listDropboxFolder(dropboxToken, folderPath, rootNamespaceId);
 
     let processed = 0;
     let skipped = 0;
@@ -186,26 +255,8 @@ Deno.serve(async (req: Request) => {
 
     for (const entry of entries) {
       try {
-        const dlRes = await fetch("https://content.dropboxapi.com/2/files/download", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${dropboxToken}`,
-            "Dropbox-API-Arg": JSON.stringify({ path: entry.path_lower }),
-          },
-        });
-
-        if (!dlRes.ok) {
-          errors.push(`${entry.name}: download failed`);
-          skipped++;
-          continue;
-        }
-
-        const imageBuffer = await dlRes.arrayBuffer();
-        const ext = entry.name.split(".").pop()?.toLowerCase() ?? "jpg";
-        const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
-
-        const tags = await tagImageWithGemini(genAI, imageBuffer, mimeType);
-        const sharedLink = await getOrCreateSharedLink(dropboxToken, entry.path_lower);
+        const tags = await tagImageWithGemini(genAI, dropboxToken, entry.path_lower, rootNamespaceId);
+        const sharedLink = await getOrCreateSharedLink(dropboxToken, entry.path_lower, rootNamespaceId);
 
         const { error: dbError } = await supabase
           .from("dropbox_images_index")
