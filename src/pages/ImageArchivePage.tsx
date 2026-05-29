@@ -20,7 +20,7 @@ interface ScanResult {
   errors?: string[];
 }
 
-const FOLDER_PATH = '/Enea_Bilder';
+const FOLDER_PATH = '/Enea Group/Mood Library';
 
 const SkeletonCard: React.FC = () => (
   <div className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
