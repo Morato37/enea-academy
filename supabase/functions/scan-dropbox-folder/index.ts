@@ -66,35 +66,37 @@ async function getOrCreateSharedLink(
   return null;
 }
 
-// Calls Gemini REST API directly — no Node.js library needed in Deno.
-// Uses gemini-1.5-flash which supports vision and is available via AI Studio key.
 async function tagImageWithGeminiRest(base64: string, mimeType: string, apiKey: string): Promise<string[]> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  const body = {
-    contents: [
-      {
-        parts: [
-          { text: "Analysiere dieses Bild. Antworte NUR mit einer kommagetrennten Liste von 10 passenden Schlagwörtern auf Deutsch (Materialien, Pflanzen, Stimmung, Farbe). Keine Einleitung, keine Nummerierung." },
-          { inlineData: { mimeType, data: base64 } },
-        ],
-      },
-    ],
+  const modelName = "gemini-1.5-flash-latest";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+  const requestBody = {
+    contents: [{
+      parts: [
+        { text: "Analysiere dieses Bild. Antworte NUR mit einer kommagetrennten Liste von 10 passenden Schlagwörtern (Materialien, Pflanzen, Stimmung, Farbe). Keine Einleitung." },
+        { inlineData: { mimeType, data: base64 } },
+      ],
+    }],
   };
 
-  const res = await fetch(url, {
+  const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(requestBody),
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Gemini API error ${res.status}: ${err}`);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(`Gemini API Error: ${JSON.stringify(data)}`);
   }
 
-  const json = await res.json();
-  const text: string = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  return text.trim().split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+  if (!data.candidates || data.candidates.length === 0) {
+    throw new Error("Gemini hat keine Antwort generiert.");
+  }
+
+  const textResponse: string = data.candidates[0].content.parts[0].text;
+  return textResponse.trim().split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
 }
 
 // ── action: list_files ──────────────────────────────────────────────────────
