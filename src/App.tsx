@@ -17,6 +17,7 @@ import { PublicStoneDetail } from './pages/PublicStoneDetail';
 import { ZoneMapPage } from './pages/ZoneMapPage';
 import { AdditionalInformationPage } from './pages/AdditionalInformationPage';
 import { TicketsPage } from './pages/TicketsPage';
+import { ImageArchivePage } from './pages/ImageArchivePage';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
@@ -80,6 +81,14 @@ const AppContent: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <TicketsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/image-archive"
+                element={
+                  <ProtectedRoute>
+                    <ImageArchivePage />
                   </ProtectedRoute>
                 }
               />

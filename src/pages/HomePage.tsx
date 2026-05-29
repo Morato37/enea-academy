@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, Mountain, ShoppingCart, Map } from 'lucide-react';
+import { Leaf, Mountain, ShoppingCart, Map, FolderSearch } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
 
@@ -44,7 +44,7 @@ export const HomePage: React.FC = () => {
           </div>
         </Link>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-16">
           <Link
             to="/plants"
             className="bg-white rounded-lg border border-gray-300 hover:border-cyan-500 transition-all p-8 text-center group shadow-sm"
@@ -84,6 +84,19 @@ export const HomePage: React.FC = () => {
             <p className="text-gray-700">
               View and manage your selected plants and stones. Export your selections as a
               professional PDF document.
+            </p>
+          </Link>
+
+          <Link
+            to="/image-archive"
+            className="bg-white rounded-lg border border-gray-300 hover:border-cyan-500 transition-all p-8 text-center group shadow-sm"
+          >
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4 group-hover:bg-cyan-500/20 transition-colors">
+              <FolderSearch className="w-10 h-10 text-cyan-600" />
+            </div>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">KI Bild-Archiv</h2>
+            <p className="text-gray-700">
+              Durchsuche unsere Dropbox-Projektdatenbank nach Pflanzen, Materialien und Stimmungen, analysiert durch KI.
             </p>
           </Link>
         </div>
