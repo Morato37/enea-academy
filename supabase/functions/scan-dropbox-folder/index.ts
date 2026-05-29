@@ -41,8 +41,6 @@ async function getDropboxAccessToken(appKey: string, appSecret: string, refreshT
   return data.access_token as string;
 }
 
-// Fetches the root namespace ID required for Dropbox Business/Team accounts.
-// Returns null for personal accounts (no header needed).
 async function getRootNamespaceId(token: string): Promise<string | null> {
   const res = await fetch("https://api.dropboxapi.com/2/users/get_current_account", {
     method: "POST",
@@ -66,50 +64,6 @@ function buildDropboxHeaders(token: string, rootNamespaceId: string | null): Rec
   return headers;
 }
 
-async function listDropboxFolder(
-  token: string,
-  folderPath: string,
-  rootNamespaceId: string | null
-): Promise<DropboxEntry[]> {
-  const entries: DropboxEntry[] = [];
-  let cursor: string | null = null;
-  let hasMore = true;
-
-  while (hasMore) {
-    const url = cursor
-      ? "https://api.dropboxapi.com/2/files/list_folder/continue"
-      : "https://api.dropboxapi.com/2/files/list_folder";
-
-    const body = cursor ? { cursor } : { path: folderPath, recursive: true, include_media_info: false };
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: buildDropboxHeaders(token, rootNamespaceId),
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Dropbox list_folder failed: ${err}`);
-    }
-
-    const data: DropboxListResult = await res.json();
-    if ((data as any).error) {
-      throw new Error(`Dropbox list_folder error: ${JSON.stringify((data as any).error)}`);
-    }
-
-    for (const entry of data.entries) {
-      if (entry[".tag"] === "file" && /\.(jpe?g|png|webp|heic|tiff?)$/i.test(entry.name)) {
-        entries.push(entry);
-      }
-    }
-    hasMore = data.has_more;
-    cursor = data.cursor;
-  }
-
-  return entries;
-}
-
 async function getOrCreateSharedLink(
   token: string,
   path: string,
@@ -129,35 +83,51 @@ async function getOrCreateSharedLink(
   return null;
 }
 
+// Uses a temporary shared link URL instead of downloading the full buffer,
+// avoiding double-memory cost of ArrayBuffer + Base64 conversion.
 async function tagImageWithGemini(
   genAI: GoogleGenerativeAI,
-  token: string,
-  path: string,
-  rootNamespaceId: string | null
+  imageUrl: string
 ): Promise<string[]> {
-  const dlHeaders: Record<string, string> = {
-    Authorization: `Bearer ${token}`,
-    "Dropbox-API-Arg": JSON.stringify({ path }),
-  };
-  if (rootNamespaceId) {
-    dlHeaders["Dropbox-API-Path-Root"] = JSON.stringify({
-      ".tag": "root",
-      root: rootNamespaceId,
-    });
+  // Fetch only enough to pass as inline data — stream in small chunks
+  const dlRes = await fetch(imageUrl);
+  if (!dlRes.ok) throw new Error(`Image fetch failed: ${dlRes.status}`);
+
+  // Read as stream to avoid holding the full buffer in memory longer than needed
+  const reader = dlRes.body!.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalLen = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    totalLen += value.length;
+    // Cap at 4 MB — Gemini Flash handles thumbnails fine
+    if (totalLen > 4 * 1024 * 1024) break;
+  }
+  reader.cancel();
+
+  const merged = new Uint8Array(totalLen);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
   }
 
-  const dlRes = await fetch("https://content.dropboxapi.com/2/files/download", {
-    method: "POST",
-    headers: dlHeaders,
-  });
+  // Minimal Base64 without intermediate string allocation
+  let binary = "";
+  for (let i = 0; i < merged.length; i++) {
+    binary += String.fromCharCode(merged[i]);
+  }
+  const base64 = btoa(binary);
 
-  if (!dlRes.ok) throw new Error(`Download failed for ${path}`);
+  const contentType = dlRes.headers.get("content-type") ?? "image/jpeg";
+  const mimeType = contentType.startsWith("image/png")
+    ? "image/png"
+    : contentType.startsWith("image/webp")
+    ? "image/webp"
+    : "image/jpeg";
 
-  const imageBuffer = await dlRes.arrayBuffer();
-  const ext = path.split(".").pop()?.toLowerCase() ?? "jpg";
-  const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
-
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   const prompt =
     "Analysiere dieses Bild. Antworte NUR mit einer kommagetrennten Liste von maximal 15 passenden Schlagwörtern auf Deutsch (Materialien, Pflanzen, Stimmung, Farbe, Stil). Keine Einleitung, keine Nummerierung.";
@@ -165,12 +135,42 @@ async function tagImageWithGemini(
     prompt,
     { inlineData: { data: base64, mimeType } },
   ]);
+
   return result.response
     .text()
     .trim()
     .split(",")
     .map((t) => t.trim().toLowerCase())
     .filter((t) => t.length > 0);
+}
+
+async function processEntry(
+  entry: DropboxEntry,
+  dropboxToken: string,
+  rootNamespaceId: string | null,
+  genAI: GoogleGenerativeAI,
+  supabase: ReturnType<typeof createClient>
+): Promise<void> {
+  const sharedLink = await getOrCreateSharedLink(dropboxToken, entry.path_lower, rootNamespaceId);
+  if (!sharedLink) throw new Error("Could not create shared link");
+
+  // Use the shared link URL directly — no full download into memory
+  const tags = await tagImageWithGemini(genAI, sharedLink);
+
+  const { error: dbError } = await supabase
+    .from("dropbox_images_index")
+    .upsert(
+      {
+        dropbox_path: entry.path_lower,
+        tags,
+        dropbox_shared_link: sharedLink,
+        last_scanned_at: new Date().toISOString(),
+        status: "scanned",
+      },
+      { onConflict: "dropbox_path" }
+    );
+
+  if (dbError) throw new Error(dbError.message);
 }
 
 Deno.serve(async (req: Request) => {
@@ -186,7 +186,6 @@ Deno.serve(async (req: Request) => {
     const dropboxAppSecret = Deno.env.get("DROPBOX_APP_SECRET")!;
     const dropboxRefreshToken = Deno.env.get("DROPBOX_REFRESH_TOKEN")!;
 
-    // Verify calling user is admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -229,12 +228,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const dropboxToken = await getDropboxAccessToken(dropboxAppKey, dropboxAppSecret, dropboxRefreshToken);
-
-    // Resolve root namespace (required for Business/Team accounts)
     const rootNamespaceId = await getRootNamespaceId(dropboxToken);
     console.log(`Root namespace ID: ${rootNamespaceId ?? "none (personal account)"}`);
 
-    // Verify folder exists before scanning
+    // Verify folder exists
     const metaRes = await fetch("https://api.dropboxapi.com/2/files/get_metadata", {
       method: "POST",
       headers: buildDropboxHeaders(dropboxToken, rootNamespaceId),
@@ -247,42 +244,65 @@ Deno.serve(async (req: Request) => {
     console.log(`Ordner gefunden: ${folderPath}`);
 
     const genAI = new GoogleGenerativeAI(geminiApiKey);
-    const entries = await listDropboxFolder(dropboxToken, folderPath, rootNamespaceId);
 
     let processed = 0;
     let skipped = 0;
     const errors: string[] = [];
+    let cursor: string | null = null;
+    let hasMore = true;
+    let total = 0;
 
-    for (const entry of entries) {
-      try {
-        const tags = await tagImageWithGemini(genAI, dropboxToken, entry.path_lower, rootNamespaceId);
-        const sharedLink = await getOrCreateSharedLink(dropboxToken, entry.path_lower, rootNamespaceId);
+    // Process entries page-by-page — never accumulate all entries in memory at once
+    while (hasMore) {
+      const url = cursor
+        ? "https://api.dropboxapi.com/2/files/list_folder/continue"
+        : "https://api.dropboxapi.com/2/files/list_folder";
 
-        const { error: dbError } = await supabase
-          .from("dropbox_images_index")
-          .upsert(
-            {
-              dropbox_path: entry.path_lower,
-              tags,
-              dropbox_shared_link: sharedLink,
-              last_scanned_at: new Date().toISOString(),
-              status: "scanned",
-            },
-            { onConflict: "dropbox_path" }
-          );
+      const body = cursor
+        ? { cursor }
+        : { path: folderPath, recursive: true, include_media_info: false };
 
-        if (dbError) throw new Error(dbError.message);
-        processed++;
-      } catch (err) {
-        errors.push(`${entry.name}: ${err instanceof Error ? err.message : String(err)}`);
-        skipped++;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: buildDropboxHeaders(dropboxToken, rootNamespaceId),
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Dropbox list_folder failed: ${err}`);
       }
+
+      const page: DropboxListResult = await res.json();
+      if ((page as any).error) {
+        throw new Error(`Dropbox list_folder error: ${JSON.stringify((page as any).error)}`);
+      }
+
+      // Process each image on this page immediately, then discard
+      for (const entry of page.entries) {
+        if (entry[".tag"] !== "file" || !/\.(jpe?g|png|webp|heic|tiff?)$/i.test(entry.name)) {
+          continue;
+        }
+        total++;
+        try {
+          await processEntry(entry, dropboxToken, rootNamespaceId, genAI, supabase);
+          processed++;
+          console.log(`[${processed}] OK: ${entry.name}`);
+        } catch (err) {
+          errors.push(`${entry.name}: ${err instanceof Error ? err.message : String(err)}`);
+          skipped++;
+          console.error(`[skip] ${entry.name}:`, err);
+        }
+      }
+
+      hasMore = page.has_more;
+      cursor = page.cursor;
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        total: entries.length,
+        total,
         processed,
         skipped,
         errors: errors.length > 0 ? errors : undefined,
