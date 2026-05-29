@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, RefreshCw, FolderSearch, Image, X, Tag } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Search, RefreshCw, FolderSearch, Image, X, Tag, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,14 +10,6 @@ interface DropboxImage {
   tags: string[];
   last_scanned_at: string;
   status: string;
-}
-
-interface ScanResult {
-  success: boolean;
-  total: number;
-  processed: number;
-  skipped: number;
-  errors?: string[];
 }
 
 const FOLDER_PATH = '/Test_Enea Group Objects/Test Metadata';
@@ -83,17 +75,36 @@ const ImageCard: React.FC<{ image: DropboxImage }> = ({ image }) => {
   );
 };
 
+interface ScanProgress {
+  phase: 'idle' | 'listing' | 'processing' | 'done' | 'error';
+  total: number;
+  processed: number;
+  skipped: number;
+  currentFile: string;
+  errors: string[];
+  message: string;
+}
+
+const initialProgress: ScanProgress = {
+  phase: 'idle',
+  total: 0,
+  processed: 0,
+  skipped: 0,
+  currentFile: '',
+  errors: [],
+  message: '',
+};
+
 export const ImageArchivePage: React.FC = () => {
   const { isAdmin } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [images, setImages] = useState<DropboxImage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  const [progress, setProgress] = useState<ScanProgress>(initialProgress);
+  const abortRef = useRef(false);
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery.trim().toLowerCase()), 350);
     return () => clearTimeout(timer);
@@ -129,29 +140,92 @@ export const ImageArchivePage: React.FC = () => {
   }, [fetchImages]);
 
   const handleScan = async () => {
-    setScanning(true);
-    setScanResult(null);
+    abortRef.current = false;
+    setProgress({ ...initialProgress, phase: 'listing', message: 'Dateiliste wird abgerufen...' });
+
     try {
-      const { data, error } = await supabase.functions.invoke<ScanResult>('scan-dropbox-folder', {
-        body: { folderPath: FOLDER_PATH },
+      // Step 1: list all file paths — no images downloaded server-side
+      const { data: listData, error: listError } = await supabase.functions.invoke<{
+        success: boolean;
+        paths: string[];
+      }>('scan-dropbox-folder', {
+        body: { action: 'list_files', folderPath: FOLDER_PATH },
       });
-      if (error) throw error;
-      if (data?.success) {
-        setScanResult({
-          type: 'success',
-          message: `Scan abgeschlossen: ${data.processed} von ${data.total} Bildern verarbeitet.`,
-        });
-        await fetchImages();
+
+      if (listError) throw listError;
+      if (!listData?.paths) throw new Error('Keine Dateipfade erhalten.');
+
+      const paths = listData.paths;
+      setProgress((p) => ({
+        ...p,
+        phase: 'processing',
+        total: paths.length,
+        message: `${paths.length} Bilder gefunden. Starte Verarbeitung...`,
+      }));
+
+      let processed = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+
+      // Step 2: process each image sequentially from the frontend
+      for (const imagePath of paths) {
+        if (abortRef.current) break;
+
+        const fileName = imagePath.split('/').pop() ?? imagePath;
+        setProgress((p) => ({ ...p, currentFile: fileName }));
+
+        try {
+          const { error: procError } = await supabase.functions.invoke('scan-dropbox-folder', {
+            body: { action: 'process_single_image', imagePath },
+          });
+          if (procError) throw procError;
+          processed++;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          errors.push(`${fileName}: ${msg}`);
+          skipped++;
+        }
+
+        setProgress((p) => ({
+          ...p,
+          processed: processed,
+          skipped: skipped,
+          errors,
+          message: abortRef.current
+            ? 'Scan abgebrochen.'
+            : `Verarbeite Bild ${processed + skipped} von ${paths.length}...`,
+        }));
       }
+
+      setProgress((p) => ({
+        ...p,
+        phase: abortRef.current ? 'error' : 'done',
+        currentFile: '',
+        message: abortRef.current
+          ? `Scan abgebrochen. ${processed} von ${paths.length} verarbeitet.`
+          : `Scan abgeschlossen: ${processed} verarbeitet, ${skipped} übersprungen.`,
+      }));
+
+      if (!abortRef.current) await fetchImages();
     } catch (err) {
-      setScanResult({
-        type: 'error',
+      setProgress((p) => ({
+        ...p,
+        phase: 'error',
+        currentFile: '',
         message: err instanceof Error ? err.message : 'Scan fehlgeschlagen.',
-      });
-    } finally {
-      setScanning(false);
+      }));
     }
   };
+
+  const handleAbort = () => {
+    abortRef.current = true;
+  };
+
+  const isScanning = progress.phase === 'listing' || progress.phase === 'processing';
+  const progressPercent =
+    progress.total > 0
+      ? Math.round(((progress.processed + progress.skipped) / progress.total) * 100)
+      : 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -172,34 +246,95 @@ export const ImageArchivePage: React.FC = () => {
 
         {/* Admin Control Panel */}
         {isAdmin && (
-          <div className="bg-white border border-cyan-200 rounded-xl p-5 mb-8 shadow-sm">
+          <div className="bg-white border border-cyan-200 rounded-xl p-5 mb-8 shadow-sm space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <p className="text-sm font-semibold text-cyan-700 uppercase tracking-wide mb-0.5">Admin Control Panel</p>
                 <p className="text-sm text-gray-500">
-                  Starte einen neuen KI-Scan für den Ordner <span className="font-mono text-gray-700">{FOLDER_PATH}</span>
+                  Starte einen neuen KI-Scan für{' '}
+                  <span className="font-mono text-gray-700">{FOLDER_PATH}</span>
                 </p>
               </div>
-              <button
-                onClick={handleScan}
-                disabled={scanning}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-400 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                <RefreshCw className={`w-4 h-4 ${scanning ? 'animate-spin' : ''}`} />
-                {scanning ? 'Scan läuft...' : 'Neuen Dropbox-Scan starten'}
-              </button>
+              <div className="flex items-center gap-2">
+                {isScanning && (
+                  <button
+                    onClick={handleAbort}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-sm font-medium rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                    Abbrechen
+                  </button>
+                )}
+                <button
+                  onClick={handleScan}
+                  disabled={isScanning}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-400 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />
+                  {isScanning ? 'Scan läuft...' : 'Neuen Dropbox-Scan starten'}
+                </button>
+              </div>
             </div>
 
-            {scanResult && (
-              <div className={`mt-4 flex items-start justify-between gap-3 px-4 py-3 rounded-lg text-sm ${
-                scanResult.type === 'success'
-                  ? 'bg-green-50 border border-green-200 text-green-800'
-                  : 'bg-red-50 border border-red-200 text-red-800'
-              }`}>
-                <span>{scanResult.message}</span>
-                <button onClick={() => setScanResult(null)} className="shrink-0 opacity-60 hover:opacity-100">
-                  <X className="w-4 h-4" />
-                </button>
+            {/* Progress display */}
+            {progress.phase !== 'idle' && (
+              <div className="space-y-3">
+                {/* Status row */}
+                <div className="flex items-center gap-2 text-sm">
+                  {progress.phase === 'done' && <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />}
+                  {progress.phase === 'error' && <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />}
+                  {isScanning && (
+                    <span className="inline-block w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                  )}
+                  <span className={
+                    progress.phase === 'done' ? 'text-green-700 font-medium' :
+                    progress.phase === 'error' ? 'text-red-700 font-medium' :
+                    'text-gray-700'
+                  }>
+                    {progress.message}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                {progress.total > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>
+                        {progress.processed} verarbeitet · {progress.skipped} übersprungen
+                      </span>
+                      <span className="font-medium text-gray-700">{progressPercent}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          progress.phase === 'done' ? 'bg-green-500' :
+                          progress.phase === 'error' ? 'bg-red-400' :
+                          'bg-cyan-500'
+                        }`}
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    {progress.currentFile && (
+                      <p className="text-xs text-gray-400 truncate font-mono">
+                        {progress.currentFile}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Errors */}
+                {progress.errors.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-red-600 font-medium hover:underline">
+                      {progress.errors.length} Fehler anzeigen
+                    </summary>
+                    <ul className="mt-2 space-y-1 max-h-32 overflow-y-auto pl-3 border-l-2 border-red-200">
+                      {progress.errors.map((e, i) => (
+                        <li key={i} className="text-red-700 font-mono">{e}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </div>
             )}
           </div>
