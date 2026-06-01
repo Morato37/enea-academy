@@ -102,6 +102,62 @@ const buildFlatList = (selections: UserSelection[], language: 'de' | 'en'): Flat
   return flat;
 };
 
+// Icon definitions — path relative to public root, plant field, label
+const ICON_DEFS: { file: string; labelDe: string; labelEn: string; check: (p: NonNullable<UserSelection['plant']>) => boolean }[] = [
+  { file: '/icons/schmetterlingsweide.jpeg', labelDe: 'Schmetterlingsweide', labelEn: 'Butterfly habitat',  check: p => !!p.characteristic_butterflies },
+  { file: '/icons/bienenweide.jpeg',        labelDe: 'Bienenweide',         labelEn: 'Bee habitat',         check: p => !!(p.characteristic_bees || p.characteristic_honeybees || p.characteristic_bumblebees) },
+  { file: '/icons/vogelnahrgeholz.jpeg',    labelDe: 'Vogelnährgehölz',     labelEn: 'Bird habitat',        check: p => !!p.characteristic_birds },
+  { file: '/icons/einheimisch.jpeg',        labelDe: 'Einheimisch',         labelEn: 'Native',              check: p => !!p.characteristic_native },
+  { file: '/icons/klimaprofiteur.jpeg',     labelDe: 'Klimaprofiteur',      labelEn: 'Climate benefit',     check: p => !!p.tree_of_the_future },
+  { file: '/icons/immergrun.jpeg',          labelDe: 'Immergrün',           labelEn: 'Evergreen',           check: p => !!p.characteristic_evergreen },
+  { file: '/icons/saisonal.jpeg',           labelDe: 'Saisonale Aspekte',   labelEn: 'Seasonal',            check: p => !!p.usage_seasonal },
+  { file: '/icons/essbar.jpeg',             labelDe: 'Essbar',              labelEn: 'Edible',              check: p => !!p.category_culinary_plant },
+  { file: '/icons/heilplfanze.jpeg',        labelDe: 'Heilpflanze',         labelEn: 'Medicinal',           check: p => !!p.category_medicinal_herbs },
+  { file: '/icons/sonnig.png',              labelDe: 'Sonnig',              labelEn: 'Sunny',               check: p => !!p.exposure_sun },
+  { file: '/icons/halbschattig.png',        labelDe: 'Halbschattig',        labelEn: 'Half shade',          check: p => !!p.exposure_halfshade },
+  { file: '/icons/schattig.png',            labelDe: 'Schattig',            labelEn: 'Shade',               check: p => !!p.exposure_shade },
+];
+
+// Pre-load all icons as data URLs (cached per session)
+const iconCache = new Map<string, string>();
+
+const loadIcon = async (file: string): Promise<string | null> => {
+  if (iconCache.has(file)) return iconCache.get(file)!;
+  try {
+    const response = await fetch(file, { mode: 'cors' });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(blob);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const size = Math.max(img.width, img.height);
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { URL.revokeObjectURL(objectUrl); resolve(null); return; }
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, size, size);
+        const offsetX = (size - img.width) / 2;
+        const offsetY = (size - img.height) / 2;
+        ctx.drawImage(img, offsetX, offsetY);
+        URL.revokeObjectURL(objectUrl);
+        const dataUrl = canvas.toDataURL('image/png');
+        iconCache.set(file, dataUrl);
+        resolve(dataUrl);
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(null); };
+      img.src = objectUrl;
+    });
+  } catch {
+    return null;
+  }
+};
+
+const preloadAllIcons = async (): Promise<void> => {
+  await Promise.all(ICON_DEFS.map(def => loadIcon(def.file)));
+};
+
 export const generateMoodboardPDF = async (
   selections: UserSelection[],
   projectName?: string,
@@ -110,21 +166,19 @@ export const generateMoodboardPDF = async (
   const flat = buildFlatList(selections, language);
   if (flat.length === 0) return;
 
-  // Fixed cell size — images are always this large
+  await preloadAllIcons();
+
   const margin = 12;
   const colGap = 2.5;
   const imgGap = 2;
-  const textH = 11;
+  const nameH = 9;   // unified text block height (common + botanic, same size)
   const catLabelH = 7;
   const titleH = 16;
 
-  const imgW = 60;           // mm per image
-  const imgH = imgW * 0.75;  // landscape crop
-  const cellH = textH + imgH * 2 + imgGap;
+  const imgW = 60;
+  const imgH = imgW * 0.75;
+  const cellH = nameH + imgH * 2 + imgGap;
 
-  // Strategy: use 6 columns per row. Page width = margin*2 + 6*(imgW+colGap)-colGap.
-  // Page grows vertically to fit all rows. Page is always landscape (width > height).
-  // If with 6 cols the page would be portrait, add more cols until landscape.
   const computeLayout = (cols: number) => {
     const w = margin * 2 + cols * imgW + (cols - 1) * colGap;
     const rowLabels: boolean[] = [];
@@ -132,14 +186,13 @@ export const generateMoodboardPDF = async (
       rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
     }
     let totalH = 0;
-    for (let ri = 0; ri < rowLabels.length; ri++) {
-      totalH += (rowLabels[ri] ? catLabelH : 0) + cellH + 4;
+    for (const hasLabel of rowLabels) {
+      totalH += (hasLabel ? catLabelH : 0) + cellH + 4;
     }
     const h = margin * 2 + titleH + totalH + 4;
     return { w, h, rowLabels };
   };
 
-  // Start at 6 cols, increase until width >= height (landscape)
   let cols = 6;
   let layout = computeLayout(cols);
   while (layout.w < layout.h && cols < flat.length) {
@@ -147,8 +200,6 @@ export const generateMoodboardPDF = async (
     layout = computeLayout(cols);
   }
 
-  // pageW = width, pageH = height. For jsPDF landscape, pass [min, max] as format.
-  // jsPDF with orientation:'l' sets actual page width = max(format[0], format[1]).
   const pageW = layout.w;
   const pageH = layout.h;
   const { rowLabels } = layout;
@@ -159,11 +210,7 @@ export const generateMoodboardPDF = async (
     format: [Math.min(pageW, pageH), Math.max(pageW, pageH)],
   });
 
-  // After creation, jsPDF sets getWidth() = longSide. Our pageW is already the long side.
-  // All coordinates use pageW/pageH directly — no axis swap needed.
-
-  // Title
-  const titleText = projectName ? `${projectName} — Plant board` : 'Plant board';
+  const titleText = projectName ? `${projectName} — Plant Board` : 'Plant Board';
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(40, 40, 40);
@@ -181,7 +228,6 @@ export const generateMoodboardPDF = async (
 
     const rowHasLabel = rowLabels[rowIdx];
     const x = margin + colIndex * (imgW + colGap);
-    const imageTop = rowStartY + (rowHasLabel ? catLabelH : 0) + textH;
 
     if (flat[i].categoryLabel !== '') {
       doc.setFontSize(9);
@@ -191,25 +237,30 @@ export const generateMoodboardPDF = async (
     }
 
     const textTop = rowStartY + (rowHasLabel ? catLabelH : 0);
+    const plant = flat[i].plant;
     const commonName = language === 'de'
-      ? (flat[i].plant.common_name_de || flat[i].plant.common_name_en || '')
-      : (flat[i].plant.common_name_en || flat[i].plant.common_name_de || '');
-    const botanicName = flat[i].plant.botanical_name || '';
+      ? (plant.common_name_de || plant.common_name_en || '')
+      : (plant.common_name_en || plant.common_name_de || '');
+    const botanicName = plant.botanical_name || '';
 
-    doc.setFontSize(7);
+    // Common name — normal weight, same size as botanic
+    doc.setFontSize(6.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(50, 50, 50);
-    const commonLines = doc.splitTextToSize(commonName, imgW).slice(0, 2) as string[];
-    doc.text(commonLines, x, textTop + 3.5);
+    const commonLine = doc.splitTextToSize(commonName, imgW)[0] as string || '';
+    doc.text(commonLine, x, textTop + 3.2);
 
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(110, 110, 110);
-    const botanicLines = doc.splitTextToSize(botanicName, imgW).slice(0, 2) as string[];
-    doc.text(botanicLines, x, textTop + 3.5 + commonLines.length * 2.6 + 1);
+    // Botanic name — normal weight (not italic), same size
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(90, 90, 90);
+    const botanicLine = doc.splitTextToSize(botanicName, imgW)[0] as string || '';
+    doc.text(botanicLine, x, textTop + 3.2 + 3.2);
 
-    let plantImages = await loadPlantImages(flat[i].plant.id);
-    if (plantImages.length === 0 && flat[i].plant.image_url) plantImages = [flat[i].plant.image_url];
+    const imageTop = textTop + nameH;
+
+    let plantImages = await loadPlantImages(plant.id);
+    if (plantImages.length === 0 && plant.image_url) plantImages = [plant.image_url];
 
     let imgY = imageTop;
     for (let imgIdx = 0; imgIdx < 2; imgIdx++) {
