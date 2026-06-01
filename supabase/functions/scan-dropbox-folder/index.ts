@@ -103,9 +103,10 @@ async function tagImageWithGeminiRest(base64: string, mimeType: string, apiKey: 
 async function handleListFiles(
   folderPath: string,
   dropboxToken: string,
-  rootNamespaceId: string | null
+  rootNamespaceId: string | null,
+  supabase: ReturnType<typeof createClient>
 ): Promise<Response> {
-  const paths: string[] = [];
+  const allPaths: string[] = [];
   let cursor: string | null = null;
   let hasMore = true;
 
@@ -129,15 +130,30 @@ async function handleListFiles(
 
     for (const entry of page.entries) {
       if (entry[".tag"] === "file" && /\.(jpe?g|png|webp|heic|tiff?)$/i.test(entry.name)) {
-        paths.push(entry.path_lower);
+        allPaths.push(entry.path_lower);
       }
     }
     hasMore = page.has_more;
     cursor = page.cursor;
   }
 
+  // Fetch already-scanned paths that have tags from the DB
+  const { data: existing } = await supabase
+    .from("dropbox_images_index")
+    .select("dropbox_path, tags")
+    .in("dropbox_path", allPaths);
+
+  const alreadyTaggedPaths = new Set(
+    (existing ?? [])
+      .filter((row) => Array.isArray(row.tags) && row.tags.length > 0)
+      .map((row) => row.dropbox_path as string)
+  );
+
+  const paths = allPaths.filter((p) => !alreadyTaggedPaths.has(p));
+  const skippedCount = allPaths.length - paths.length;
+
   return new Response(
-    JSON.stringify({ success: true, paths }),
+    JSON.stringify({ success: true, paths, totalFound: allPaths.length, skippedCount }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
 }
@@ -269,7 +285,7 @@ Deno.serve(async (req: Request) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return await handleListFiles(folderPath, dropboxToken, rootNamespaceId);
+      return await handleListFiles(folderPath, dropboxToken, rootNamespaceId, supabase);
     }
 
     if (action === "process_single_image") {

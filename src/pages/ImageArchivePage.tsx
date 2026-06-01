@@ -227,6 +227,8 @@ export const ImageArchivePage: React.FC = () => {
       const { data: listData, error: listError } = await supabase.functions.invoke<{
         success: boolean;
         paths: string[];
+        totalFound: number;
+        skippedCount: number;
       }>('scan-dropbox-folder', {
         body: { action: 'list_files', folderPath: FOLDER_PATH },
       });
@@ -235,11 +237,22 @@ export const ImageArchivePage: React.FC = () => {
       if (!listData?.paths) throw new Error('Keine Dateipfade erhalten.');
 
       const paths = listData.paths;
+      const skippedAlready = listData.skippedCount ?? 0;
+
+      if (paths.length === 0) {
+        setProgress((p) => ({
+          ...p,
+          phase: 'done',
+          message: `Alle ${listData.totalFound} Bilder bereits verarbeitet — nichts zu tun.`,
+        }));
+        return;
+      }
+
       setProgress((p) => ({
         ...p,
         phase: 'processing',
         total: paths.length,
-        message: `${paths.length} Bilder gefunden. Starte Verarbeitung...`,
+        message: `${paths.length} neue Bilder gefunden${skippedAlready > 0 ? `, ${skippedAlready} bereits getaggt übersprungen` : ''}. Starte Verarbeitung...`,
       }));
 
       let processed = 0;
