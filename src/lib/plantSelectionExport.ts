@@ -45,8 +45,8 @@ const loadImageAsDataURL = async (url: string): Promise<string> => {
   });
 };
 
-const cropToRatioDataURL = (dataUrl: string, targetW: number, targetH: number): Promise<string> => {
-  return new Promise((resolve, reject) => {
+const cropToRatioDataURL = (dataUrl: string, targetW: number, targetH: number): Promise<string> =>
+  new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const targetRatio = targetW / targetH;
@@ -66,9 +66,7 @@ const cropToRatioDataURL = (dataUrl: string, targetW: number, targetH: number): 
     img.onerror = reject;
     img.src = dataUrl;
   });
-};
 
-// Assign every plant to one of the 4 categories (no fallback "Other")
 const assignCategory = (
   plant: NonNullable<UserSelection['plant']>,
   labels: { trees: string; shrubs: string; grasses: string; perennials: string }
@@ -76,12 +74,12 @@ const assignCategory = (
   if (plant.category_tree) return labels.trees;
   if (plant.category_shrub) return labels.shrubs;
   if (plant.category_grass) return labels.grasses;
-  return labels.perennials; // all remaining plants → perennials
+  return labels.perennials;
 };
 
 interface FlatItem {
   plant: NonNullable<UserSelection['plant']>;
-  categoryLabel: string; // non-empty only on first plant of each category
+  categoryLabel: string;
 }
 
 const buildFlatList = (selections: UserSelection[], language: 'de' | 'en'): FlatItem[] => {
@@ -92,15 +90,13 @@ const buildFlatList = (selections: UserSelection[], language: 'de' | 'en'): Flat
   const groups: { [cat: string]: NonNullable<UserSelection['plant']>[] } = {
     [labels.trees]: [], [labels.shrubs]: [], [labels.grasses]: [], [labels.perennials]: [],
   };
-
   selections.forEach(sel => {
     if (!sel.plant) return;
     groups[assignCategory(sel.plant, labels)].push(sel.plant);
   });
 
-  const order = [labels.trees, labels.shrubs, labels.grasses, labels.perennials];
   const flat: FlatItem[] = [];
-  for (const cat of order) {
+  for (const cat of [labels.trees, labels.shrubs, labels.grasses, labels.perennials]) {
     groups[cat].forEach((plant, idx) => flat.push({ plant, categoryLabel: idx === 0 ? cat : '' }));
   }
   return flat;
@@ -114,47 +110,32 @@ export const generatePlantSelectionPDF = async (
   const flat = buildFlatList(selections, language);
   if (flat.length === 0) return;
 
-  // Layout constants (mm)
+  // Fixed layout constants (mm)
   const margin = 12;
   const colGap = 3;
-  const cellRatio = 1.35; // portrait: height = width * ratio
+  const catLabelH = 7;
   const nameH = 9;
-  const catLabelH = 6;
-  const titleH = 14;
+  const titleH = 16;
 
-  // Max page height = A3 landscape height
-  const maxPageH = 297;
-  const maxContentH = maxPageH - margin * 2 - titleH;
-  const pageW = 420; // A3 landscape width mm
+  // Fixed 6 columns at A3 landscape width → ~63mm per column
+  const cols = 6;
+  const pageW = 420;
+  const cellW = (pageW - margin * 2 - (cols - 1) * colGap) / cols; // ~63mm
+  const cellH = cellW * 1.35; // portrait ratio, ~85mm — clearly visible
 
-  // For a given number of cols, compute total content height
-  // Items flow seamlessly — rows don't break per category
-  const calcHeightForCols = (cols: number): number => {
-    const cellW = (pageW - margin * 2 - (cols - 1) * colGap) / cols;
-    const cellH = cellW * cellRatio;
-    let h = 0;
-    for (let i = 0; i < flat.length; i += cols) {
-      const rowItems = flat.slice(i, i + cols);
-      const hasLabel = rowItems.some(it => it.categoryLabel !== '');
-      h += (hasLabel ? catLabelH : 0) + cellH + nameH + 2;
-    }
-    return h;
-  };
-
-  // Find minimum cols that fits content on one page
-  let cols = 6;
-  for (let c = 6; c <= 22; c++) {
-    if (calcHeightForCols(c) <= maxContentH) { cols = c; break; }
-    cols = c;
+  // Pre-compute per-row label presence for correct height calculation
+  const rowLabels: boolean[] = [];
+  for (let i = 0; i < flat.length; i += cols) {
+    rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
   }
 
-  const cellW = (pageW - margin * 2 - (cols - 1) * colGap) / cols;
-  const cellH = cellW * cellRatio;
+  // Total content height — page grows to fit all rows
+  let totalContentH = 0;
+  for (let ri = 0; ri < rowLabels.length; ri++) {
+    totalContentH += (rowLabels[ri] ? catLabelH : 0) + cellH + nameH + 2;
+  }
 
-  // Dynamic page height: just tall enough for content
-  const contentH = calcHeightForCols(cols);
-  const pageH = Math.min(maxPageH, Math.max(150, margin * 2 + titleH + contentH + 4));
-
+  const pageH = margin * 2 + titleH + totalContentH + 4;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [pageW, pageH] });
 
   // Title
@@ -162,13 +143,7 @@ export const generatePlantSelectionPDF = async (
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(40, 40, 40);
-  doc.text(titleText, margin, margin + 6);
-
-  // Pre-calculate per-row label presence for correct row heights
-  const rowLabels: boolean[] = [];
-  for (let i = 0; i < flat.length; i += cols) {
-    rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
-  }
+  doc.text(titleText, margin, margin + 7);
 
   let rowStartY = margin + titleH;
 
@@ -184,11 +159,11 @@ export const generatePlantSelectionPDF = async (
     const x = margin + colIndex * (cellW + colGap);
     const imageTop = rowStartY + (rowHasLabel ? catLabelH : 0);
 
-    // Category label (only first of category)
+    // Category label
     if (flat[i].categoryLabel !== '') {
-      doc.setFontSize(8.5);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(80, 80, 80);
+      doc.setTextColor(70, 70, 70);
       doc.text(flat[i].categoryLabel, x, rowStartY + catLabelH - 1.5);
     }
 
@@ -202,7 +177,7 @@ export const generatePlantSelectionPDF = async (
       if (imageUrls.length === 0 && flat[i].plant.image_url) imageUrls = [flat[i].plant.image_url];
       if (imageUrls[0]) {
         const raw = await loadImageAsDataURL(imageUrls[0]);
-        const cropped = await cropToRatioDataURL(raw, 400, Math.round(400 * cellRatio));
+        const cropped = await cropToRatioDataURL(raw, 400, Math.round(400 * 1.35));
         doc.addImage(cropped, 'JPEG', x, imageTop, cellW, cellH);
       }
     } catch {

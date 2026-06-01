@@ -31,8 +31,7 @@ const loadImageAsDataURL = async (url: string): Promise<string> => {
     const objectUrl = URL.createObjectURL(blob);
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = img.width; canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       if (!ctx) { URL.revokeObjectURL(objectUrl); reject(new Error('No canvas context')); return; }
       ctx.fillStyle = '#FFFFFF';
@@ -46,8 +45,8 @@ const loadImageAsDataURL = async (url: string): Promise<string> => {
   });
 };
 
-const cropImageDataURL = (dataUrl: string, targetW: number, targetH: number): Promise<string> => {
-  return new Promise((resolve, reject) => {
+const cropImageDataURL = (dataUrl: string, targetW: number, targetH: number): Promise<string> =>
+  new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const targetRatio = targetW / targetH;
@@ -67,19 +66,20 @@ const cropImageDataURL = (dataUrl: string, targetW: number, targetH: number): Pr
     img.onerror = reject;
     img.src = dataUrl;
   });
-};
 
-// Assign every plant to one of the 4 categories (no "Other")
-const assignCategory = (plant: NonNullable<UserSelection['plant']>, labels: { trees: string; shrubs: string; grasses: string; perennials: string }) => {
+const assignCategory = (
+  plant: NonNullable<UserSelection['plant']>,
+  labels: { trees: string; shrubs: string; grasses: string; perennials: string }
+) => {
   if (plant.category_tree) return labels.trees;
   if (plant.category_shrub) return labels.shrubs;
   if (plant.category_grass) return labels.grasses;
-  return labels.perennials; // everything else → perennials
+  return labels.perennials;
 };
 
 interface FlatItem {
   plant: NonNullable<UserSelection['plant']>;
-  categoryLabel: string; // non-empty only on first plant of each category
+  categoryLabel: string;
 }
 
 const buildFlatList = (selections: UserSelection[], language: 'de' | 'en'): FlatItem[] => {
@@ -90,15 +90,13 @@ const buildFlatList = (selections: UserSelection[], language: 'de' | 'en'): Flat
   const groups: { [cat: string]: NonNullable<UserSelection['plant']>[] } = {
     [labels.trees]: [], [labels.shrubs]: [], [labels.grasses]: [], [labels.perennials]: [],
   };
-
   selections.forEach(sel => {
     if (!sel.plant) return;
     groups[assignCategory(sel.plant, labels)].push(sel.plant);
   });
 
-  const order = [labels.trees, labels.shrubs, labels.grasses, labels.perennials];
   const flat: FlatItem[] = [];
-  for (const cat of order) {
+  for (const cat of [labels.trees, labels.shrubs, labels.grasses, labels.perennials]) {
     groups[cat].forEach((plant, idx) => flat.push({ plant, categoryLabel: idx === 0 ? cat : '' }));
   }
   return flat;
@@ -112,54 +110,37 @@ export const generateMoodboardPDF = async (
   const flat = buildFlatList(selections, language);
   if (flat.length === 0) return;
 
-  // Layout constants (mm)
+  // Fixed layout constants (mm)
   const margin = 12;
-  const colGap = 2;
-  const imgH = 22;   // height of each image slot
-  const imgGap = 2;  // gap between the two stacked images
-  const textH = 10;  // text area above images
-  const cellH = textH + imgH * 2 + imgGap; // total cell height
-  const catLabelH = 6; // space for category label
-  const titleH = 14;   // title at top
+  const colGap = 2.5;
+  const imgGap = 2;      // gap between the 2 stacked images per plant
+  const textH = 11;      // text area above images
+  const catLabelH = 7;   // category heading height
+  const titleH = 16;     // document title
 
-  // Choose plantsPerRow (cols): try to keep page width ≤ A3 landscape (420mm),
-  // but always use exactly the number of columns needed to keep everything on ONE page.
-  // Page width = margin*2 + cols*imgW + (cols-1)*colGap
-  // We target imgW ≈ 30mm as a comfortable size, then adjust.
+  // Fixed number of columns — 6 cols at A3 landscape width gives ~60mm per column,
+  // wide enough to clearly see plants. Page height grows to fit all content.
+  const cols = 6;
+  const pageW = 420; // A3 landscape width mm
+  const imgW = (pageW - margin * 2 - (cols - 1) * colGap) / cols; // ~63mm
 
-  // First pass: pick cols so total height fits on a reasonable page height (≤ A3 landscape 297mm)
-  const maxPageH = 297;
-  const maxContentH = maxPageH - margin * 2 - titleH;
+  // Each image is square-ish: height = width * 0.75 (landscape crop)
+  const imgH = imgW * 0.75; // ~47mm — clearly visible
+  const cellH = textH + imgH * 2 + imgGap;
 
-  // Calculate rows needed for a given number of cols
-  // Categories don't break rows — items flow seamlessly
-  const calcRows = (cols: number) => Math.ceil(flat.length / cols);
-
-  // Each row has catLabelH reserved at top (worst case) — simpler: just use catLabelH once per row
-  // More accurate: for each row, check if any item in that row starts a category
-  const calcHeightForCols = (cols: number) => {
-    let h = 0;
-    for (let i = 0; i < flat.length; i += cols) {
-      const rowItems = flat.slice(i, i + cols);
-      const hasLabel = rowItems.some(it => it.categoryLabel !== '');
-      h += (hasLabel ? catLabelH : 0) + cellH + 4;
-    }
-    return h;
-  };
-
-  let cols = 6;
-  for (let c = 6; c <= 20; c++) {
-    if (calcHeightForCols(c) <= maxContentH) { cols = c; break; }
-    cols = c;
+  // Pre-compute row label flags (does any item in this row start a category?)
+  const rowLabels: boolean[] = [];
+  for (let i = 0; i < flat.length; i += cols) {
+    rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
   }
 
-  const totalRows = calcRows(cols);
-  const contentH = calcHeightForCols(cols);
-  const pageH = Math.min(maxPageH, Math.max(150, margin * 2 + titleH + contentH + 4));
-  const pageW = 420; // A3 landscape width mm
+  // Total content height (page grows to fit)
+  let totalContentH = 0;
+  for (let ri = 0; ri < rowLabels.length; ri++) {
+    totalContentH += (rowLabels[ri] ? catLabelH : 0) + cellH + 4;
+  }
 
-  const imgW = (pageW - margin * 2 - (cols - 1) * colGap) / cols;
-
+  const pageH = margin * 2 + titleH + totalContentH + 4;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [pageW, pageH] });
 
   // Title
@@ -167,76 +148,67 @@ export const generateMoodboardPDF = async (
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(40, 40, 40);
-  doc.text(titleText, margin, margin + 6);
+  doc.text(titleText, margin, margin + 7);
 
-  let currentY = margin + titleH;
-  let colIndex = 0;
-  let rowStartY = currentY;
-  let rowHasLabel = false;
+  let rowStartY = margin + titleH;
 
-  // Pre-calculate per-row label presence
-  const rowLabels: boolean[] = [];
-  for (let i = 0; i < flat.length; i += cols) {
-    rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
-  }
-
-  // Draw row by row
   for (let i = 0; i < flat.length; i++) {
-    const item = flat[i];
     const rowIdx = Math.floor(i / cols);
+    const colIndex = i % cols;
 
-    if (i % cols === 0) {
-      if (i > 0) rowStartY += (rowLabels[rowIdx - 1] ? catLabelH : 0) + cellH + 4;
-      rowHasLabel = rowLabels[rowIdx];
+    // Advance rowStartY when starting a new row
+    if (colIndex === 0 && i > 0) {
+      rowStartY += (rowLabels[rowIdx - 1] ? catLabelH : 0) + cellH + 4;
     }
 
-    colIndex = i % cols;
+    const rowHasLabel = rowLabels[rowIdx];
     const x = margin + colIndex * (imgW + colGap);
-    const imageTop = rowStartY + (rowHasLabel ? catLabelH : 0);
+    const imageTop = rowStartY + (rowHasLabel ? catLabelH : 0) + textH;
 
     // Category label
-    if (item.categoryLabel !== '') {
-      doc.setFontSize(8.5);
+    if (flat[i].categoryLabel !== '') {
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(80, 80, 80);
-      doc.text(item.categoryLabel, x, rowStartY + catLabelH - 1.5);
+      doc.setTextColor(70, 70, 70);
+      doc.text(flat[i].categoryLabel, x, rowStartY + catLabelH - 1.5);
     }
 
-    // Plant names
+    // Plant names in text area
+    const textTop = rowStartY + (rowHasLabel ? catLabelH : 0);
     const commonName = language === 'de'
-      ? (item.plant.common_name_de || item.plant.common_name_en || '')
-      : (item.plant.common_name_en || item.plant.common_name_de || '');
-    const botanicName = item.plant.botanical_name || '';
+      ? (flat[i].plant.common_name_de || flat[i].plant.common_name_en || '')
+      : (flat[i].plant.common_name_en || flat[i].plant.common_name_de || '');
+    const botanicName = flat[i].plant.botanical_name || '';
 
-    doc.setFontSize(6.5);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(60, 60, 60);
+    doc.setTextColor(50, 50, 50);
     const commonLines = doc.splitTextToSize(commonName, imgW).slice(0, 2) as string[];
-    doc.text(commonLines, x, imageTop + 3);
+    doc.text(commonLines, x, textTop + 3.5);
 
-    doc.setFontSize(5.5);
+    doc.setFontSize(6);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(110, 110, 110);
     const botanicLines = doc.splitTextToSize(botanicName, imgW).slice(0, 2) as string[];
-    doc.text(botanicLines, x, imageTop + 3 + commonLines.length * 2.4 + 1);
+    doc.text(botanicLines, x, textTop + 3.5 + commonLines.length * 2.6 + 1);
 
-    // Images (2 stacked)
-    let imgY = imageTop + textH;
-    let plantImages = await loadPlantImages(item.plant.id);
-    if (plantImages.length === 0 && item.plant.image_url) plantImages = [item.plant.image_url];
+    // Draw 2 images stacked
+    let plantImages = await loadPlantImages(flat[i].plant.id);
+    if (plantImages.length === 0 && flat[i].plant.image_url) plantImages = [flat[i].plant.image_url];
 
+    let imgY = imageTop;
     for (let imgIdx = 0; imgIdx < 2; imgIdx++) {
       if (plantImages[imgIdx]) {
         try {
           const raw = await loadImageAsDataURL(plantImages[imgIdx]);
-          const cropped = await cropImageDataURL(raw, Math.round(imgW * 30), Math.round(imgH * 30));
+          const cropped = await cropImageDataURL(raw, Math.round(imgW * 25), Math.round(imgH * 25));
           doc.addImage(cropped, 'JPEG', x, imgY, imgW, imgH);
         } catch {
-          doc.setFillColor(230, 230, 230);
+          doc.setFillColor(225, 225, 225);
           doc.rect(x, imgY, imgW, imgH, 'F');
         }
       } else {
-        doc.setFillColor(230, 230, 230);
+        doc.setFillColor(225, 225, 225);
         doc.rect(x, imgY, imgW, imgH, 'F');
       }
       imgY += imgH + imgGap;
