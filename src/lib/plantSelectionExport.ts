@@ -127,35 +127,26 @@ const preloadAllIcons = () => Promise.all(ICON_DEFS.map(d => loadIcon(d.file)));
 
 // ── Category helpers ─────────────────────────────────────────────────────────
 
+type CategoryLabels = {
+  trees: string; shrubs: string; grasses: string; perennials: string;
+  bulbs: string; ferns: string; climbing: string;
+};
+
+const CATEGORY_ORDER: (keyof CategoryLabels)[] = [
+  'trees', 'shrubs', 'grasses', 'perennials', 'bulbs', 'ferns', 'climbing',
+];
+
 const assignCategory = (
   plant: NonNullable<UserSelection['plant']>,
-  labels: { trees: string; shrubs: string; grasses: string; perennials: string }
-) => {
+  labels: CategoryLabels
+): string => {
   if (plant.category_tree) return labels.trees;
   if (plant.category_shrub) return labels.shrubs;
   if (plant.category_grass) return labels.grasses;
+  if (plant.category_bulb) return labels.bulbs;
+  if (plant.category_fern) return labels.ferns;
+  if (plant.category_climbing_plant) return labels.climbing;
   return labels.perennials;
-};
-
-const buildPlantList = (
-  selections: UserSelection[],
-  language: 'de' | 'en'
-): NonNullable<UserSelection['plant']>[] => {
-  const labels = language === 'de'
-    ? { trees: 'Bäume', shrubs: 'Sträucher', grasses: 'Gräser', perennials: 'Stauden' }
-    : { trees: 'Trees', shrubs: 'Shrubs', grasses: 'Grasses', perennials: 'Perennials' };
-  const groups: { [cat: string]: NonNullable<UserSelection['plant']>[] } = {
-    [labels.trees]: [], [labels.shrubs]: [], [labels.grasses]: [], [labels.perennials]: [],
-  };
-  selections.forEach(sel => {
-    if (!sel.plant) return;
-    groups[assignCategory(sel.plant, labels)].push(sel.plant);
-  });
-  const result: NonNullable<UserSelection['plant']>[] = [];
-  for (const cat of [labels.trees, labels.shrubs, labels.grasses, labels.perennials]) {
-    result.push(...groups[cat]);
-  }
-  return result;
 };
 
 // ── Main export ──────────────────────────────────────────────────────────────
@@ -165,8 +156,29 @@ export const generatePlantSelectionPDF = async (
   projectName?: string,
   language: 'de' | 'en' = 'de'
 ): Promise<void> => {
-  const plants = buildPlantList(selections, language);
-  if (plants.length === 0) return;
+  const labels: CategoryLabels = language === 'de'
+    ? { trees: 'Bäume', shrubs: 'Sträucher', grasses: 'Gräser', perennials: 'Stauden', bulbs: 'Zwiebeln', ferns: 'Farne', climbing: 'Kletterpflanzen' }
+    : { trees: 'Trees', shrubs: 'Shrubs', grasses: 'Grasses', perennials: 'Perennials', bulbs: 'Bulbs', ferns: 'Ferns', climbing: 'Climbing Plants' };
+
+  // Build ordered list with category info attached
+  const groups: { [cat: string]: NonNullable<UserSelection['plant']>[] } = {};
+  for (const key of CATEGORY_ORDER) groups[labels[key]] = [];
+  selections.forEach(sel => {
+    if (!sel.plant) return;
+    groups[assignCategory(sel.plant, labels)].push(sel.plant);
+  });
+
+  // Flat list of items — either a plant or a section header
+  type Item = { kind: 'plant'; plant: NonNullable<UserSelection['plant']> } | { kind: 'header'; label: string };
+  const items: Item[] = [];
+  for (const key of CATEGORY_ORDER) {
+    const cat = labels[key];
+    if (groups[cat].length === 0) continue;
+    items.push({ kind: 'header', label: cat });
+    for (const p of groups[cat]) items.push({ kind: 'plant', plant: p });
+  }
+
+  if (items.length === 0) return;
 
   await preloadAllIcons();
 
@@ -273,8 +285,31 @@ export const generatePlantSelectionPDF = async (
     }
   };
 
-  // ── Draw each plant ───────────────────────────────────────────────────────
-  for (const plant of plants) {
+  // ── Draw each item ────────────────────────────────────────────────────────
+  for (const item of items) {
+    if (item.kind === 'header') {
+      // Flush to next row if mid-row
+      if (col > 0) {
+        col = 0;
+        rowY += CELL_H;
+        if (rowY + CELL_H > PAGE_H - margin) nextPage();
+      }
+      if (rowY + CELL_H > PAGE_H - margin) nextPage();
+
+      // Section header bar
+      const headerH = 6;
+      doc.setFillColor(240, 240, 240);
+      doc.rect(margin, rowY, PAGE_W - margin * 2, headerH, 'F');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(60, 60, 60);
+      doc.text(item.label.toUpperCase(), margin + 3, rowY + 4.2);
+      rowY += headerH + 2;
+      continue;
+    }
+
+    const plant = item.plant;
+
     // Check if a new page is needed before drawing
     if (rowY + CELL_H > PAGE_H - margin) nextPage();
 
@@ -307,22 +342,20 @@ export const generatePlantSelectionPDF = async (
     doc.setTextColor(50, 50, 50);
     doc.text(doc.splitTextToSize(commonName, cellW)[0] || '', x, nameY);
 
-    // Latin name (same size, not italic)
+    // Latin name
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(110, 110, 110);
     doc.text(doc.splitTextToSize(plant.botanical_name || '', cellW)[0] || '', x, nameY + 3.8);
 
-    // Icons row — only applicable icons
+    // Icons row
     const applicableIcons = ICON_DEFS.filter(def => def.check(plant));
     const iconRowY = nameY + 3.8 + 2.8;
     applicableIcons.forEach((def, ii) => {
       const iconX = x + ii * (ICON_SIZE + ICON_GAP);
-      if (iconX + ICON_SIZE > x + cellW) return; // overflow guard
+      if (iconX + ICON_SIZE > x + cellW) return;
       const iconData = iconCache.get(def.file);
-      if (iconData) {
-        doc.addImage(iconData, 'PNG', iconX, iconRowY, ICON_SIZE, ICON_SIZE);
-      }
+      if (iconData) doc.addImage(iconData, 'PNG', iconX, iconRowY, ICON_SIZE, ICON_SIZE);
     });
 
     advanceCell();
