@@ -110,33 +110,41 @@ export const generatePlantSelectionPDF = async (
   const flat = buildFlatList(selections, language);
   if (flat.length === 0) return;
 
-  // Fixed layout constants (mm)
+  // Layout constants (mm)
   const margin = 12;
   const colGap = 3;
   const catLabelH = 7;
   const nameH = 9;
   const titleH = 16;
+  const cellRatio = 1.35; // portrait image ratio
 
-  // Fixed 6 columns at A3 landscape width → ~63mm per column
-  const cols = 6;
+  // Page width fixed at A3 landscape width (420mm)
   const pageW = 420;
-  const cellW = (pageW - margin * 2 - (cols - 1) * colGap) / cols; // ~63mm
-  const cellH = cellW * 1.35; // portrait ratio, ~85mm — clearly visible
+  const availW = pageW - margin * 2;
 
-  // Pre-compute per-row label presence for correct height calculation
+  // Target cell width ~60mm for clearly visible images
+  const targetCellW = 60;
+  const cols = Math.max(4, Math.round(availW / (targetCellW + colGap)));
+  const cellW = (availW - (cols - 1) * colGap) / cols;
+  const cellH = cellW * cellRatio;
+
+  // Per-row label flags
   const rowLabels: boolean[] = [];
   for (let i = 0; i < flat.length; i += cols) {
     rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
   }
 
-  // Total content height — page grows to fit all rows
+  // Compute total content height — page grows to fit everything
   let totalContentH = 0;
   for (let ri = 0; ri < rowLabels.length; ri++) {
     totalContentH += (rowLabels[ri] ? catLabelH : 0) + cellH + nameH + 2;
   }
 
   const pageH = margin * 2 + titleH + totalContentH + 4;
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [pageW, pageH] });
+
+  // Use 'p' (portrait) orientation with custom [width, height] format so jsPDF
+  // does not swap axes — this is the correct way to get custom landscape-like pages.
+  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: [pageW, pageH] });
 
   // Title
   const titleText = projectName ? `${projectName} — Plant board` : 'Plant board';
@@ -177,7 +185,7 @@ export const generatePlantSelectionPDF = async (
       if (imageUrls.length === 0 && flat[i].plant.image_url) imageUrls = [flat[i].plant.image_url];
       if (imageUrls[0]) {
         const raw = await loadImageAsDataURL(imageUrls[0]);
-        const cropped = await cropToRatioDataURL(raw, 400, Math.round(400 * 1.35));
+        const cropped = await cropToRatioDataURL(raw, 400, Math.round(400 * cellRatio));
         doc.addImage(cropped, 'JPEG', x, imageTop, cellW, cellH);
       }
     } catch {

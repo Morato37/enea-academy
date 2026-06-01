@@ -110,38 +110,44 @@ export const generateMoodboardPDF = async (
   const flat = buildFlatList(selections, language);
   if (flat.length === 0) return;
 
-  // Fixed layout constants (mm)
+  // Layout constants (mm)
   const margin = 12;
   const colGap = 2.5;
-  const imgGap = 2;      // gap between the 2 stacked images per plant
-  const textH = 11;      // text area above images
-  const catLabelH = 7;   // category heading height
-  const titleH = 16;     // document title
+  const imgGap = 2;
+  const textH = 11;
+  const catLabelH = 7;
+  const titleH = 16;
 
-  // Fixed number of columns — 6 cols at A3 landscape width gives ~60mm per column,
-  // wide enough to clearly see plants. Page height grows to fit all content.
-  const cols = 6;
-  const pageW = 420; // A3 landscape width mm
-  const imgW = (pageW - margin * 2 - (cols - 1) * colGap) / cols; // ~63mm
+  // Page width fixed at A3 landscape width (420mm)
+  // Columns: choose the number that gives ~55-65mm wide images (clearly visible)
+  // This means we use the number of columns that best fills the width with good image sizes.
+  const pageW = 420;
+  const availW = pageW - margin * 2;
 
-  // Each image is square-ish: height = width * 0.75 (landscape crop)
-  const imgH = imgW * 0.75; // ~47mm — clearly visible
+  // Target image width ~60mm → cols = floor(availW / (targetImgW + colGap))
+  const targetImgW = 60;
+  const cols = Math.max(4, Math.round(availW / (targetImgW + colGap)));
+  const imgW = (availW - (cols - 1) * colGap) / cols;
+  const imgH = imgW * 0.75; // landscape crop ratio
   const cellH = textH + imgH * 2 + imgGap;
 
-  // Pre-compute row label flags (does any item in this row start a category?)
+  // Per-row label flags
   const rowLabels: boolean[] = [];
   for (let i = 0; i < flat.length; i += cols) {
     rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
   }
 
-  // Total content height (page grows to fit)
+  // Compute total content height so page grows to fit
   let totalContentH = 0;
   for (let ri = 0; ri < rowLabels.length; ri++) {
     totalContentH += (rowLabels[ri] ? catLabelH : 0) + cellH + 4;
   }
 
   const pageH = margin * 2 + titleH + totalContentH + 4;
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [pageW, pageH] });
+
+  // jsPDF: for custom sizes always pass [width, height] with 'p' (portrait) orientation
+  // so the format array maps directly to actual dimensions without axis swap.
+  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: [pageW, pageH] });
 
   // Title
   const titleText = projectName ? `${projectName} — Plant board` : 'Plant board';
@@ -156,7 +162,6 @@ export const generateMoodboardPDF = async (
     const rowIdx = Math.floor(i / cols);
     const colIndex = i % cols;
 
-    // Advance rowStartY when starting a new row
     if (colIndex === 0 && i > 0) {
       rowStartY += (rowLabels[rowIdx - 1] ? catLabelH : 0) + cellH + 4;
     }
@@ -173,7 +178,7 @@ export const generateMoodboardPDF = async (
       doc.text(flat[i].categoryLabel, x, rowStartY + catLabelH - 1.5);
     }
 
-    // Plant names in text area
+    // Plant names
     const textTop = rowStartY + (rowHasLabel ? catLabelH : 0);
     const commonName = language === 'de'
       ? (flat[i].plant.common_name_de || flat[i].plant.common_name_en || '')
@@ -192,7 +197,7 @@ export const generateMoodboardPDF = async (
     const botanicLines = doc.splitTextToSize(botanicName, imgW).slice(0, 2) as string[];
     doc.text(botanicLines, x, textTop + 3.5 + commonLines.length * 2.6 + 1);
 
-    // Draw 2 images stacked
+    // Draw 2 stacked images
     let plantImages = await loadPlantImages(flat[i].plant.id);
     if (plantImages.length === 0 && flat[i].plant.image_url) plantImages = [flat[i].plant.image_url];
 
