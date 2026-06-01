@@ -192,10 +192,10 @@ export const generatePlantSelectionPDF = async (
 
   // Legend strip height at top of first page
   const LEGEND_ICON_SIZE = 5.5; // mm
-  const LEGEND_COLS = 6;        // icons per legend row
-  const LEGEND_ITEM_W = (PAGE_W - margin * 2) / LEGEND_COLS;
+  const LEGEND_ITEM_W = 34;     // fixed width per item — tight, content-driven
+  const LEGEND_COLS = Math.floor((PAGE_W - margin * 2) / LEGEND_ITEM_W);
   const LEGEND_ROWS = Math.ceil(ICON_DEFS.length / LEGEND_COLS);
-  const LEGEND_ROW_H = LEGEND_ICON_SIZE + 5;
+  const LEGEND_ROW_H = LEGEND_ICON_SIZE + 4;
   const LEGEND_H = LEGEND_ROWS * LEGEND_ROW_H + 4;
   const SEPARATOR_H = 3;
 
