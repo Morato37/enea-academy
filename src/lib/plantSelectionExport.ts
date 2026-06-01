@@ -258,39 +258,74 @@ export const generatePlantSelectionPDF = async (
     rowY = margin + 4;
   };
 
-  const advanceCell = (usedLabel: boolean) => {
+  // Pre-compute which item indices start a labeled row so every cell in that
+  // row can be offset uniformly (avoids misalignment when label is mid-row).
+  const rowLabelOffset: boolean[] = new Array(items.length).fill(false);
+  {
+    let c = 0;
+    // First pass: find label positions and mark all items in the same row
+    const rowStart: number[] = []; // item index that starts each row
+    let rs = 0;
+    for (let i = 0; i < items.length; i++) {
+      if (c === 0) rs = i;
+      if (items[i].catLabel) {
+        // mark entire row segment starting at rs up to end of row
+        rowStart.push(rs);
+      }
+      c++;
+      if (c >= cols) c = 0;
+    }
+    // Second pass: mark all items belonging to rows that have a label
+    c = 0;
+    let currentRowHasLabel = false;
+    let rowStartIdx = 0;
+    for (let i = 0; i < items.length; i++) {
+      if (c === 0) { rowStartIdx = i; currentRowHasLabel = false; }
+      if (items[i].catLabel) currentRowHasLabel = true;
+      c++;
+      if (c >= cols || i === items.length - 1) {
+        if (currentRowHasLabel) {
+          for (let j = rowStartIdx; j <= i; j++) rowLabelOffset[j] = true;
+        }
+        c = 0;
+      }
+    }
+  }
+
+  const advanceCell = (rowHadLabel: boolean) => {
     col++;
     if (col >= cols) {
       col = 0;
-      rowY += usedLabel ? CELL_H_WITH_LABEL : CELL_H;
+      rowY += rowHadLabel ? CELL_H_WITH_LABEL : CELL_H;
       if (rowY + CELL_H > PAGE_H - margin) nextPage();
     }
   };
 
   // ── Draw each item ────────────────────────────────────────────────────────
-  for (const item of items) {
+  for (let idx = 0; idx < items.length; idx++) {
+    const item = items[idx];
     const plant = item.plant;
-    const hasLabel = !!item.catLabel;
-    const cellTotalH = hasLabel ? CELL_H_WITH_LABEL : CELL_H;
+    const rowOffset = rowLabelOffset[idx];
+    const cellTotalH = rowOffset ? CELL_H_WITH_LABEL : CELL_H;
 
     // Check if a new page is needed before drawing
     if (rowY + cellTotalH > PAGE_H - margin) nextPage();
 
     const x = margin + col * (cellW + colGap);
-    let y = rowY;
+    // All cells in a label-row shift down by CAT_LABEL_H; only the labeled cell shows text
+    const imgY = rowY + (rowOffset ? CAT_LABEL_H : 0);
 
     // Category label above image (only for first plant of each category)
-    if (hasLabel) {
+    if (item.catLabel) {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(80, 80, 80);
-      doc.text(item.catLabel!, x, y + 4);
-      y += CAT_LABEL_H;
+      doc.text(item.catLabel, x, rowY + 4);
     }
 
     // Image placeholder
     doc.setFillColor(225, 225, 225);
-    doc.rect(x, y, cellW, imgH, 'F');
+    doc.rect(x, imgY, cellW, imgH, 'F');
 
     // Image
     try {
@@ -299,12 +334,12 @@ export const generatePlantSelectionPDF = async (
       if (imageUrl) {
         const raw = await loadImageAsDataURL(imageUrl);
         const cropped = await cropToRatioDataURL(raw, 400, Math.round(400 * 1.35));
-        doc.addImage(cropped, 'JPEG', x, y, cellW, imgH);
+        doc.addImage(cropped, 'JPEG', x, imgY, cellW, imgH);
       }
     } catch { /* keep placeholder */ }
 
     // Common name
-    const nameY = y + imgH + 2.5;
+    const nameY = imgY + imgH + 2.5;
     const commonName = language === 'de'
       ? (plant.common_name_de || plant.common_name_en || '')
       : (plant.common_name_en || plant.common_name_de || '');
@@ -330,7 +365,7 @@ export const generatePlantSelectionPDF = async (
       if (iconData) doc.addImage(iconData, 'PNG', iconX, iconRowY, ICON_SIZE, ICON_SIZE);
     });
 
-    advanceCell(hasLabel);
+    advanceCell(rowOffset);
   }
 
   doc.save(`PlantSelection_${new Date().toISOString().split('T')[0]}.pdf`);
