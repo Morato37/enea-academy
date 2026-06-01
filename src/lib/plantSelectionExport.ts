@@ -110,7 +110,6 @@ export const generatePlantSelectionPDF = async (
   const flat = buildFlatList(selections, language);
   if (flat.length === 0) return;
 
-  // Fixed cell dimensions — images are always clearly visible
   const margin = 12;
   const colGap = 3;
   const catLabelH = 7;
@@ -119,16 +118,11 @@ export const generatePlantSelectionPDF = async (
   const cellRatio = 1.35;
 
   const cellW = 55;              // fixed cell width in mm
-  const cellH = cellW * cellRatio; // ~74mm tall — clearly visible portrait image
+  const cellH = cellW * cellRatio;
 
-  // Landscape: page width >= page height always.
-  // Minimum = A3 landscape (297 × 210mm).
-  const minPageW = 297;
-  const minPageH = 210;
-
-  // Compute page dimensions for a given number of columns
-  const computeDimensions = (cols: number) => {
-    const pageW = Math.max(minPageW, margin * 2 + cols * cellW + (cols - 1) * colGap);
+  // Compute layout for a given number of columns
+  const computeLayout = (cols: number) => {
+    const w = margin * 2 + cols * cellW + (cols - 1) * colGap;
     const rowLabels: boolean[] = [];
     for (let i = 0; i < flat.length; i += cols) {
       rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
@@ -137,28 +131,30 @@ export const generatePlantSelectionPDF = async (
     for (let ri = 0; ri < rowLabels.length; ri++) {
       totalH += (rowLabels[ri] ? catLabelH : 0) + cellH + nameH + 2;
     }
-    const pageH = Math.max(minPageH, margin * 2 + titleH + totalH + 4);
-    return { pageW, pageH, rowLabels };
+    const h = margin * 2 + titleH + totalH + 4;
+    return { w, h, rowLabels };
   };
 
-  // Find the number of columns where pageW >= pageH (true landscape).
-  // Increase cols until the page becomes wider than tall.
-  let cols = 4;
-  let dims = computeDimensions(cols);
-  for (let c = 4; c <= Math.min(flat.length, 30); c++) {
-    const d = computeDimensions(c);
-    if (d.pageW >= d.pageH) { cols = c; dims = d; break; }
-    // Track best: smallest height-to-width ratio
-    if (d.pageH / d.pageW < dims.pageH / dims.pageW) { cols = c; dims = d; }
+  // Start at 6 cols, increase until width >= height (true landscape)
+  let cols = 6;
+  let layout = computeLayout(cols);
+  while (layout.w < layout.h && cols < flat.length) {
+    cols++;
+    layout = computeLayout(cols);
   }
 
-  const { pageW, pageH, rowLabels } = dims;
+  const pageW = layout.w;
+  const pageH = layout.h;
+  const { rowLabels } = layout;
 
-  // Always pass [width, height] with portrait orientation so jsPDF does not swap axes.
-  // Since pageW >= pageH the document is physically landscape.
-  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: [pageW, pageH] });
+  // jsPDF orientation:'l' with format:[shortSide, longSide] creates a landscape document
+  // where getWidth() returns longSide. Our pageW is already the long side (width > height).
+  const doc = new jsPDF({
+    orientation: 'l',
+    unit: 'mm',
+    format: [Math.min(pageW, pageH), Math.max(pageW, pageH)],
+  });
 
-  // Title
   const titleText = projectName ? `${projectName} — Plant board` : 'Plant board';
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
@@ -179,7 +175,6 @@ export const generatePlantSelectionPDF = async (
     const x = margin + colIndex * (cellW + colGap);
     const imageTop = rowStartY + (rowHasLabel ? catLabelH : 0);
 
-    // Category label
     if (flat[i].categoryLabel !== '') {
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
@@ -187,11 +182,9 @@ export const generatePlantSelectionPDF = async (
       doc.text(flat[i].categoryLabel, x, rowStartY + catLabelH - 1.5);
     }
 
-    // Image placeholder
     doc.setFillColor(228, 228, 228);
     doc.rect(x, imageTop, cellW, cellH, 'F');
 
-    // Load and draw image
     try {
       let imageUrls = await loadPlantImages(flat[i].plant.id);
       if (imageUrls.length === 0 && flat[i].plant.image_url) imageUrls = [flat[i].plant.image_url];
@@ -204,7 +197,6 @@ export const generatePlantSelectionPDF = async (
       // keep placeholder
     }
 
-    // Plant names below image
     const nameY = imageTop + cellH + 3;
     const commonName = language === 'de'
       ? (flat[i].plant.common_name_de || flat[i].plant.common_name_en || '')
