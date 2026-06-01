@@ -203,10 +203,21 @@ export interface Project {
   updated_at: string;
 }
 
+export interface ProjectZone {
+  id: string;
+  project_id?: string;
+  user_id: string;
+  name: string;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface UserSelection {
   id: string;
   user_id: string;
   project_id?: string;
+  zone_id?: string;
   plant_id?: number;
   stone_id?: number;
   quantity: number;
@@ -218,5 +229,6 @@ export interface UserSelection {
   plant?: Plant;
   stone?: Stone;
   project?: Project;
+  zone?: ProjectZone;
   child_selections?: UserSelection[];
 }
