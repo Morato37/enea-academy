@@ -75,26 +75,29 @@ async function listAllFiles(
   let hasMore = true;
 
   while (hasMore) {
-    const url = cursor
-      ? "https://api.dropboxapi.com/2/files/list_folder/continue"
-      : "https://api.dropboxapi.com/2/files/list_folder";
-    const body = cursor
-      ? { cursor }
-      : {
-          path: folderPath,
-          recursive: true,
-          include_media_info: false,
-          include_property_groups: includeProperties
-            ? { ".tag": "filter_some", filter_some: [] }  // all templates
-            : undefined,
-        };
+    let url: string;
+    let body: Record<string, unknown>;
+
+    if (cursor) {
+      url = "https://api.dropboxapi.com/2/files/list_folder/continue";
+      body = { cursor };
+    } else {
+      url = "https://api.dropboxapi.com/2/files/list_folder";
+      body = { path: folderPath, recursive: true, include_media_info: false };
+      if (includeProperties) {
+        // include_property_groups takes a TemplateFilterBase — "filter_none" returns nothing,
+        // we need "filter_some" with an empty list to get all templates.
+        // However the simpler approach that always works: fetch metadata per-file separately.
+        // So here we just list without properties, then batch-fetch metadata with properties.
+      }
+    }
 
     const res = await fetch(url, {
       method: "POST",
       headers: buildDropboxHeaders(token, rootNamespaceId),
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`list_folder failed: ${await res.text()}`);
+    if (!res.ok) throw new Error(`list_folder failed (${res.status}): ${await res.text()}`);
     const page = await res.json();
     if (page.error) throw new Error(`list_folder error: ${JSON.stringify(page.error)}`);
 
@@ -108,6 +111,27 @@ async function listAllFiles(
   }
 
   return allEntries;
+}
+
+// Fetch file metadata including property groups for a single path
+async function getFileMetadataWithProperties(
+  path: string,
+  token: string,
+  rootNamespaceId: string | null
+): Promise<DropboxEntry | null> {
+  const res = await fetch("https://api.dropboxapi.com/2/files/get_metadata", {
+    method: "POST",
+    headers: buildDropboxHeaders(token, rootNamespaceId),
+    body: JSON.stringify({
+      path,
+      include_media_info: false,
+      include_property_groups: { ".tag": "filter_some", filter_some: [] },
+    }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data.error || data[".tag"] !== "file") return null;
+  return data as DropboxEntry;
 }
 
 // ── Check which paths are already in DB (chunked to avoid query limits) ──────
@@ -151,78 +175,73 @@ async function handleListFiles(
   );
 }
 
-// ── action: import_dropbox_tags ───────────────────────────────────────────────
-// Read tags that are already stored as Dropbox file properties — no AI needed.
+// ── action: list_files_for_tag_import ────────────────────────────────────────
+// Lists all image paths in the folder — no skip logic, always returns everything
+// so the frontend can import tags for all files (including re-imports).
 
-async function handleImportDropboxTags(
+async function handleListFilesForTagImport(
   folderPath: string,
+  token: string,
+  rootNamespaceId: string | null
+): Promise<Response> {
+  const entries = await listAllFiles(folderPath, token, rootNamespaceId, false);
+  const paths = entries.map((e) => e.path_lower);
+  return new Response(
+    JSON.stringify({ success: true, paths, total: paths.length }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
+// ── action: import_single_file_tags ──────────────────────────────────────────
+// Reads Dropbox file property groups for ONE file and upserts tags into DB.
+
+async function handleImportSingleFileTags(
+  imagePath: string,
   token: string,
   rootNamespaceId: string | null,
   supabase: ReturnType<typeof createClient>
 ): Promise<Response> {
-  // List all files WITH property groups
-  const entries = await listAllFiles(folderPath, token, rootNamespaceId, true);
+  // Fetch metadata with property groups
+  const meta = await getFileMetadataWithProperties(imagePath, token, rootNamespaceId);
 
-  let imported = 0;
-  let skipped = 0;
-  let noTags = 0;
-  const errors: string[] = [];
-
-  // Process in batches of 50 to avoid overwhelming DB
-  const BATCH = 50;
-  for (let i = 0; i < entries.length; i += BATCH) {
-    const batch = entries.slice(i, i + BATCH);
-
-    const upsertRows: Array<{
-      dropbox_path: string;
-      tags: string[];
-      dropbox_shared_link: string | null;
-      last_scanned_at: string;
-      status: string;
-    }> = [];
-
-    for (const entry of batch) {
-      // Collect tags from all property groups
-      const tags: string[] = [];
-      if (entry.property_groups) {
-        for (const group of entry.property_groups) {
-          for (const field of group.fields) {
-            // Each field value may be comma-separated
-            const vals = field.value.split(/[,;]+/).map((v: string) => v.trim().toLowerCase()).filter(Boolean);
-            tags.push(...vals);
-          }
-        }
+  const tags: string[] = [];
+  if (meta?.property_groups) {
+    for (const group of meta.property_groups) {
+      for (const field of group.fields) {
+        const vals = field.value
+          .split(/[,;]+/)
+          .map((v: string) => v.trim().toLowerCase())
+          .filter(Boolean);
+        tags.push(...vals);
       }
-
-      if (tags.length === 0) { noTags++; continue; }
-
-      // Get or create shared link
-      try {
-        const sharedLink = await getOrCreateSharedLink(token, entry.path_lower, rootNamespaceId);
-        upsertRows.push({
-          dropbox_path: entry.path_lower,
-          tags,
-          dropbox_shared_link: sharedLink,
-          last_scanned_at: new Date().toISOString(),
-          status: "scanned",
-        });
-        imported++;
-      } catch (err) {
-        errors.push(`${entry.name}: ${err instanceof Error ? err.message : String(err)}`);
-        skipped++;
-      }
-    }
-
-    if (upsertRows.length > 0) {
-      const { error } = await supabase
-        .from("dropbox_images_index")
-        .upsert(upsertRows, { onConflict: "dropbox_path" });
-      if (error) throw new Error(`DB upsert failed: ${error.message}`);
     }
   }
 
+  if (tags.length === 0) {
+    return new Response(
+      JSON.stringify({ success: true, noTags: true }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const sharedLink = await getOrCreateSharedLink(token, imagePath, rootNamespaceId);
+
+  const { error: dbError } = await supabase
+    .from("dropbox_images_index")
+    .upsert(
+      {
+        dropbox_path: imagePath,
+        tags,
+        dropbox_shared_link: sharedLink,
+        last_scanned_at: new Date().toISOString(),
+        status: "scanned",
+      },
+      { onConflict: "dropbox_path" }
+    );
+  if (dbError) throw new Error(dbError.message);
+
   return new Response(
-    JSON.stringify({ success: true, imported, skipped, noTags, errors, total: entries.length }),
+    JSON.stringify({ success: true, noTags: false, tagCount: tags.length }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
 }
@@ -356,9 +375,14 @@ Deno.serve(async (req: Request) => {
       return await handleListFiles(folderPath, dropboxToken, rootNamespaceId, supabase);
     }
 
-    if (action === "import_dropbox_tags") {
+    if (action === "list_files_for_tag_import") {
       if (!folderPath) return new Response(JSON.stringify({ error: "folderPath required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      return await handleImportDropboxTags(folderPath, dropboxToken, rootNamespaceId, supabase);
+      return await handleListFilesForTagImport(folderPath, dropboxToken, rootNamespaceId);
+    }
+
+    if (action === "import_single_file_tags") {
+      if (!imagePath) return new Response(JSON.stringify({ error: "imagePath required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return await handleImportSingleFileTags(imagePath, dropboxToken, rootNamespaceId, supabase);
     }
 
     if (action === "process_single_image") {

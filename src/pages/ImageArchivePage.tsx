@@ -383,27 +383,70 @@ export const ImageArchivePage: React.FC = () => {
 
   const handleImportDropboxTags = async () => {
     abortRef.current = false;
-    setProgress({ ...initialProgress, phase: 'listing', message: 'Lese Dropbox-Tags aus...' });
+    setProgress({ ...initialProgress, phase: 'listing', message: 'Dateiliste wird abgerufen...' });
     try {
-      const { data, error } = await supabase.functions.invoke<{
-        success: boolean; imported: number; skipped: number; noTags: number; errors: string[]; total: number;
-      }>('scan-dropbox-folder', { body: { action: 'import_dropbox_tags', folderPath: FOLDER_PATH } });
+      // Step 1: list all paths
+      const { data: listData, error: listError } = await supabase.functions.invoke<{
+        success: boolean; paths: string[]; total: number;
+      }>('scan-dropbox-folder', { body: { action: 'list_files_for_tag_import', folderPath: FOLDER_PATH } });
 
-      if (error) throw error;
-      if (!data) throw new Error('Keine Antwort erhalten.');
+      if (listError) throw new Error(listError.message);
+      if (!listData?.paths) throw new Error('Keine Dateipfade erhalten.');
+
+      const paths = listData.paths;
+      setProgress((p) => ({
+        ...p,
+        phase: 'processing',
+        total: paths.length,
+        message: `${paths.length} Dateien gefunden. Lese Tags aus...`,
+      }));
+
+      let imported = 0, noTags = 0, skipped = 0;
+      const errors: string[] = [];
+
+      // Step 2: process each file individually for live progress
+      for (const imagePath of paths) {
+        if (abortRef.current) break;
+        const fileName = imagePath.split('/').pop() ?? imagePath;
+        setProgress((p) => ({ ...p, currentFile: fileName }));
+
+        try {
+          const { data: fileData, error: fileError } = await supabase.functions.invoke<{
+            success: boolean; noTags: boolean; tagCount?: number;
+          }>('scan-dropbox-folder', { body: { action: 'import_single_file_tags', imagePath } });
+
+          if (fileError) throw new Error(fileError.message);
+          if (fileData?.noTags) noTags++;
+          else imported++;
+        } catch (err) {
+          errors.push(`${fileName}: ${err instanceof Error ? err.message : String(err)}`);
+          skipped++;
+        }
+
+        setProgress((p) => ({
+          ...p,
+          processed: imported + noTags,
+          skipped,
+          errors,
+          message: `Verarbeite ${imported + noTags + skipped} von ${paths.length}...`,
+        }));
+      }
 
       setProgress((p) => ({
         ...p,
-        phase: 'done',
-        total: data.total,
-        processed: data.imported,
-        skipped: data.skipped + data.noTags,
-        errors: data.errors ?? [],
-        message: `Fertig: ${data.imported} importiert, ${data.noTags} ohne Tags, ${data.skipped} Fehler (von ${data.total} Dateien).`,
+        phase: abortRef.current ? 'error' : 'done',
+        currentFile: '',
+        message: abortRef.current
+          ? `Abgebrochen. ${imported} importiert.`
+          : `Fertig: ${imported} mit Tags importiert, ${noTags} ohne Tags, ${skipped} Fehler.`,
       }));
-      await fetchImages();
+
+      if (!abortRef.current) await fetchImages();
     } catch (err) {
-      setProgress((p) => ({ ...p, phase: 'error', currentFile: '', message: err instanceof Error ? err.message : 'Import fehlgeschlagen.' }));
+      setProgress((p) => ({
+        ...p, phase: 'error', currentFile: '',
+        message: err instanceof Error ? err.message : 'Import fehlgeschlagen.',
+      }));
     }
   };
 
