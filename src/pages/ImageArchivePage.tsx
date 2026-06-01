@@ -14,6 +14,56 @@ interface DropboxImage {
 
 const FOLDER_PATH = '/Test_Enea Group Objects/Test Metadata';
 
+// Bidirectional synonym map: each entry lists all equivalent terms (DE + EN)
+const TAG_SYNONYMS: string[][] = [
+  ['grün', 'green', 'grüner', 'grüne'],
+  ['blau', 'blue', 'blaue', 'blauer'],
+  ['rot', 'red', 'rote', 'roter'],
+  ['gelb', 'yellow', 'gelbe', 'gelber'],
+  ['weiß', 'weiss', 'white', 'weiße'],
+  ['schwarz', 'black', 'schwarze', 'schwarzer'],
+  ['grau', 'grey', 'gray', 'graue', 'grauer'],
+  ['braun', 'brown', 'braune', 'brauner'],
+  ['orange', 'orangefarbig'],
+  ['pink', 'rosa', 'pink', 'rose'],
+  ['lila', 'purple', 'violet', 'violett'],
+  ['beige', 'creme', 'cream'],
+  ['baum', 'tree', 'bäume', 'trees'],
+  ['pflanze', 'plant', 'pflanzen', 'plants'],
+  ['blume', 'flower', 'blumen', 'flowers'],
+  ['gras', 'grass', 'rasen', 'lawn'],
+  ['strauch', 'shrub', 'sträucher', 'shrubs', 'busch', 'bush'],
+  ['stein', 'stone', 'steine', 'stones', 'fels', 'rock'],
+  ['holz', 'wood', 'wooden'],
+  ['wasser', 'water'],
+  ['licht', 'light', 'hell', 'bright'],
+  ['dunkel', 'dark', 'düster'],
+  ['modern', 'zeitgemäß', 'contemporary'],
+  ['natürlich', 'natural', 'natur', 'nature'],
+  ['minimalistisch', 'minimalist', 'minimal'],
+  ['tropisch', 'tropical'],
+  ['mediterran', 'mediterranean'],
+  ['frühling', 'spring'],
+  ['sommer', 'summer'],
+  ['herbst', 'autumn', 'fall'],
+  ['winter'],
+  ['textur', 'texture', 'texturiert', 'textured'],
+  ['garten', 'garden'],
+  ['stadtgarten', 'urban garden', 'urban'],
+  ['terrasse', 'terrace', 'patio'],
+  ['weg', 'path', 'pfad', 'walkway'],
+];
+
+function expandSearchTerms(term: string): string[] {
+  const normalized = term.toLowerCase().trim();
+  for (const group of TAG_SYNONYMS) {
+    if (group.some((s) => s === normalized)) {
+      return group;
+    }
+  }
+  return [normalized];
+}
+
 const SkeletonCard: React.FC = () => (
   <div className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
     <div className="bg-gray-100 h-52 w-full" />
@@ -106,27 +156,56 @@ export const ImageArchivePage: React.FC = () => {
   const abortRef = useRef(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(searchQuery.trim().toLowerCase()), 350);
+    const timer = setTimeout(() => {
+      const terms = searchQuery
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .filter(Boolean);
+      setDebouncedQuery(terms.join(','));
+    }, 350);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
   const fetchImages = useCallback(async () => {
     setLoading(true);
     try {
+      const rawTerms = debouncedQuery
+        ? debouncedQuery.split(',').filter(Boolean)
+        : [];
+
+      // Each term expands to a list of synonyms — we need images whose tags
+      // overlap with ALL synonym groups (AND across terms, OR within each group).
+      // Strategy: fetch with the first term's synonyms via .overlaps(), then
+      // filter client-side for all remaining terms. For small result sets this
+      // is fine; for large archives a DB function would be better.
       let query = supabase
         .from('dropbox_images_index')
         .select('*', { count: 'exact' })
         .order('last_scanned_at', { ascending: false })
-        .limit(60);
+        .limit(200);
 
-      if (debouncedQuery) {
-        query = query.contains('tags', [debouncedQuery]);
+      if (rawTerms.length > 0) {
+        const firstExpanded = expandSearchTerms(rawTerms[0]);
+        query = query.overlaps('tags', firstExpanded);
       }
 
       const { data, error, count } = await query;
       if (error) throw error;
-      setImages(data ?? []);
-      setTotalCount(count ?? 0);
+
+      let results = data ?? [];
+
+      // Client-side AND-filter for remaining terms
+      if (rawTerms.length > 1) {
+        for (let i = 1; i < rawTerms.length; i++) {
+          const expanded = expandSearchTerms(rawTerms[i]);
+          results = results.filter((img) =>
+            img.tags.some((tag: string) => expanded.includes(tag.toLowerCase()))
+          );
+        }
+      }
+
+      setImages(results);
+      setTotalCount(rawTerms.length > 0 ? results.length : (count ?? 0));
     } catch (err) {
       console.error('Failed to fetch images:', err);
       setImages([]);
@@ -347,7 +426,7 @@ export const ImageArchivePage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Suche nach Schlagwörtern: Pflanze, Material, Farbe, Stimmung..."
+            placeholder="Suche nach Tags (kommagetrennt): grün, stone, modern..."
             className="w-full pl-12 pr-12 py-3.5 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 shadow-sm transition"
           />
           {searchQuery && (
@@ -366,7 +445,13 @@ export const ImageArchivePage: React.FC = () => {
             <Tag className="w-4 h-4" />
             {debouncedQuery ? (
               <span>
-                <span className="font-medium text-gray-700">{images.length}</span> Ergebnis{images.length !== 1 ? 'se' : ''} für &ldquo;{debouncedQuery}&rdquo;
+                <span className="font-medium text-gray-700">{images.length}</span> Ergebnis{images.length !== 1 ? 'se' : ''} für{' '}
+                {debouncedQuery.split(',').map((t, i) => (
+                  <span key={i}>
+                    {i > 0 && <span className="text-gray-400"> + </span>}
+                    <span className="font-medium text-gray-700">&ldquo;{t}&rdquo;</span>
+                  </span>
+                ))}
               </span>
             ) : (
               <span>
