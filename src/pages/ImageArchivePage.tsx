@@ -397,53 +397,47 @@ export const ImageArchivePage: React.FC = () => {
 
   const handleImportDropboxTags = async () => {
     abortRef.current = false;
-    setProgress({ ...initialProgress, phase: 'listing', message: 'Dateiliste wird abgerufen...' });
+    setProgress({ ...initialProgress, phase: 'listing', message: 'Lese Dropbox-Tags aus...' });
     try {
-      // Step 1: list all paths
-      const { data: listData, error: listError } = await supabase.functions.invoke<{
-        success: boolean; paths: string[]; total: number;
-      }>('scan-dropbox-folder', { body: { action: 'list_files_for_tag_import', folderPath: FOLDER_PATH } });
+      let cursor: string | undefined = undefined;
+      let isFirst = true;
+      let totalImported = 0;
+      let totalNoTags = 0;
+      let pageNum = 0;
 
-      if (listError) throw new Error(listError.message);
-      if (!listData?.paths) throw new Error('Keine Dateipfade erhalten.');
-
-      const paths = listData.paths;
-      setProgress((p) => ({
-        ...p,
-        phase: 'processing',
-        total: paths.length,
-        message: `${paths.length} Dateien gefunden. Lese Tags aus...`,
-      }));
-
-      let imported = 0, noTags = 0, skipped = 0;
-      const errors: string[] = [];
-
-      // Step 2: process each file individually for live progress
-      for (const imagePath of paths) {
+      while (true) {
         if (abortRef.current) break;
-        const fileName = imagePath.split('/').pop() ?? imagePath;
-        setProgress((p) => ({ ...p, currentFile: fileName }));
 
-        try {
-          const { data: fileData, error: fileError } = await supabase.functions.invoke<{
-            success: boolean; noTags: boolean; tagCount?: number;
-          }>('scan-dropbox-folder', { body: { action: 'import_single_file_tags', imagePath } });
+        const { data, error } = await supabase.functions.invoke<{
+          success: boolean;
+          hasMore: boolean;
+          nextCursor: string;
+          imported: number;
+          noTags: number;
+          pageTotal: number;
+        }>('scan-dropbox-folder', {
+          body: isFirst
+            ? { action: 'import_dropbox_tags_page', folderPath: FOLDER_PATH }
+            : { action: 'import_dropbox_tags_page', cursor },
+        });
 
-          if (fileError) throw new Error(fileError.message);
-          if (fileData?.noTags) noTags++;
-          else imported++;
-        } catch (err) {
-          errors.push(`${fileName}: ${err instanceof Error ? err.message : String(err)}`);
-          skipped++;
-        }
+        if (error) throw new Error(error.message);
+        if (!data) throw new Error('Keine Antwort vom Server.');
+
+        isFirst = false;
+        pageNum++;
+        totalImported += data.imported;
+        totalNoTags += data.noTags;
+        cursor = data.nextCursor;
 
         setProgress((p) => ({
           ...p,
-          processed: imported + noTags,
-          skipped,
-          errors,
-          message: `Verarbeite ${imported + noTags + skipped} von ${paths.length}...`,
+          phase: 'processing',
+          processed: totalImported + totalNoTags,
+          message: `Seite ${pageNum} verarbeitet — ${totalImported} mit Tags, ${totalNoTags} ohne Tags...`,
         }));
+
+        if (!data.hasMore) break;
       }
 
       setProgress((p) => ({
@@ -451,8 +445,8 @@ export const ImageArchivePage: React.FC = () => {
         phase: abortRef.current ? 'error' : 'done',
         currentFile: '',
         message: abortRef.current
-          ? `Abgebrochen. ${imported} importiert.`
-          : `Fertig: ${imported} mit Tags importiert, ${noTags} ohne Tags, ${skipped} Fehler.`,
+          ? `Abgebrochen nach Seite ${pageNum}. ${totalImported} importiert.`
+          : `Fertig: ${totalImported} mit Tags importiert, ${totalNoTags} ohne Tags.`,
       }));
 
       if (!abortRef.current) await fetchImages();

@@ -192,6 +192,108 @@ async function handleListFilesForTagImport(
   );
 }
 
+// ── action: import_dropbox_tags_page ─────────────────────────────────────────
+// Fetches one page of list_folder results (with property_groups inline) and
+// batch-upserts tags into the DB. Returns a cursor for the next page so the
+// frontend can loop without hitting the Edge Function timeout.
+// Files with tags → status "scanned". Files without → status "pending".
+// Shared links are intentionally skipped (can be resolved lazily on first load).
+
+async function handleImportDropboxTagsPage(
+  folderPath: string | undefined,
+  cursor: string | undefined,
+  token: string,
+  rootNamespaceId: string | null,
+  supabase: ReturnType<typeof createClient>
+): Promise<Response> {
+  let url: string;
+  let body: Record<string, unknown>;
+
+  if (cursor) {
+    url = "https://api.dropboxapi.com/2/files/list_folder/continue";
+    body = { cursor };
+  } else {
+    if (!folderPath) throw new Error("folderPath required for first page");
+    url = "https://api.dropboxapi.com/2/files/list_folder";
+    body = {
+      path: folderPath,
+      recursive: true,
+      include_media_info: false,
+      include_property_groups: { ".tag": "filter_some", filter_some: [] },
+    };
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: buildDropboxHeaders(token, rootNamespaceId),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`list_folder failed (${res.status}): ${await res.text()}`);
+  const page = await res.json();
+  if (page.error) throw new Error(`list_folder error: ${JSON.stringify(page.error)}`);
+
+  const now = new Date().toISOString();
+  const upsertRows: Array<Record<string, unknown>> = [];
+  let imported = 0;
+  let noTags = 0;
+
+  for (const entry of page.entries) {
+    if (entry[".tag"] !== "file" || !/\.(jpe?g|png|webp|heic|tiff?)$/i.test(entry.name)) continue;
+
+    const tags: string[] = [];
+    if (entry.property_groups) {
+      for (const group of entry.property_groups) {
+        for (const field of group.fields) {
+          const vals = (field.value as string)
+            .split(/[,;]+/)
+            .map((v: string) => v.trim().toLowerCase())
+            .filter(Boolean);
+          tags.push(...vals);
+        }
+      }
+    }
+
+    if (tags.length > 0) {
+      upsertRows.push({
+        dropbox_path: entry.path_lower,
+        file_name: entry.name,
+        tags,
+        last_scanned_at: now,
+        status: "scanned",
+      });
+      imported++;
+    } else {
+      upsertRows.push({
+        dropbox_path: entry.path_lower,
+        file_name: entry.name,
+        tags: [],
+        last_scanned_at: now,
+        status: "pending",
+      });
+      noTags++;
+    }
+  }
+
+  if (upsertRows.length > 0) {
+    const { error: dbError } = await supabase
+      .from("dropbox_images_index")
+      .upsert(upsertRows, { onConflict: "dropbox_path" });
+    if (dbError) throw new Error(dbError.message);
+  }
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      hasMore: page.has_more,
+      nextCursor: page.cursor,
+      imported,
+      noTags,
+      pageTotal: upsertRows.length,
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
 // ── action: import_single_file_tags ──────────────────────────────────────────
 // Reads Dropbox file property groups for ONE file and upserts tags into DB.
 
@@ -365,7 +467,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json();
-    const { action, folderPath, imagePath } = body;
+    const { action, folderPath, imagePath, cursor } = body;
 
     const dropboxToken = await getDropboxAccessToken(dropboxAppKey, dropboxAppSecret, dropboxRefreshToken);
     const rootNamespaceId = await getRootNamespaceId(dropboxToken);
@@ -373,6 +475,11 @@ Deno.serve(async (req: Request) => {
     if (action === "list_files") {
       if (!folderPath) return new Response(JSON.stringify({ error: "folderPath required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       return await handleListFiles(folderPath, dropboxToken, rootNamespaceId, supabase);
+    }
+
+    if (action === "import_dropbox_tags_page") {
+      if (!folderPath && !cursor) return new Response(JSON.stringify({ error: "folderPath or cursor required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return await handleImportDropboxTagsPage(folderPath, cursor, dropboxToken, rootNamespaceId, supabase);
     }
 
     if (action === "list_files_for_tag_import") {
