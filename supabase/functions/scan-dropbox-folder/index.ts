@@ -256,7 +256,6 @@ async function handleImportDropboxTagsPage(
     if (tags.length > 0) {
       upsertRows.push({
         dropbox_path: entry.path_lower,
-        file_name: entry.name,
         tags,
         last_scanned_at: now,
         status: "scanned",
@@ -265,7 +264,6 @@ async function handleImportDropboxTagsPage(
     } else {
       upsertRows.push({
         dropbox_path: entry.path_lower,
-        file_name: entry.name,
         tags: [],
         last_scanned_at: now,
         status: "pending",
