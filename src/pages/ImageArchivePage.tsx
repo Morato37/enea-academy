@@ -65,8 +65,17 @@ function expandSearchTerms(term: string): string[] {
 
 // ── Download helpers ──────────────────────────────────────────────────────────
 
+const proxyUrl = (imageUrl: string): string => {
+  const base = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-image-download`;
+  return `${base}?url=${encodeURIComponent(imageUrl)}`;
+};
+
 const fetchImageBlob = async (url: string): Promise<Blob> => {
-  const res = await fetch(url, { mode: 'cors' });
+  const res = await fetch(proxyUrl(url), {
+    headers: {
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+    },
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.blob();
 };
