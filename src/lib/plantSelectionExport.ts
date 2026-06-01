@@ -187,7 +187,7 @@ export const generatePlantSelectionPDF = async (
   const PAGE_H = 297;   // mm
   const margin = 14;
   const colGap = 4;
-  const rowGap = 4;
+  const rowGap = 2;
   const cols = 6;
 
   // Legend strip height at top of first page
@@ -197,7 +197,6 @@ export const generatePlantSelectionPDF = async (
   const LEGEND_ROWS = Math.ceil(ICON_DEFS.length / LEGEND_COLS);
   const LEGEND_ROW_H = LEGEND_ICON_SIZE + 5;
   const LEGEND_H = LEGEND_ROWS * LEGEND_ROW_H + 4;
-  const TITLE_H = 14;
   const SEPARATOR_H = 3;
 
   // Cell layout
@@ -205,9 +204,12 @@ export const generatePlantSelectionPDF = async (
   const imgH = cellW * 1.35;   // portrait ratio
   const ICON_SIZE = 4;          // mm — icons under latin name
   const ICON_GAP = 1.2;
-  const ICON_ROW_H = ICON_SIZE + 2;
-  const NAME_H = 12;            // common + botanic names
+  const ICON_ROW_H = ICON_SIZE + 1.5;
+  const NAME_H = 9;             // common + botanic names (tighter)
   const CELL_H = imgH + NAME_H + ICON_ROW_H + rowGap;
+
+  // Category label row height (single text line, no background)
+  const CAT_LABEL_H = 6;
 
   const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a3' });
 
@@ -243,37 +245,19 @@ export const generatePlantSelectionPDF = async (
     doc.line(margin, y, PAGE_W - margin, y);
   };
 
-  // Title on every page
-  const drawTitle = (y: number, page: number) => {
-    const text = projectName ? `${projectName} — Plant Selection` : 'Plant Selection';
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(40, 40, 40);
-    doc.text(text, margin, y + 8);
-    if (page > 1) {
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(160, 160, 160);
-      doc.text(`${page}`, PAGE_W - margin, y + 8, { align: 'right' });
-    }
-  };
-
   // ── First page setup ──────────────────────────────────────────────────────
   let page = 1;
-  drawTitle(margin, page);
-  drawLegend(margin + TITLE_H);
-  drawSeparator(margin + TITLE_H + LEGEND_H);
+  drawLegend(margin);
+  drawSeparator(margin + LEGEND_H);
 
-  let currentY = margin + TITLE_H + LEGEND_H + SEPARATOR_H;
   let col = 0;
-  let rowY = currentY;
+  let rowY = margin + LEGEND_H + SEPARATOR_H;
 
   const nextPage = () => {
     doc.addPage('a3', 'l');
     page++;
-    drawTitle(margin, page);
     col = 0;
-    rowY = margin + TITLE_H + 4;
+    rowY = margin + 4;
   };
 
   const advanceCell = () => {
@@ -288,23 +272,22 @@ export const generatePlantSelectionPDF = async (
   // ── Draw each item ────────────────────────────────────────────────────────
   for (const item of items) {
     if (item.kind === 'header') {
-      // Flush to next row if mid-row
+      // If there's not enough space for the label + at least one cell, go to next page
+      if (rowY + CAT_LABEL_H + CELL_H > PAGE_H - margin) nextPage();
+
+      // If mid-row, finish the current row first, then add label
       if (col > 0) {
         col = 0;
         rowY += CELL_H;
-        if (rowY + CELL_H > PAGE_H - margin) nextPage();
+        if (rowY + CAT_LABEL_H + CELL_H > PAGE_H - margin) nextPage();
       }
-      if (rowY + CELL_H > PAGE_H - margin) nextPage();
 
-      // Section header bar
-      const headerH = 6;
-      doc.setFillColor(240, 240, 240);
-      doc.rect(margin, rowY, PAGE_W - margin * 2, headerH, 'F');
+      // Plain text category label, no background
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(60, 60, 60);
-      doc.text(item.label.toUpperCase(), margin + 3, rowY + 4.2);
-      rowY += headerH + 2;
+      doc.setTextColor(80, 80, 80);
+      doc.text(item.label, margin, rowY + 4.2);
+      rowY += CAT_LABEL_H;
       continue;
     }
 
@@ -332,7 +315,7 @@ export const generatePlantSelectionPDF = async (
     } catch { /* keep placeholder */ }
 
     // Common name
-    const nameY = y + imgH + 3.5;
+    const nameY = y + imgH + 2.5;
     const commonName = language === 'de'
       ? (plant.common_name_de || plant.common_name_en || '')
       : (plant.common_name_en || plant.common_name_de || '');
@@ -346,11 +329,11 @@ export const generatePlantSelectionPDF = async (
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(110, 110, 110);
-    doc.text(doc.splitTextToSize(plant.botanical_name || '', cellW)[0] || '', x, nameY + 3.8);
+    doc.text(doc.splitTextToSize(plant.botanical_name || '', cellW)[0] || '', x, nameY + 3.2);
 
     // Icons row
     const applicableIcons = ICON_DEFS.filter(def => def.check(plant));
-    const iconRowY = nameY + 3.8 + 2.8;
+    const iconRowY = nameY + 3.2 + 2.2;
     applicableIcons.forEach((def, ii) => {
       const iconX = x + ii * (ICON_SIZE + ICON_GAP);
       if (iconX + ICON_SIZE > x + cellW) return;
