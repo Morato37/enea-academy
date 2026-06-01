@@ -151,7 +151,10 @@ interface ImageCardProps {
 
 const ImageCard: React.FC<ImageCardProps> = ({ image, selected, onToggle, onDownload, downloading }) => {
   const [imgError, setImgError] = useState(false);
+  const [showAllTags, setShowAllTags] = useState(false);
   const fileName = image.dropbox_path.split('/').pop() ?? image.dropbox_path;
+  const visibleTags = showAllTags ? image.tags : image.tags.slice(0, 5);
+  const hiddenCount = image.tags.length - 5;
 
   return (
     <div
@@ -203,15 +206,26 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, selected, onToggle, onDown
       <div className="p-3">
         {image.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
-            {image.tags.slice(0, 5).map((tag) => (
+            {visibleTags.map((tag) => (
               <span key={tag} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
                 {tag}
               </span>
             ))}
-            {image.tags.length > 5 && (
-              <span className="px-1.5 py-0.5 bg-gray-100 text-gray-400 text-xs rounded-full">
-                +{image.tags.length - 5}
-              </span>
+            {!showAllTags && hiddenCount > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowAllTags(true); }}
+                className="px-1.5 py-0.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-600 text-xs rounded-full transition-colors"
+              >
+                +{hiddenCount}
+              </button>
+            )}
+            {showAllTags && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowAllTags(false); }}
+                className="px-1.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-400 text-xs rounded-full transition-colors"
+              >
+                weniger
+              </button>
             )}
           </div>
         )}
