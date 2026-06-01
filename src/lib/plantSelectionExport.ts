@@ -168,14 +168,13 @@ export const generatePlantSelectionPDF = async (
     groups[assignCategory(sel.plant, labels)].push(sel.plant);
   });
 
-  // Flat list of items — either a plant or a section header
-  type Item = { kind: 'plant'; plant: NonNullable<UserSelection['plant']> } | { kind: 'header'; label: string };
+  // Flat list of items — plant with optional category label on first of each group
+  type Item = { kind: 'plant'; plant: NonNullable<UserSelection['plant']>; catLabel?: string };
   const items: Item[] = [];
   for (const key of CATEGORY_ORDER) {
     const cat = labels[key];
     if (groups[cat].length === 0) continue;
-    items.push({ kind: 'header', label: cat });
-    for (const p of groups[cat]) items.push({ kind: 'plant', plant: p });
+    groups[cat].forEach((p, i) => items.push({ kind: 'plant', plant: p, catLabel: i === 0 ? cat : undefined }));
   }
 
   if (items.length === 0) return;
@@ -206,10 +205,9 @@ export const generatePlantSelectionPDF = async (
   const ICON_GAP = 1.2;
   const ICON_ROW_H = ICON_SIZE + 1.5;
   const NAME_H = 9;             // common + botanic names (tighter)
+  const CAT_LABEL_H = 5.5;      // extra space above image when a category label is shown
   const CELL_H = imgH + NAME_H + ICON_ROW_H + rowGap;
-
-  // Category label row height (single text line, no background)
-  const CAT_LABEL_H = 6;
+  const CELL_H_WITH_LABEL = CELL_H + CAT_LABEL_H;
 
   const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a3' });
 
@@ -260,44 +258,35 @@ export const generatePlantSelectionPDF = async (
     rowY = margin + 4;
   };
 
-  const advanceCell = () => {
+  const advanceCell = (usedLabel: boolean) => {
     col++;
     if (col >= cols) {
       col = 0;
-      rowY += CELL_H;
+      rowY += usedLabel ? CELL_H_WITH_LABEL : CELL_H;
       if (rowY + CELL_H > PAGE_H - margin) nextPage();
     }
   };
 
   // ── Draw each item ────────────────────────────────────────────────────────
   for (const item of items) {
-    if (item.kind === 'header') {
-      // If there's not enough space for the label + at least one cell, go to next page
-      if (rowY + CAT_LABEL_H + CELL_H > PAGE_H - margin) nextPage();
+    const plant = item.plant;
+    const hasLabel = !!item.catLabel;
+    const cellTotalH = hasLabel ? CELL_H_WITH_LABEL : CELL_H;
 
-      // If mid-row, finish the current row first, then add label
-      if (col > 0) {
-        col = 0;
-        rowY += CELL_H;
-        if (rowY + CAT_LABEL_H + CELL_H > PAGE_H - margin) nextPage();
-      }
+    // Check if a new page is needed before drawing
+    if (rowY + cellTotalH > PAGE_H - margin) nextPage();
 
-      // Plain text category label, no background
+    const x = margin + col * (cellW + colGap);
+    let y = rowY;
+
+    // Category label above image (only for first plant of each category)
+    if (hasLabel) {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(80, 80, 80);
-      doc.text(item.label, margin, rowY + 4.2);
-      rowY += CAT_LABEL_H;
-      continue;
+      doc.text(item.catLabel!, x, y + 4);
+      y += CAT_LABEL_H;
     }
-
-    const plant = item.plant;
-
-    // Check if a new page is needed before drawing
-    if (rowY + CELL_H > PAGE_H - margin) nextPage();
-
-    const x = margin + col * (cellW + colGap);
-    const y = rowY;
 
     // Image placeholder
     doc.setFillColor(225, 225, 225);
@@ -341,7 +330,7 @@ export const generatePlantSelectionPDF = async (
       if (iconData) doc.addImage(iconData, 'PNG', iconX, iconRowY, ICON_SIZE, ICON_SIZE);
     });
 
-    advanceCell();
+    advanceCell(hasLabel);
   }
 
   doc.save(`PlantSelection_${new Date().toISOString().split('T')[0]}.pdf`);
