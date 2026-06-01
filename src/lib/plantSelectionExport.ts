@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import { UserSelection, supabase } from './supabase';
 
-const loadPlantImages = async (plantId: number): Promise<string[]> => {
+const loadPlantImage = async (plantId: number): Promise<string | null> => {
   try {
     const { data, error } = await supabase
       .from('plant_images')
@@ -10,11 +10,10 @@ const loadPlantImages = async (plantId: number): Promise<string[]> => {
       .order('is_primary', { ascending: false })
       .order('display_order', { ascending: true })
       .limit(1);
-    if (error) throw error;
-    if (data && data.length > 0) return data.map(img => img.image_url);
-    return [];
+    if (error || !data || data.length === 0) return null;
+    return data[0].image_url;
   } catch {
-    return [];
+    return null;
   }
 };
 
@@ -110,109 +109,114 @@ export const generatePlantSelectionPDF = async (
   const flat = buildFlatList(selections, language);
   if (flat.length === 0) return;
 
-  const margin = 12;
-  const colGap = 3;
-  const catLabelH = 7;
-  const nameH = 9;
-  const titleH = 16;
-  const cellRatio = 1.35;
+  // Fixed A3 landscape — multiple pages, one image per plant (portrait ratio)
+  const PAGE_W = 420;  // A3 landscape width mm
+  const PAGE_H = 297;  // A3 landscape height mm
+  const margin = 15;
+  const colGap = 5;
+  const rowGap = 6;
+  const cols = 6;
+  const catLabelH = 8;
+  const nameH = 10;   // space below image for text
+  const titleH = 18;
 
-  const cellW = 55;              // fixed cell width in mm
-  const cellH = cellW * cellRatio;
+  const cellW = (PAGE_W - margin * 2 - colGap * (cols - 1)) / cols; // ~58mm
+  const cellH = cellW * 1.35; // portrait ratio ~78mm
 
-  // Compute layout for a given number of columns
-  const computeLayout = (cols: number) => {
-    const w = margin * 2 + cols * cellW + (cols - 1) * colGap;
-    const rowLabels: boolean[] = [];
-    for (let i = 0; i < flat.length; i += cols) {
-      rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
-    }
-    let totalH = 0;
-    for (let ri = 0; ri < rowLabels.length; ri++) {
-      totalH += (rowLabels[ri] ? catLabelH : 0) + cellH + nameH + 2;
-    }
-    const h = margin * 2 + titleH + totalH + 4;
-    return { w, h, rowLabels };
-  };
+  const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a3' });
 
-  // Start at 6 cols, increase until width >= height (true landscape)
-  let cols = 6;
-  let layout = computeLayout(cols);
-  while (layout.w < layout.h && cols < flat.length) {
-    cols++;
-    layout = computeLayout(cols);
-  }
-
-  const pageW = layout.w;
-  const pageH = layout.h;
-  const { rowLabels } = layout;
-
-  // jsPDF orientation:'l' with format:[shortSide, longSide] creates a landscape document
-  // where getWidth() returns longSide. Our pageW is already the long side (width > height).
-  const doc = new jsPDF({
-    orientation: 'l',
-    unit: 'mm',
-    format: [Math.min(pageW, pageH), Math.max(pageW, pageH)],
-  });
-
-  const titleText = projectName ? `${projectName} — Plant board` : 'Plant board';
-  doc.setFontSize(13);
+  const titleText = projectName ? `${projectName} — Plant Selection` : 'Plant Selection';
+  doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(40, 40, 40);
-  doc.text(titleText, margin, margin + 7);
+  doc.text(titleText, margin, margin + 8);
 
-  let rowStartY = margin + titleH;
+  let x = margin;
+  let y = margin + titleH;
+  let col = 0;
+
+  const newPage = () => {
+    doc.addPage('a3', 'l');
+    x = margin;
+    y = margin;
+    col = 0;
+  };
+
+  const advanceCell = () => {
+    col++;
+    if (col >= cols) {
+      col = 0;
+      x = margin;
+      const rowH = cellH + nameH + rowGap;
+      y += rowH;
+      if (y + cellH + nameH > PAGE_H - margin) {
+        newPage();
+      }
+    } else {
+      x += cellW + colGap;
+    }
+  };
 
   for (let i = 0; i < flat.length; i++) {
-    const rowIdx = Math.floor(i / cols);
-    const colIndex = i % cols;
+    const item = flat[i];
 
-    if (colIndex === 0 && i > 0) {
-      rowStartY += (rowLabels[rowIdx - 1] ? catLabelH : 0) + cellH + nameH + 2;
-    }
+    // Category label — starts a new row if not at column 0
+    if (item.categoryLabel !== '') {
+      if (col > 0) {
+        // fill remaining cells in this row with nothing, move to next row
+        col = 0;
+        x = margin;
+        y += cellH + nameH + rowGap;
+        if (y + catLabelH + cellH + nameH > PAGE_H - margin) newPage();
+      }
+      // Check space for label + at least one cell
+      if (y + catLabelH + cellH + nameH > PAGE_H - margin) newPage();
 
-    const rowHasLabel = rowLabels[rowIdx];
-    const x = margin + colIndex * (cellW + colGap);
-    const imageTop = rowStartY + (rowHasLabel ? catLabelH : 0);
-
-    if (flat[i].categoryLabel !== '') {
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(70, 70, 70);
-      doc.text(flat[i].categoryLabel, x, rowStartY + catLabelH - 1.5);
+      doc.setTextColor(80, 80, 80);
+      doc.text(item.categoryLabel.toUpperCase(), margin, y + 5);
+      y += catLabelH;
     }
 
-    doc.setFillColor(228, 228, 228);
-    doc.rect(x, imageTop, cellW, cellH, 'F');
+    // Check vertical space
+    if (y + cellH + nameH > PAGE_H - margin) newPage();
 
+    // Placeholder
+    doc.setFillColor(225, 225, 225);
+    doc.rect(x, y, cellW, cellH, 'F');
+
+    // Image
     try {
-      let imageUrls = await loadPlantImages(flat[i].plant.id);
-      if (imageUrls.length === 0 && flat[i].plant.image_url) imageUrls = [flat[i].plant.image_url];
-      if (imageUrls[0]) {
-        const raw = await loadImageAsDataURL(imageUrls[0]);
-        const cropped = await cropToRatioDataURL(raw, 400, Math.round(400 * cellRatio));
-        doc.addImage(cropped, 'JPEG', x, imageTop, cellW, cellH);
+      let imageUrl = await loadPlantImage(item.plant.id);
+      if (!imageUrl && item.plant.image_url) imageUrl = item.plant.image_url;
+      if (imageUrl) {
+        const raw = await loadImageAsDataURL(imageUrl);
+        const cropped = await cropToRatioDataURL(raw, 400, Math.round(400 * 1.35));
+        doc.addImage(cropped, 'JPEG', x, y, cellW, cellH);
       }
     } catch {
       // keep placeholder
     }
 
-    const nameY = imageTop + cellH + 3;
+    // Plant names below image
+    const nameY = y + cellH + 3;
     const commonName = language === 'de'
-      ? (flat[i].plant.common_name_de || flat[i].plant.common_name_en || '')
-      : (flat[i].plant.common_name_en || flat[i].plant.common_name_de || '');
-    const botanicName = flat[i].plant.botanical_name || '';
+      ? (item.plant.common_name_de || item.plant.common_name_en || '')
+      : (item.plant.common_name_en || item.plant.common_name_de || '');
 
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(60, 60, 60);
+    doc.setTextColor(50, 50, 50);
     doc.text(doc.splitTextToSize(commonName, cellW)[0] || '', x, nameY);
 
     doc.setFontSize(6.5);
     doc.setFont('helvetica', 'italic');
-    doc.setTextColor(100, 100, 100);
-    doc.text(doc.splitTextToSize(botanicName, cellW)[0] || '', x, nameY + 3.5);
+    doc.setTextColor(110, 110, 110);
+    doc.text(doc.splitTextToSize(item.plant.botanical_name || '', cellW)[0] || '', x, nameY + 3.5);
+
+    advanceCell();
   }
 
-  doc.save(`PlantBoard_${new Date().toISOString().split('T')[0]}.pdf`);
+  doc.save(`PlantSelection_${new Date().toISOString().split('T')[0]}.pdf`);
 };
