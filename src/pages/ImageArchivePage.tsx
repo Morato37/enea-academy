@@ -237,7 +237,7 @@ export const ImageArchivePage: React.FC = () => {
             <div className="inline-flex items-center justify-center w-10 h-10 bg-cyan-500/10 rounded-lg">
               <FolderSearch className="w-5 h-5 text-cyan-600" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">KI Bild-Archiv</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Image Search</h1>
           </div>
           <p className="text-gray-600 max-w-2xl">
             Durchsuche unsere Dropbox-Projektdatenbank nach Pflanzen, Materialien und Stimmungen — analysiert und verschlagwortet durch KI.
