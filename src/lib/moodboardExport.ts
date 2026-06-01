@@ -13,70 +13,95 @@ const loadPlantImages = async (plantId: number): Promise<string[]> => {
     if (error) throw error;
     if (data && data.length > 0) return data.map(img => img.image_url);
     return [];
-  } catch (err) {
-    console.error('Error loading plant images:', err);
+  } catch {
     return [];
   }
 };
 
 const loadImageAsDataURL = async (url: string): Promise<string> => {
-  try {
-    const isSupabaseStorage = url.includes('/storage/v1/object/public/');
-    const headers: HeadersInit = {};
-    if (isSupabaseStorage) headers['apikey'] = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-    const response = await fetch(url, { mode: 'cors', credentials: 'omit', headers });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const blob = await response.blob();
-
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      const objectUrl = URL.createObjectURL(blob);
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) { URL.revokeObjectURL(objectUrl); reject(new Error('Could not get canvas context')); return; }
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        URL.revokeObjectURL(objectUrl);
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
-      };
-      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Failed to load image')); };
-      img.src = objectUrl;
-    });
-  } catch (error) {
-    console.error('Failed to fetch image:', url, error);
-    throw error;
-  }
+  const isSupabaseStorage = url.includes('/storage/v1/object/public/');
+  const headers: HeadersInit = {};
+  if (isSupabaseStorage) headers['apikey'] = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+  const response = await fetch(url, { mode: 'cors', credentials: 'omit', headers });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    const objectUrl = URL.createObjectURL(blob);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { URL.revokeObjectURL(objectUrl); reject(new Error('No canvas context')); return; }
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Failed to load image')); };
+    img.src = objectUrl;
+  });
 };
 
-const groupByCategory = (selections: UserSelection[], language: 'de' | 'en') => {
-  const labels = language === 'de'
-    ? { trees: 'Bäume', shrubs: 'Sträucher', grasses: 'Gräser', perennials: 'Stauden', other: 'Sonstige' }
-    : { trees: 'Trees', shrubs: 'Shrubs', grasses: 'Grasses', perennials: 'Perennials', other: 'Other' };
+const cropImageDataURL = (dataUrl: string, targetW: number, targetH: number): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const targetRatio = targetW / targetH;
+      const imgRatio = img.width / img.height;
+      let sx = 0, sy = 0, sW = img.width, sH = img.height;
+      if (imgRatio > targetRatio) { sW = img.height * targetRatio; sx = (img.width - sW) / 2; }
+      else { sH = img.width / targetRatio; sy = (img.height - sH) / 2; }
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW; canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('No canvas context')); return; }
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, targetW, targetH);
+      ctx.drawImage(img, sx, sy, sW, sH, 0, 0, targetW, targetH);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+};
 
-  const groups: { [key: string]: UserSelection[] } = {};
+// Assign every plant to one of the 4 categories (no "Other")
+const assignCategory = (plant: NonNullable<UserSelection['plant']>, labels: { trees: string; shrubs: string; grasses: string; perennials: string }) => {
+  if (plant.category_tree) return labels.trees;
+  if (plant.category_shrub) return labels.shrubs;
+  if (plant.category_grass) return labels.grasses;
+  return labels.perennials; // everything else → perennials
+};
+
+interface FlatItem {
+  plant: NonNullable<UserSelection['plant']>;
+  categoryLabel: string; // non-empty only on first plant of each category
+}
+
+const buildFlatList = (selections: UserSelection[], language: 'de' | 'en'): FlatItem[] => {
+  const labels = language === 'de'
+    ? { trees: 'Bäume', shrubs: 'Sträucher', grasses: 'Gräser', perennials: 'Stauden' }
+    : { trees: 'Trees', shrubs: 'Shrubs', grasses: 'Grasses', perennials: 'Perennials' };
+
+  const groups: { [cat: string]: NonNullable<UserSelection['plant']>[] } = {
+    [labels.trees]: [], [labels.shrubs]: [], [labels.grasses]: [], [labels.perennials]: [],
+  };
 
   selections.forEach(sel => {
     if (!sel.plant) return;
-    const p = sel.plant;
-    let cat = labels.other;
-    if (p.category_tree) cat = labels.trees;
-    else if (p.category_shrub) cat = labels.shrubs;
-    else if (p.category_grass) cat = labels.grasses;
-    else if (p.category_perennial) cat = labels.perennials;
-    if (!groups[cat]) groups[cat] = [];
-    groups[cat].push(sel);
+    groups[assignCategory(sel.plant, labels)].push(sel.plant);
   });
 
-  const order = [labels.trees, labels.shrubs, labels.grasses, labels.perennials, labels.other];
-  return order
-    .filter(cat => groups[cat] && groups[cat].length > 0)
-    .map(cat => ({ category: cat, items: groups[cat] }));
+  const order = [labels.trees, labels.shrubs, labels.grasses, labels.perennials];
+  const flat: FlatItem[] = [];
+  for (const cat of order) {
+    groups[cat].forEach((plant, idx) => flat.push({ plant, categoryLabel: idx === 0 ? cat : '' }));
+  }
+  return flat;
 };
 
 export const generateMoodboardPDF = async (
@@ -84,158 +109,139 @@ export const generateMoodboardPDF = async (
   projectName?: string,
   language: 'de' | 'en' = 'de'
 ): Promise<void> => {
-  const groups = groupByCategory(selections, language);
+  const flat = buildFlatList(selections, language);
+  if (flat.length === 0) return;
 
-  // Count total plants to determine layout
-  const totalPlants = groups.reduce((sum, g) => sum + g.items.length, 0);
+  // Layout constants (mm)
+  const margin = 12;
+  const colGap = 2;
+  const imgH = 22;   // height of each image slot
+  const imgGap = 2;  // gap between the two stacked images
+  const textH = 10;  // text area above images
+  const cellH = textH + imgH * 2 + imgGap; // total cell height
+  const catLabelH = 6; // space for category label
+  const titleH = 14;   // title at top
 
-  // A3 landscape
-  const doc = new jsPDF('landscape', 'mm', 'a3');
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
+  // Choose plantsPerRow (cols): try to keep page width ≤ A3 landscape (420mm),
+  // but always use exactly the number of columns needed to keep everything on ONE page.
+  // Page width = margin*2 + cols*imgW + (cols-1)*colGap
+  // We target imgW ≈ 30mm as a comfortable size, then adjust.
 
-  const margin = 12.5;
-  const availableWidth = pageWidth - 2 * margin;
+  // First pass: pick cols so total height fits on a reasonable page height (≤ A3 landscape 297mm)
+  const maxPageH = 297;
+  const maxContentH = maxPageH - margin * 2 - titleH;
 
-  // Title at top-left
-  const titleLabel = language === 'de' ? 'Plant board' : 'Plant board';
-  const projectLabel = projectName ? `${projectName} — ` : '';
-  doc.setFontSize(13);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(40, 40, 40);
-  doc.text(`${projectLabel}${titleLabel}`, margin, margin + 6);
+  // Calculate rows needed for a given number of cols
+  // Categories don't break rows — items flow seamlessly
+  const calcRows = (cols: number) => Math.ceil(flat.length / cols);
 
-  let currentY = margin + 14;
-
-  // Determine plantsPerRow dynamically so everything fits on one page
-  // Each plant needs imageHeight*2 + textSpacing + imageSpacing (portrait layout)
-  // We calculate the best plantsPerRow to fit all categories on one page
-
-  const imageSpacing = 2;
-  const columnSpacing = 2;
-  const textAreaHeight = 10;
-  const imageHeight = 22;
-  const categoryTitleHeight = 7;
-  const groupGap = 5;
-
-  // Calculate rows needed for a given plantsPerRow
-  const calcTotalHeight = (ppr: number) => {
+  // Each row has catLabelH reserved at top (worst case) — simpler: just use catLabelH once per row
+  // More accurate: for each row, check if any item in that row starts a category
+  const calcHeightForCols = (cols: number) => {
     let h = 0;
-    const cellH = textAreaHeight + imageHeight * 2 + imageSpacing;
-    for (let gi = 0; gi < groups.length; gi++) {
-      if (gi > 0) h += groupGap;
-      h += categoryTitleHeight;
-      const rows = Math.ceil(groups[gi].items.length / ppr);
-      h += rows * (cellH + 4);
+    for (let i = 0; i < flat.length; i += cols) {
+      const rowItems = flat.slice(i, i + cols);
+      const hasLabel = rowItems.some(it => it.categoryLabel !== '');
+      h += (hasLabel ? catLabelH : 0) + cellH + 4;
     }
     return h;
   };
 
-  // Try plantsPerRow from 6 up to 18, find minimum that fits on one page
-  const availableHeight = pageHeight - currentY - margin;
-  let plantsPerRow = 6;
-  for (let ppr = 6; ppr <= 22; ppr++) {
-    if (calcTotalHeight(ppr) <= availableHeight) {
-      plantsPerRow = ppr;
-      break;
-    }
-    plantsPerRow = ppr; // worst case: use maximum tried
+  let cols = 6;
+  for (let c = 6; c <= 20; c++) {
+    if (calcHeightForCols(c) <= maxContentH) { cols = c; break; }
+    cols = c;
   }
 
-  const totalSpacingWidth = (plantsPerRow - 1) * columnSpacing;
-  const imageWidth = (availableWidth - totalSpacingWidth) / plantsPerRow;
-  const cellTotalH = textAreaHeight + imageHeight * 2 + imageSpacing;
+  const totalRows = calcRows(cols);
+  const contentH = calcHeightForCols(cols);
+  const pageH = Math.min(maxPageH, Math.max(150, margin * 2 + titleH + contentH + 4));
+  const pageW = 420; // A3 landscape width mm
 
-  for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
-    const group = groups[groupIndex];
+  const imgW = (pageW - margin * 2 - (cols - 1) * colGap) / cols;
 
-    if (groupIndex > 0) currentY += groupGap;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [pageW, pageH] });
 
-    // Category title
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 80);
-    doc.setFont('helvetica', 'bold');
-    doc.text(group.category, margin, currentY + 4);
-    currentY += categoryTitleHeight;
+  // Title
+  const titleText = projectName ? `${projectName} — Plant board` : 'Plant board';
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  doc.text(titleText, margin, margin + 6);
 
-    let col = 0;
-    let rowStartY = currentY;
+  let currentY = margin + titleH;
+  let colIndex = 0;
+  let rowStartY = currentY;
+  let rowHasLabel = false;
 
-    for (let i = 0; i < group.items.length; i++) {
-      const selection = group.items[i];
-      const plant = selection.plant;
-      if (!plant) continue;
+  // Pre-calculate per-row label presence
+  const rowLabels: boolean[] = [];
+  for (let i = 0; i < flat.length; i += cols) {
+    rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
+  }
 
-      if (col >= plantsPerRow) {
-        col = 0;
-        rowStartY += cellTotalH + 4;
-      }
+  // Draw row by row
+  for (let i = 0; i < flat.length; i++) {
+    const item = flat[i];
+    const rowIdx = Math.floor(i / cols);
 
-      const x = margin + col * (imageWidth + columnSpacing);
+    if (i % cols === 0) {
+      if (i > 0) rowStartY += (rowLabels[rowIdx - 1] ? catLabelH : 0) + cellH + 4;
+      rowHasLabel = rowLabels[rowIdx];
+    }
 
-      const commonName = language === 'de'
-        ? (plant.common_name_de || plant.common_name_en || '')
-        : (plant.common_name_en || plant.common_name_de || '');
-      const nameBotanic = plant.botanical_name || '';
+    colIndex = i % cols;
+    const x = margin + colIndex * (imgW + colGap);
+    const imageTop = rowStartY + (rowHasLabel ? catLabelH : 0);
 
-      doc.setFontSize(7);
-      doc.setTextColor(60, 60, 60);
-      doc.setFont('helvetica', 'normal');
-      const commonLines = doc.splitTextToSize(commonName, imageWidth).slice(0, 2);
-      doc.text(commonLines, x, rowStartY + 3);
+    // Category label
+    if (item.categoryLabel !== '') {
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(80, 80, 80);
+      doc.text(item.categoryLabel, x, rowStartY + catLabelH - 1.5);
+    }
 
-      doc.setFontSize(6);
-      doc.setTextColor(100, 100, 100);
-      doc.setFont('helvetica', 'italic');
-      const botanicLines = doc.splitTextToSize(nameBotanic, imageWidth).slice(0, 2);
-      const botanicY = rowStartY + 3 + commonLines.length * 2.5 + 1;
-      doc.text(botanicLines, x, botanicY);
+    // Plant names
+    const commonName = language === 'de'
+      ? (item.plant.common_name_de || item.plant.common_name_en || '')
+      : (item.plant.common_name_en || item.plant.common_name_de || '');
+    const botanicName = item.plant.botanical_name || '';
 
-      let plantImages = await loadPlantImages(plant.id);
-      if (plantImages.length === 0 && plant.image_url) plantImages = [plant.image_url];
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    const commonLines = doc.splitTextToSize(commonName, imgW).slice(0, 2) as string[];
+    doc.text(commonLines, x, imageTop + 3);
 
-      let imgY = rowStartY + textAreaHeight;
-      for (let imgIdx = 0; imgIdx < 2; imgIdx++) {
-        if (plantImages[imgIdx]) {
-          try {
-            const imageData = await loadImageAsDataURL(plantImages[imgIdx]);
-            const img = new Image();
-            await new Promise<void>((resolve, reject) => {
-              img.onload = () => resolve();
-              img.onerror = () => reject(new Error('Failed to load image'));
-              img.src = imageData;
-            });
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(110, 110, 110);
+    const botanicLines = doc.splitTextToSize(botanicName, imgW).slice(0, 2) as string[];
+    doc.text(botanicLines, x, imageTop + 3 + commonLines.length * 2.4 + 1);
 
-            const canvas = document.createElement('canvas');
-            canvas.width = 800;
-            canvas.height = Math.round((imageHeight / imageWidth) * 800);
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              const imgAR = img.width / img.height;
-              const canvasAR = canvas.width / canvas.height;
-              let sx = 0, sy = 0, sW = img.width, sH = img.height;
-              if (imgAR > canvasAR) { sW = img.height * canvasAR; sx = (img.width - sW) / 2; }
-              else { sH = img.width / canvasAR; sy = (img.height - sH) / 2; }
-              ctx.drawImage(img, sx, sy, sW, sH, 0, 0, canvas.width, canvas.height);
-              doc.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', x, imgY, imageWidth, imageHeight);
-            }
-          } catch {
-            doc.setFillColor(240, 240, 240);
-            doc.rect(x, imgY, imageWidth, imageHeight, 'F');
-          }
-        } else {
-          doc.setFillColor(240, 240, 240);
-          doc.rect(x, imgY, imageWidth, imageHeight, 'F');
+    // Images (2 stacked)
+    let imgY = imageTop + textH;
+    let plantImages = await loadPlantImages(item.plant.id);
+    if (plantImages.length === 0 && item.plant.image_url) plantImages = [item.plant.image_url];
+
+    for (let imgIdx = 0; imgIdx < 2; imgIdx++) {
+      if (plantImages[imgIdx]) {
+        try {
+          const raw = await loadImageAsDataURL(plantImages[imgIdx]);
+          const cropped = await cropImageDataURL(raw, Math.round(imgW * 30), Math.round(imgH * 30));
+          doc.addImage(cropped, 'JPEG', x, imgY, imgW, imgH);
+        } catch {
+          doc.setFillColor(230, 230, 230);
+          doc.rect(x, imgY, imgW, imgH, 'F');
         }
-        imgY += imageHeight + imageSpacing;
+      } else {
+        doc.setFillColor(230, 230, 230);
+        doc.rect(x, imgY, imgW, imgH, 'F');
       }
-
-      col++;
+      imgY += imgH + imgGap;
     }
-
-    currentY = rowStartY + cellTotalH + 4;
   }
 
-  const fileName = `PlantBoard_${new Date().toISOString().split('T')[0]}.pdf`;
-  doc.save(fileName);
+  doc.save(`PlantBoard_${new Date().toISOString().split('T')[0]}.pdf`);
 };
