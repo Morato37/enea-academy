@@ -67,7 +67,7 @@ async function getOrCreateSharedLink(
 }
 
 async function tagImageWithGeminiRest(base64: string, mimeType: string, apiKey: string): Promise<string[]> {
-  const modelName = "gemini-2.0-flash";
+  const modelName = "gemini-2.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   const requestBody = {
