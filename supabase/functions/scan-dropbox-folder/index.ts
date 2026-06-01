@@ -7,20 +7,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-interface DropboxListResult {
-  entries: Array<{ ".tag": string; path_lower: string; name: string }>;
-  cursor: string;
-  has_more: boolean;
-}
+// ── Dropbox auth ──────────────────────────────────────────────────────────────
 
 async function getDropboxAccessToken(appKey: string, appSecret: string, refreshToken: string): Promise<string> {
   const credentials = btoa(`${appKey}:${appSecret}`);
   const res = await fetch("https://api.dropbox.com/oauth2/token", {
     method: "POST",
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+    headers: { Authorization: `Basic ${credentials}`, "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: refreshToken }),
   });
   if (!res.ok) throw new Error(`Dropbox token refresh failed: ${await res.text()}`);
@@ -47,11 +40,7 @@ function buildDropboxHeaders(token: string, rootNamespaceId: string | null): Rec
   return headers;
 }
 
-async function getOrCreateSharedLink(
-  token: string,
-  path: string,
-  rootNamespaceId: string | null
-): Promise<string | null> {
+async function getOrCreateSharedLink(token: string, path: string, rootNamespaceId: string | null): Promise<string | null> {
   const res = await fetch("https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings", {
     method: "POST",
     headers: buildDropboxHeaders(token, rootNamespaceId),
@@ -66,47 +55,22 @@ async function getOrCreateSharedLink(
   return null;
 }
 
-async function tagImageWithGeminiRest(base64: string, mimeType: string, apiKey: string): Promise<string[]> {
-  const modelName = "gemini-2.5-flash";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+// ── List all files in a folder ─────────────────────────────────────────────
 
-  const requestBody = {
-    contents: [{
-      parts: [
-        { text: "Analysiere dieses Bild. Antworte NUR mit einer kommagetrennten Liste von 10 passenden Schlagwörtern (Materialien, Pflanzen, Stimmung, Farbe). Keine Einleitung." },
-        { inlineData: { mimeType, data: base64 } },
-      ],
-    }],
-  };
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(requestBody),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(`Gemini API Error: ${JSON.stringify(data)}`);
-  }
-
-  if (!data.candidates || data.candidates.length === 0) {
-    throw new Error("Gemini hat keine Antwort generiert.");
-  }
-
-  const textResponse: string = data.candidates[0].content.parts[0].text;
-  return textResponse.trim().split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+interface DropboxEntry {
+  ".tag": string;
+  path_lower: string;
+  name: string;
+  property_groups?: Array<{ template_id: string; fields: Array<{ name: string; value: string }> }>;
 }
 
-// ── action: list_files ──────────────────────────────────────────────────────
-async function handleListFiles(
+async function listAllFiles(
   folderPath: string,
-  dropboxToken: string,
+  token: string,
   rootNamespaceId: string | null,
-  supabase: ReturnType<typeof createClient>
-): Promise<Response> {
-  const allPaths: string[] = [];
+  includeProperties = false
+): Promise<DropboxEntry[]> {
+  const allEntries: DropboxEntry[] = [];
   let cursor: string | null = null;
   let hasMore = true;
 
@@ -116,59 +80,185 @@ async function handleListFiles(
       : "https://api.dropboxapi.com/2/files/list_folder";
     const body = cursor
       ? { cursor }
-      : { path: folderPath, recursive: true, include_media_info: false };
+      : {
+          path: folderPath,
+          recursive: true,
+          include_media_info: false,
+          include_property_groups: includeProperties
+            ? { ".tag": "filter_some", filter_some: [] }  // all templates
+            : undefined,
+        };
 
     const res = await fetch(url, {
       method: "POST",
-      headers: buildDropboxHeaders(dropboxToken, rootNamespaceId),
+      headers: buildDropboxHeaders(token, rootNamespaceId),
       body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`list_folder failed: ${await res.text()}`);
-
-    const page: DropboxListResult = await res.json();
-    if ((page as any).error) throw new Error(`list_folder error: ${JSON.stringify((page as any).error)}`);
+    const page = await res.json();
+    if (page.error) throw new Error(`list_folder error: ${JSON.stringify(page.error)}`);
 
     for (const entry of page.entries) {
       if (entry[".tag"] === "file" && /\.(jpe?g|png|webp|heic|tiff?)$/i.test(entry.name)) {
-        allPaths.push(entry.path_lower);
+        allEntries.push(entry);
       }
     }
     hasMore = page.has_more;
     cursor = page.cursor;
   }
 
-  // Fetch already-scanned paths that have tags from the DB
-  const { data: existing } = await supabase
-    .from("dropbox_images_index")
-    .select("dropbox_path, tags")
-    .in("dropbox_path", allPaths);
+  return allEntries;
+}
 
-  const alreadyTaggedPaths = new Set(
-    (existing ?? [])
-      .filter((row) => Array.isArray(row.tags) && row.tags.length > 0)
-      .map((row) => row.dropbox_path as string)
-  );
+// ── Check which paths are already in DB (chunked to avoid query limits) ──────
 
-  const paths = allPaths.filter((p) => !alreadyTaggedPaths.has(p));
-  const skippedCount = allPaths.length - paths.length;
+async function getAlreadyIndexedPaths(
+  paths: string[],
+  supabase: ReturnType<typeof createClient>
+): Promise<Set<string>> {
+  const CHUNK = 200;
+  const result = new Set<string>();
+  for (let i = 0; i < paths.length; i += CHUNK) {
+    const chunk = paths.slice(i, i + CHUNK);
+    const { data } = await supabase
+      .from("dropbox_images_index")
+      .select("dropbox_path")
+      .in("dropbox_path", chunk)
+      .not("tags", "is", null)
+      .gt("array_length(tags, 1)", 0);
+    for (const row of data ?? []) result.add(row.dropbox_path);
+  }
+  return result;
+}
+
+// ── action: list_files ────────────────────────────────────────────────────────
+
+async function handleListFiles(
+  folderPath: string,
+  token: string,
+  rootNamespaceId: string | null,
+  supabase: ReturnType<typeof createClient>
+): Promise<Response> {
+  const entries = await listAllFiles(folderPath, token, rootNamespaceId, false);
+  const allPaths = entries.map((e) => e.path_lower);
+
+  const alreadyIndexed = await getAlreadyIndexedPaths(allPaths, supabase);
+  const paths = allPaths.filter((p) => !alreadyIndexed.has(p));
 
   return new Response(
-    JSON.stringify({ success: true, paths, totalFound: allPaths.length, skippedCount }),
+    JSON.stringify({ success: true, paths, totalFound: allPaths.length, skippedCount: alreadyIndexed.size }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
 }
 
-// ── action: process_single_image ────────────────────────────────────────────
+// ── action: import_dropbox_tags ───────────────────────────────────────────────
+// Read tags that are already stored as Dropbox file properties — no AI needed.
+
+async function handleImportDropboxTags(
+  folderPath: string,
+  token: string,
+  rootNamespaceId: string | null,
+  supabase: ReturnType<typeof createClient>
+): Promise<Response> {
+  // List all files WITH property groups
+  const entries = await listAllFiles(folderPath, token, rootNamespaceId, true);
+
+  let imported = 0;
+  let skipped = 0;
+  let noTags = 0;
+  const errors: string[] = [];
+
+  // Process in batches of 50 to avoid overwhelming DB
+  const BATCH = 50;
+  for (let i = 0; i < entries.length; i += BATCH) {
+    const batch = entries.slice(i, i + BATCH);
+
+    const upsertRows: Array<{
+      dropbox_path: string;
+      tags: string[];
+      dropbox_shared_link: string | null;
+      last_scanned_at: string;
+      status: string;
+    }> = [];
+
+    for (const entry of batch) {
+      // Collect tags from all property groups
+      const tags: string[] = [];
+      if (entry.property_groups) {
+        for (const group of entry.property_groups) {
+          for (const field of group.fields) {
+            // Each field value may be comma-separated
+            const vals = field.value.split(/[,;]+/).map((v: string) => v.trim().toLowerCase()).filter(Boolean);
+            tags.push(...vals);
+          }
+        }
+      }
+
+      if (tags.length === 0) { noTags++; continue; }
+
+      // Get or create shared link
+      try {
+        const sharedLink = await getOrCreateSharedLink(token, entry.path_lower, rootNamespaceId);
+        upsertRows.push({
+          dropbox_path: entry.path_lower,
+          tags,
+          dropbox_shared_link: sharedLink,
+          last_scanned_at: new Date().toISOString(),
+          status: "scanned",
+        });
+        imported++;
+      } catch (err) {
+        errors.push(`${entry.name}: ${err instanceof Error ? err.message : String(err)}`);
+        skipped++;
+      }
+    }
+
+    if (upsertRows.length > 0) {
+      const { error } = await supabase
+        .from("dropbox_images_index")
+        .upsert(upsertRows, { onConflict: "dropbox_path" });
+      if (error) throw new Error(`DB upsert failed: ${error.message}`);
+    }
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, imported, skipped, noTags, errors, total: entries.length }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
+// ── action: process_single_image (AI tagging) ─────────────────────────────────
+
+async function tagImageWithGeminiRest(base64: string, mimeType: string, apiKey: string): Promise<string[]> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { text: "Analysiere dieses Bild. Antworte NUR mit einer kommagetrennten Liste von 10 passenden Schlagwörtern (Materialien, Pflanzen, Stimmung, Farbe). Keine Einleitung." },
+          { inlineData: { mimeType, data: base64 } },
+        ],
+      }],
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(`Gemini API Error: ${JSON.stringify(data)}`);
+  if (!data.candidates?.length) throw new Error("Gemini hat keine Antwort generiert.");
+  const text: string = data.candidates[0].content.parts[0].text;
+  return text.trim().split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+}
+
 async function handleProcessSingleImage(
   imagePath: string,
-  dropboxToken: string,
+  token: string,
   rootNamespaceId: string | null,
   geminiApiKey: string,
   supabase: ReturnType<typeof createClient>
 ): Promise<Response> {
-  // 1. Download image — cap at 4 MB
   const dlHeaders: Record<string, string> = {
-    Authorization: `Bearer ${dropboxToken}`,
+    Authorization: `Bearer ${token}`,
     "Dropbox-API-Arg": JSON.stringify({ path: imagePath }),
   };
   if (rootNamespaceId) {
@@ -197,7 +287,6 @@ async function handleProcessSingleImage(
   let offset = 0;
   for (const chunk of chunks) { merged.set(chunk, offset); offset += chunk.length; }
 
-  // 2. Base64-encode
   let binary = "";
   for (let i = 0; i < merged.length; i++) binary += String.fromCharCode(merged[i]);
   const base64 = btoa(binary);
@@ -205,34 +294,21 @@ async function handleProcessSingleImage(
   const ext = imagePath.split(".").pop()?.toLowerCase() ?? "jpg";
   const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
 
-  // 3. Tag via Gemini REST
   const tags = await tagImageWithGeminiRest(base64, mimeType, geminiApiKey);
+  const sharedLink = await getOrCreateSharedLink(token, imagePath, rootNamespaceId);
 
-  // 4. Shared link for preview
-  const sharedLink = await getOrCreateSharedLink(dropboxToken, imagePath, rootNamespaceId);
-
-  // 5. Persist to DB
   const { error: dbError } = await supabase
     .from("dropbox_images_index")
     .upsert(
-      {
-        dropbox_path: imagePath,
-        tags,
-        dropbox_shared_link: sharedLink,
-        last_scanned_at: new Date().toISOString(),
-        status: "scanned",
-      },
+      { dropbox_path: imagePath, tags, dropbox_shared_link: sharedLink, last_scanned_at: new Date().toISOString(), status: "scanned" },
       { onConflict: "dropbox_path" }
     );
   if (dbError) throw new Error(dbError.message);
 
-  return new Response(
-    JSON.stringify({ success: true }),
-    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
+  return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
-// ── Main handler ─────────────────────────────────────────────────────────────
+// ── Main handler ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -242,12 +318,11 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const geminiApiKey = Deno.env.get("GEMINI_API_KEY")!;
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
     const dropboxAppKey = Deno.env.get("DROPBOX_APP_KEY")!;
     const dropboxAppSecret = Deno.env.get("DROPBOX_APP_SECRET")!;
     const dropboxRefreshToken = Deno.env.get("DROPBOX_REFRESH_TOKEN")!;
 
-    // Auth guard
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -255,9 +330,7 @@ Deno.serve(async (req: Request) => {
       });
     }
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
-    const { data: { user }, error: authError } = await anonClient.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
+    const { data: { user }, error: authError } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -265,8 +338,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabase = createClient(supabaseUrl, serviceKey);
-    const { data: profile } = await supabase
-      .from("user_profiles").select("role").eq("id", user.id).maybeSingle();
+    const { data: profile } = await supabase.from("user_profiles").select("role").eq("id", user.id).maybeSingle();
     if (profile?.role !== "admin") {
       return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -280,20 +352,17 @@ Deno.serve(async (req: Request) => {
     const rootNamespaceId = await getRootNamespaceId(dropboxToken);
 
     if (action === "list_files") {
-      if (!folderPath) {
-        return new Response(JSON.stringify({ error: "folderPath is required" }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (!folderPath) return new Response(JSON.stringify({ error: "folderPath required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       return await handleListFiles(folderPath, dropboxToken, rootNamespaceId, supabase);
     }
 
+    if (action === "import_dropbox_tags") {
+      if (!folderPath) return new Response(JSON.stringify({ error: "folderPath required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return await handleImportDropboxTags(folderPath, dropboxToken, rootNamespaceId, supabase);
+    }
+
     if (action === "process_single_image") {
-      if (!imagePath) {
-        return new Response(JSON.stringify({ error: "imagePath is required" }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (!imagePath) return new Response(JSON.stringify({ error: "imagePath required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       return await handleProcessSingleImage(imagePath, dropboxToken, rootNamespaceId, geminiApiKey, supabase);
     }
 

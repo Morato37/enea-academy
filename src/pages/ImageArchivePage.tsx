@@ -379,7 +379,35 @@ export const ImageArchivePage: React.FC = () => {
     }
   };
 
-  // ── Scan ────────────────────────────────────────────────────────────────────
+  // ── Import Dropbox tags ─────────────────────────────────────────────────────
+
+  const handleImportDropboxTags = async () => {
+    abortRef.current = false;
+    setProgress({ ...initialProgress, phase: 'listing', message: 'Lese Dropbox-Tags aus...' });
+    try {
+      const { data, error } = await supabase.functions.invoke<{
+        success: boolean; imported: number; skipped: number; noTags: number; errors: string[]; total: number;
+      }>('scan-dropbox-folder', { body: { action: 'import_dropbox_tags', folderPath: FOLDER_PATH } });
+
+      if (error) throw error;
+      if (!data) throw new Error('Keine Antwort erhalten.');
+
+      setProgress((p) => ({
+        ...p,
+        phase: 'done',
+        total: data.total,
+        processed: data.imported,
+        skipped: data.skipped + data.noTags,
+        errors: data.errors ?? [],
+        message: `Fertig: ${data.imported} importiert, ${data.noTags} ohne Tags, ${data.skipped} Fehler (von ${data.total} Dateien).`,
+      }));
+      await fetchImages();
+    } catch (err) {
+      setProgress((p) => ({ ...p, phase: 'error', currentFile: '', message: err instanceof Error ? err.message : 'Import fehlgeschlagen.' }));
+    }
+  };
+
+  // ── AI Scan ────────────────────────────────────────────────────────────────────
 
   const handleScan = async () => {
     abortRef.current = false;
@@ -466,26 +494,42 @@ export const ImageArchivePage: React.FC = () => {
         {/* Admin Panel */}
         {isAdmin && (
           <div className="bg-white border border-cyan-200 rounded-xl p-5 mb-8 shadow-sm space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-start justify-between flex-wrap gap-4">
               <div>
                 <p className="text-sm font-semibold text-cyan-700 uppercase tracking-wide mb-0.5">Admin Control Panel</p>
                 <p className="text-sm text-gray-500">
-                  Starte einen neuen KI-Scan für{' '}
-                  <span className="font-mono text-gray-700">{FOLDER_PATH}</span>
+                  Ordner: <span className="font-mono text-gray-700">{FOLDER_PATH}</span>
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {isScanning && (
                   <button onClick={handleAbort} className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-sm font-medium rounded-lg transition-colors">
                     <X className="w-4 h-4" /> Abbrechen
                   </button>
                 )}
-                <button onClick={handleScan} disabled={isScanning} className="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-400 text-white text-sm font-medium rounded-lg transition-colors">
+                {/* Primary: read existing Dropbox tags — fast, no AI */}
+                <button
+                  onClick={handleImportDropboxTags}
+                  disabled={isScanning}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Dropbox-Tags importieren
+                </button>
+                {/* Secondary: AI scan for untagged images */}
+                <button
+                  onClick={handleScan}
+                  disabled={isScanning}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-gray-50 disabled:bg-gray-50 border border-gray-300 text-gray-600 text-sm font-medium rounded-lg transition-colors"
+                >
                   <RefreshCw className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />
-                  {isScanning ? 'Scan läuft...' : 'Neuen Dropbox-Scan starten'}
+                  {isScanning ? 'Scan läuft...' : 'KI-Scan (ungetaggte Bilder)'}
                 </button>
               </div>
             </div>
+            <p className="text-xs text-gray-400">
+              Wenn Bilder in Dropbox bereits mit Tags versehen sind, nutze <strong className="text-gray-500">Dropbox-Tags importieren</strong> — das liest die bestehenden Tags direkt aus ohne KI. Der KI-Scan ist nur für Bilder ohne Tags nötig.
+            </p>
 
             {progress.phase !== 'idle' && (
               <div className="space-y-3">
