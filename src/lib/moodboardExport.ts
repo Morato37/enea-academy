@@ -110,7 +110,7 @@ export const generateMoodboardPDF = async (
   const flat = buildFlatList(selections, language);
   if (flat.length === 0) return;
 
-  // Layout constants (mm)
+  // Fixed cell size — images are always this large regardless of plant count
   const margin = 12;
   const colGap = 2.5;
   const imgGap = 2;
@@ -118,35 +118,49 @@ export const generateMoodboardPDF = async (
   const catLabelH = 7;
   const titleH = 16;
 
-  // Page width fixed at A3 landscape width (420mm)
-  // Columns: choose the number that gives ~55-65mm wide images (clearly visible)
-  // This means we use the number of columns that best fills the width with good image sizes.
-  const pageW = 420;
-  const availW = pageW - margin * 2;
-
-  // Target image width ~60mm → cols = floor(availW / (targetImgW + colGap))
-  const targetImgW = 60;
-  const cols = Math.max(4, Math.round(availW / (targetImgW + colGap)));
-  const imgW = (availW - (cols - 1) * colGap) / cols;
-  const imgH = imgW * 0.75; // landscape crop ratio
+  const imgW = 60;             // fixed image width in mm — always clearly visible
+  const imgH = imgW * 0.75;    // landscape crop: 45mm tall
   const cellH = textH + imgH * 2 + imgGap;
 
-  // Per-row label flags
-  const rowLabels: boolean[] = [];
-  for (let i = 0; i < flat.length; i += cols) {
-    rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
+  // Landscape page: minimum width = A3 landscape (420mm), grows wider if needed
+  const minLandscapeW = 297;   // A3 landscape height = minimum page width
+  const minLandscapeH = 210;   // A3 landscape width = minimum page height
+
+  // Columns: fit as many as needed to keep page height >= landscape minimum
+  // Strategy: start with cols that give page height close to A3 landscape height (210mm),
+  // then round up so height stays manageable. Page grows in BOTH dimensions.
+
+  // For a given cols: compute pageW and pageH
+  const computeDimensions = (cols: number) => {
+    const pageW = Math.max(minLandscapeW, margin * 2 + cols * imgW + (cols - 1) * colGap);
+    const rowLabels: boolean[] = [];
+    for (let i = 0; i < flat.length; i += cols) {
+      rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
+    }
+    let totalH = 0;
+    for (let ri = 0; ri < rowLabels.length; ri++) {
+      totalH += (rowLabels[ri] ? catLabelH : 0) + cellH + 4;
+    }
+    const pageH = Math.max(minLandscapeH, margin * 2 + titleH + totalH + 4);
+    return { pageW, pageH, rowLabels };
+  };
+
+  // Find optimal cols: try values from 4 upward, pick the one where pageH is
+  // closest to pageW (most square/landscape). We cap at flat.length cols.
+  // Default: start at 6 cols and increase until pageH <= pageW (true landscape).
+  let cols = 6;
+  let best = computeDimensions(cols);
+  for (let c = 6; c <= Math.min(flat.length, 20); c++) {
+    const d = computeDimensions(c);
+    if (d.pageH <= d.pageW) { cols = c; best = d; break; }
+    // keep trying — track the best (least tall relative to width)
+    if (d.pageH / d.pageW < best.pageH / best.pageW) { cols = c; best = d; }
   }
 
-  // Compute total content height so page grows to fit
-  let totalContentH = 0;
-  for (let ri = 0; ri < rowLabels.length; ri++) {
-    totalContentH += (rowLabels[ri] ? catLabelH : 0) + cellH + 4;
-  }
+  const { pageW, pageH, rowLabels } = best;
 
-  const pageH = margin * 2 + titleH + totalContentH + 4;
-
-  // jsPDF: for custom sizes always pass [width, height] with 'p' (portrait) orientation
-  // so the format array maps directly to actual dimensions without axis swap.
+  // Create PDF with explicit [width, height] — ALWAYS wider than tall (landscape)
+  // We use 'p' orientation so jsPDF does NOT swap axes for custom sizes.
   const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: [pageW, pageH] });
 
   // Title

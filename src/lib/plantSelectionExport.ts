@@ -110,40 +110,52 @@ export const generatePlantSelectionPDF = async (
   const flat = buildFlatList(selections, language);
   if (flat.length === 0) return;
 
-  // Layout constants (mm)
+  // Fixed cell dimensions — images are always clearly visible
   const margin = 12;
   const colGap = 3;
   const catLabelH = 7;
   const nameH = 9;
   const titleH = 16;
-  const cellRatio = 1.35; // portrait image ratio
+  const cellRatio = 1.35;
 
-  // Page width fixed at A3 landscape width (420mm)
-  const pageW = 420;
-  const availW = pageW - margin * 2;
+  const cellW = 55;              // fixed cell width in mm
+  const cellH = cellW * cellRatio; // ~74mm tall — clearly visible portrait image
 
-  // Target cell width ~60mm for clearly visible images
-  const targetCellW = 60;
-  const cols = Math.max(4, Math.round(availW / (targetCellW + colGap)));
-  const cellW = (availW - (cols - 1) * colGap) / cols;
-  const cellH = cellW * cellRatio;
+  // Landscape: page width >= page height always.
+  // Minimum = A3 landscape (297 × 210mm).
+  const minPageW = 297;
+  const minPageH = 210;
 
-  // Per-row label flags
-  const rowLabels: boolean[] = [];
-  for (let i = 0; i < flat.length; i += cols) {
-    rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
+  // Compute page dimensions for a given number of columns
+  const computeDimensions = (cols: number) => {
+    const pageW = Math.max(minPageW, margin * 2 + cols * cellW + (cols - 1) * colGap);
+    const rowLabels: boolean[] = [];
+    for (let i = 0; i < flat.length; i += cols) {
+      rowLabels.push(flat.slice(i, i + cols).some(it => it.categoryLabel !== ''));
+    }
+    let totalH = 0;
+    for (let ri = 0; ri < rowLabels.length; ri++) {
+      totalH += (rowLabels[ri] ? catLabelH : 0) + cellH + nameH + 2;
+    }
+    const pageH = Math.max(minPageH, margin * 2 + titleH + totalH + 4);
+    return { pageW, pageH, rowLabels };
+  };
+
+  // Find the number of columns where pageW >= pageH (true landscape).
+  // Increase cols until the page becomes wider than tall.
+  let cols = 4;
+  let dims = computeDimensions(cols);
+  for (let c = 4; c <= Math.min(flat.length, 30); c++) {
+    const d = computeDimensions(c);
+    if (d.pageW >= d.pageH) { cols = c; dims = d; break; }
+    // Track best: smallest height-to-width ratio
+    if (d.pageH / d.pageW < dims.pageH / dims.pageW) { cols = c; dims = d; }
   }
 
-  // Compute total content height — page grows to fit everything
-  let totalContentH = 0;
-  for (let ri = 0; ri < rowLabels.length; ri++) {
-    totalContentH += (rowLabels[ri] ? catLabelH : 0) + cellH + nameH + 2;
-  }
+  const { pageW, pageH, rowLabels } = dims;
 
-  const pageH = margin * 2 + titleH + totalContentH + 4;
-
-  // Use 'p' (portrait) orientation with custom [width, height] format so jsPDF
-  // does not swap axes — this is the correct way to get custom landscape-like pages.
+  // Always pass [width, height] with portrait orientation so jsPDF does not swap axes.
+  // Since pageW >= pageH the document is physically landscape.
   const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: [pageW, pageH] });
 
   // Title
