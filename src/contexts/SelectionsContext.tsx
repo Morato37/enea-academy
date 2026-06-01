@@ -316,17 +316,26 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const saveCurrentSelectionsToProject = async (projectId: string) => {
     if (!user) return;
     try {
-      const selectionsToMove = selections.filter(s => !s.project_id);
-      for (const selection of selectionsToMove) {
-        const { error } = await supabase
-          .from('user_selections')
-          .update({ project_id: projectId })
-          .eq('id', selection.id);
-        if (error) throw error;
-      }
+      // Move all current-selection rows to the project
+      const { error: selError } = await supabase
+        .from('user_selections')
+        .update({ project_id: projectId })
+        .eq('user_id', user.id)
+        .is('project_id', null);
+      if (selError) throw selError;
+
+      // Move all current zones (project_id = null) to the project,
+      // preserving every zone's id so zone_id references on selections stay valid.
+      const { error: zoneError } = await supabase
+        .from('project_zones')
+        .update({ project_id: projectId })
+        .eq('user_id', user.id)
+        .is('project_id', null);
+      if (zoneError) throw zoneError;
+
       const project = projects.find(p => p.id === projectId);
       if (project) setCurrentProjectState(project);
-      await fetchSelections(projectId);
+      await Promise.all([fetchSelections(projectId), fetchZones(projectId)]);
     } catch (error) {
       console.error('Error saving selections to project:', error);
     }
@@ -336,7 +345,7 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const project = projects.find(p => p.id === projectId);
     if (project) {
       setCurrentProjectState(project);
-      await fetchSelections(projectId);
+      await Promise.all([fetchSelections(projectId), fetchZones(projectId)]);
     }
   };
 
