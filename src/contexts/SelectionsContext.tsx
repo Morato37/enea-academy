@@ -1,12 +1,17 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, UserSelection, Project, ProjectZone } from '../lib/supabase';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  supabase, UserSelection, Project, ProjectZone,
+  ProjectShare, ProjectShareWithUser, SharedProjectEntry, UserSearchResult,
+} from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
 interface SelectionsContextType {
   selections: UserSelection[];
   projects: Project[];
+  sharedProjects: SharedProjectEntry[];
   zones: ProjectZone[];
   currentProject: Project | null;
+  currentProjectPermission: 'owner' | 'view' | 'edit' | null;
   loading: boolean;
   addPlantSelection: (plantId: number, quantity?: number) => Promise<void>;
   addStoneSelection: (stoneId: number, quantity?: number) => Promise<void>;
@@ -31,6 +36,12 @@ interface SelectionsContextType {
   deleteZone: (zoneId: string) => Promise<void>;
   moveSelectionToZone: (selectionId: string, zoneId: string | null) => Promise<void>;
   refreshZones: () => Promise<void>;
+  // Share management
+  getProjectShares: (projectId: string) => Promise<ProjectShareWithUser[]>;
+  addProjectShare: (projectId: string, userId: string, permission: 'view' | 'edit') => Promise<void>;
+  removeProjectShare: (shareId: string) => Promise<void>;
+  updateProjectShare: (shareId: string, permission: 'view' | 'edit') => Promise<void>;
+  searchUsers: (query: string) => Promise<UserSearchResult[]>;
 }
 
 const SelectionsContext = createContext<SelectionsContextType | undefined>(undefined);
@@ -47,20 +58,60 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const { user } = useAuth();
   const [selections, setSelections] = useState<UserSelection[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [sharedProjects, setSharedProjects] = useState<SharedProjectEntry[]>([]);
   const [zones, setZones] = useState<ProjectZone[]>([]);
   const [currentProject, setCurrentProjectState] = useState<Project | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const currentProjectPermission = useMemo((): 'owner' | 'view' | 'edit' | null => {
+    if (!currentProject || !user) return null;
+    if (currentProject.user_id === user.id) return 'owner';
+    const entry = sharedProjects.find(e => e.project.id === currentProject.id);
+    return (entry?.share.permission as 'view' | 'edit') ?? null;
+  }, [currentProject, user, sharedProjects]);
+
   const fetchProjects = async () => {
-    if (!user) { setProjects([]); return; }
+    if (!user) { setProjects([]); setSharedProjects([]); return; }
     try {
-      const { data, error } = await supabase
+      const { data: ownedData, error: ownedError } = await supabase
         .from('projects')
         .select('*')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
-      if (error) throw error;
-      setProjects(data || []);
+      if (ownedError) throw ownedError;
+      setProjects(ownedData || []);
+
+      const { data: sharesData, error: sharesError } = await supabase
+        .from('project_shares')
+        .select('id, project_id, owner_id, shared_with_user_id, permission, created_at, project:projects(*)')
+        .eq('shared_with_user_id', user.id);
+      if (sharesError) throw sharesError;
+
+      if (sharesData && sharesData.length > 0) {
+        const ownerIds = [...new Set(sharesData.map((s: any) => s.owner_id as string))];
+        const { data: ownerProfiles } = await supabase
+          .from('user_profiles')
+          .select('id, email, full_name')
+          .in('id', ownerIds);
+
+        const entries: SharedProjectEntry[] = sharesData
+          .filter((s: any) => s.project)
+          .map((s: any) => ({
+            share: {
+              id: s.id,
+              project_id: s.project_id,
+              owner_id: s.owner_id,
+              shared_with_user_id: s.shared_with_user_id,
+              permission: s.permission,
+              created_at: s.created_at,
+            } as ProjectShare,
+            project: s.project as Project,
+            owner_profile: ownerProfiles?.find((p: any) => p.id === s.owner_id),
+          }));
+        setSharedProjects(entries);
+      } else {
+        setSharedProjects([]);
+      }
     } catch (error) {
       console.error('Error fetching projects:', error);
     }
@@ -69,22 +120,26 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const fetchZones = async (projectId?: string) => {
     if (!user) { setZones([]); return; }
     try {
-      let query = supabase
-        .from('project_zones')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('display_order', { ascending: true })
-        .order('created_at', { ascending: true });
-
       if (projectId) {
-        query = query.eq('project_id', projectId);
+        const { data, error } = await supabase
+          .from('project_zones')
+          .select('*')
+          .eq('project_id', projectId)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: true });
+        if (error) throw error;
+        setZones(data || []);
       } else {
-        query = query.is('project_id', null);
+        const { data, error } = await supabase
+          .from('project_zones')
+          .select('*')
+          .eq('user_id', user.id)
+          .is('project_id', null)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: true });
+        if (error) throw error;
+        setZones(data || []);
       }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setZones(data || []);
     } catch (error) {
       console.error('Error fetching zones:', error);
     }
@@ -98,13 +153,14 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       let query = supabase
         .from('user_selections')
         .select('*, plant:plants_flat(*), stone:stones(*)')
-        .eq('user_id', user.id)
         .is('parent_selection_id', null);
 
       if (projectId) {
+        // Project context: all contributors' selections for this project
         query = query.eq('project_id', projectId);
       } else {
-        query = query.is('project_id', null);
+        // Current working set: only own unassigned selections
+        query = query.eq('user_id', user.id).is('project_id', null);
       }
 
       const { data: parentSelections, error } = await query.order('created_at', { ascending: false });
@@ -141,8 +197,13 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const addPlantSelection = async (plantId: number, quantity: number = 1) => {
     if (!user) return;
+    if (currentProject && currentProject.user_id !== user.id) {
+      const entry = sharedProjects.find(e => e.project.id === currentProject.id);
+      if (!entry || entry.share.permission !== 'edit') return;
+    }
     try {
-      const existing = selections.find(s => s.plant_id === plantId);
+      // Only dedup against current user's selections
+      const existing = selections.find(s => s.plant_id === plantId && s.user_id === user.id);
       if (existing) {
         await updateSelectionQuantity(existing.id, existing.quantity + quantity);
       } else {
@@ -162,8 +223,12 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const addStoneSelection = async (stoneId: number, quantity: number = 1) => {
     if (!user) return;
+    if (currentProject && currentProject.user_id !== user.id) {
+      const entry = sharedProjects.find(e => e.project.id === currentProject.id);
+      if (!entry || entry.share.permission !== 'edit') return;
+    }
     try {
-      const existing = selections.find(s => s.stone_id === stoneId);
+      const existing = selections.find(s => s.stone_id === stoneId && s.user_id === user.id);
       if (existing) {
         await updateSelectionQuantity(existing.id, existing.quantity + quantity);
       } else {
@@ -183,6 +248,10 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const addTileCombination = async (tileId: number, cobblestoneIds: number[]) => {
     if (!user) return;
+    if (currentProject && currentProject.user_id !== user.id) {
+      const entry = sharedProjects.find(e => e.project.id === currentProject.id);
+      if (!entry || entry.share.permission !== 'edit') return;
+    }
     try {
       const combinationRef = `tile_${tileId}_${Date.now()}`;
       const { data: tileSelection, error: tileError } = await supabase
@@ -250,14 +319,21 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const clearAllSelections = async () => {
     if (!user) return;
     try {
-      let query = supabase.from('user_selections').delete().eq('user_id', user.id);
       if (currentProject) {
-        query = query.eq('project_id', currentProject.id);
+        // Project owner clears all; collaborator clears only own rows (RLS enforces this)
+        const { error } = await supabase
+          .from('user_selections')
+          .delete()
+          .eq('project_id', currentProject.id);
+        if (error) throw error;
       } else {
-        query = query.is('project_id', null);
+        const { error } = await supabase
+          .from('user_selections')
+          .delete()
+          .eq('user_id', user.id)
+          .is('project_id', null);
+        if (error) throw error;
       }
-      const { error } = await query;
-      if (error) throw error;
       setSelections([]);
     } catch (error) {
       console.error('Error clearing selections:', error);
@@ -316,7 +392,6 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const saveCurrentSelectionsToProject = async (projectId: string) => {
     if (!user) return;
     try {
-      // Move all current-selection rows to the project
       const { error: selError } = await supabase
         .from('user_selections')
         .update({ project_id: projectId })
@@ -324,8 +399,6 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         .is('project_id', null);
       if (selError) throw selError;
 
-      // Move all current zones (project_id = null) to the project,
-      // preserving every zone's id so zone_id references on selections stay valid.
       const { error: zoneError } = await supabase
         .from('project_zones')
         .update({ project_id: projectId })
@@ -342,7 +415,11 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const loadProjectSelections = async (projectId: string) => {
-    const project = projects.find(p => p.id === projectId);
+    let project = projects.find(p => p.id === projectId);
+    if (!project) {
+      const entry = sharedProjects.find(e => e.project.id === projectId);
+      if (entry) project = entry.project;
+    }
     if (project) {
       setCurrentProjectState(project);
       await Promise.all([fetchSelections(projectId), fetchZones(projectId)]);
@@ -394,7 +471,6 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const deleteZone = async (zoneId: string) => {
     try {
-      // Unassign selections from this zone before deleting
       await supabase.from('user_selections').update({ zone_id: null }).eq('zone_id', zoneId);
       const { error } = await supabase.from('project_zones').delete().eq('id', zoneId);
       if (error) throw error;
@@ -412,7 +488,6 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         .update({ zone_id: zoneId })
         .eq('id', selectionId);
       if (error) throw error;
-      // Optimistic update
       setSelections(prev =>
         prev.map(s => s.id === selectionId ? { ...s, zone_id: zoneId ?? undefined } : s)
       );
@@ -421,11 +496,74 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  // Share management
+  const getProjectShares = async (projectId: string): Promise<ProjectShareWithUser[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('project_shares')
+        .select('*')
+        .eq('project_id', projectId);
+      if (error) throw error;
+
+      const userIds = (data || []).map((s: any) => s.shared_with_user_id as string);
+      const { data: profiles } = userIds.length > 0
+        ? await supabase.from('user_profiles').select('id, email, full_name').in('id', userIds)
+        : { data: [] };
+
+      return (data || []).map((share: any) => ({
+        ...share,
+        user_profile: profiles?.find((p: any) => p.id === share.shared_with_user_id) || undefined,
+      })) as ProjectShareWithUser[];
+    } catch (error) {
+      console.error('Error fetching project shares:', error);
+      return [];
+    }
+  };
+
+  const addProjectShare = async (projectId: string, userId: string, permission: 'view' | 'edit') => {
+    if (!user) return;
+    const { error } = await supabase.from('project_shares').insert({
+      project_id: projectId,
+      owner_id: user.id,
+      shared_with_user_id: userId,
+      permission,
+    });
+    if (error) throw error;
+  };
+
+  const removeProjectShare = async (shareId: string) => {
+    const { error } = await supabase.from('project_shares').delete().eq('id', shareId);
+    if (error) throw error;
+  };
+
+  const updateProjectShare = async (shareId: string, permission: 'view' | 'edit') => {
+    const { error } = await supabase.from('project_shares').update({ permission }).eq('id', shareId);
+    if (error) throw error;
+  };
+
+  const searchUsers = async (query: string): Promise<UserSearchResult[]> => {
+    if (!query.trim() || !user) return [];
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('id, email, full_name')
+        .neq('id', user.id)
+        .or(`email.ilike.%${query}%,full_name.ilike.%${query}%`)
+        .limit(8);
+      if (error) throw error;
+      return (data || []) as UserSearchResult[];
+    } catch {
+      return [];
+    }
+  };
+
   const value: SelectionsContextType = {
     selections,
     projects,
+    sharedProjects,
     zones,
     currentProject,
+    currentProjectPermission,
     loading,
     addPlantSelection,
     addStoneSelection,
@@ -449,6 +587,11 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     deleteZone,
     moveSelectionToZone,
     refreshZones,
+    getProjectShares,
+    addProjectShare,
+    removeProjectShare,
+    updateProjectShare,
+    searchUsers,
   };
 
   return <SelectionsContext.Provider value={value}>{children}</SelectionsContext.Provider>;

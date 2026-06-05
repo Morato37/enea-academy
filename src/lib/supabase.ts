@@ -213,6 +213,31 @@ export interface ProjectZone {
   updated_at: string;
 }
 
+export interface ProjectShare {
+  id: string;
+  project_id: string;
+  owner_id: string;
+  shared_with_user_id: string;
+  permission: 'view' | 'edit';
+  created_at: string;
+}
+
+export interface ProjectShareWithUser extends ProjectShare {
+  user_profile?: { id: string; email: string; full_name: string | null };
+}
+
+export interface SharedProjectEntry {
+  share: ProjectShare;
+  project: Project;
+  owner_profile?: { id: string; email: string; full_name: string | null };
+}
+
+export interface UserSearchResult {
+  id: string;
+  email: string;
+  full_name: string | null;
+}
+
 export interface UserSelection {
   id: string;
   user_id: string;

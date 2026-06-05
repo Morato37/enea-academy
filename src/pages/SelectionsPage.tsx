@@ -4,13 +4,14 @@ import {
   Trash2, Download, Loader2, Plus, Minus, Save,
   CreditCard as Edit2, RefreshCw, Image, Calendar,
   MapPin, X, Check, ChevronDown, ChevronRight,
-  GripVertical, Layers
+  GripVertical, Layers, Share2, Users, Eye, Lock
 } from 'lucide-react';
 import { generatePDF } from '../lib/pdfExport';
 import { generateMoodboardPDF } from '../lib/moodboardExport';
 import { generateBloomingCalendarPDF } from '../lib/bloomingCalendarExport';
 import { generatePlantSelectionPDF } from '../lib/plantSelectionExport';
 import { LanguageSelectionModal } from '../components/LanguageSelectionModal';
+import { ProjectShareModal } from '../components/Selections/ProjectShareModal';
 import { UserSelection, ProjectZone } from '../lib/supabase';
 
 // ── Drag state shared via refs ──────────────────────────────────────────────
@@ -31,7 +32,6 @@ const ZoneBadge: React.FC<{ color: string; name: string }> = ({ color, name }) =
   </span>
 );
 
-// Stable zone colors cycling through a pleasant palette
 const ZONE_COLORS = [
   '#2563eb', '#16a34a', '#d97706', '#dc2626',
   '#0891b2', '#7c3aed', '#be185d', '#065f46',
@@ -53,11 +53,12 @@ interface SelectionCardProps {
   onDragStart: () => void;
   onDragEnd: () => void;
   zoneColorMap: Map<string, string>;
+  readOnly?: boolean;
 }
 
 const SelectionCard: React.FC<SelectionCardProps> = ({
   selection, zones, onRemove, onQuantityChange, onMoveToZone,
-  dragRef, onDragStart, onDragEnd, zoneColorMap,
+  dragRef, onDragStart, onDragEnd, zoneColorMap, readOnly = false,
 }) => {
   const [showZoneMenu, setShowZoneMenu] = useState(false);
   const item = selection.plant || selection.stone;
@@ -68,6 +69,7 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
   const currentZone = zones.find(z => z.id === selection.zone_id);
 
   const handleDragStart = (e: React.DragEvent) => {
+    if (readOnly) return;
     dragRef.current = { selectionId: selection.id, sourceZoneId: selection.zone_id ?? null };
     e.dataTransfer.effectAllowed = 'move';
     onDragStart();
@@ -77,14 +79,18 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
 
   return (
     <div
-      draggable
+      draggable={!readOnly}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
-      className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-all cursor-grab active:cursor-grabbing group select-none"
+      className={`bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-all group select-none ${
+        readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2 flex-1 min-w-0">
-          <GripVertical className="w-4 h-4 text-gray-300 mt-0.5 shrink-0 group-hover:text-gray-400 transition-colors" />
+          {!readOnly && (
+            <GripVertical className="w-4 h-4 text-gray-300 mt-0.5 shrink-0 group-hover:text-gray-400 transition-colors" />
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium text-gray-900 text-sm truncate">{title}</span>
@@ -101,73 +107,78 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
-          {/* Zone assignment */}
-          <div className="relative">
-            <button
-              onClick={() => setShowZoneMenu(v => !v)}
-              className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-              title="Assign to zone"
-            >
-              <MapPin className="w-4 h-4" />
-            </button>
-            {showZoneMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[160px] py-1">
-                <button
-                  onClick={() => { onMoveToZone(null); setShowZoneMenu(false); }}
-                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-500"
-                >
-                  <X className="w-3 h-3" />
-                  No zone
-                </button>
-                {zones.map((zone, idx) => (
+        {!readOnly && (
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Zone assignment */}
+            <div className="relative">
+              <button
+                onClick={() => setShowZoneMenu(v => !v)}
+                className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                title="Assign to zone"
+              >
+                <MapPin className="w-4 h-4" />
+              </button>
+              {showZoneMenu && (
+                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[160px] py-1">
                   <button
-                    key={zone.id}
-                    onClick={() => { onMoveToZone(zone.id); setShowZoneMenu(false); }}
-                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 flex items-center gap-2"
-                    style={{ color: getZoneColor(idx) }}
+                    onClick={() => { onMoveToZone(null); setShowZoneMenu(false); }}
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-500"
                   >
-                    <MapPin className="w-3 h-3" />
-                    {zone.name}
-                    {selection.zone_id === zone.id && <Check className="w-3 h-3 ml-auto" />}
+                    <X className="w-3 h-3" />
+                    No zone
                   </button>
-                ))}
-                {zones.length === 0 && (
-                  <p className="px-3 py-1.5 text-xs text-gray-400">No zones yet</p>
-                )}
+                  {zones.map((zone, idx) => (
+                    <button
+                      key={zone.id}
+                      onClick={() => { onMoveToZone(zone.id); setShowZoneMenu(false); }}
+                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 flex items-center gap-2"
+                      style={{ color: getZoneColor(idx) }}
+                    >
+                      <MapPin className="w-3 h-3" />
+                      {zone.name}
+                      {selection.zone_id === zone.id && <Check className="w-3 h-3 ml-auto" />}
+                    </button>
+                  ))}
+                  {zones.length === 0 && (
+                    <p className="px-3 py-1.5 text-xs text-gray-400">No zones yet</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Quantity */}
+            {!selection.is_tile_combination && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => onQuantityChange(-1)}
+                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-500 transition-colors"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="text-sm font-medium text-gray-700 w-6 text-center">{selection.quantity}</span>
+                <button
+                  onClick={() => onQuantityChange(1)}
+                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-500 transition-colors"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
               </div>
             )}
+
+            <button
+              onClick={onRemove}
+              className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
+        )}
 
-          {/* Quantity */}
-          {!selection.is_tile_combination && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => onQuantityChange(-1)}
-                className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-500 transition-colors"
-              >
-                <Minus className="w-3 h-3" />
-              </button>
-              <span className="text-sm font-medium text-gray-700 w-6 text-center">{selection.quantity}</span>
-              <button
-                onClick={() => onQuantityChange(1)}
-                className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-500 transition-colors"
-              >
-                <Plus className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-
-          <button
-            onClick={onRemove}
-            className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        {readOnly && !selection.is_tile_combination && (
+          <span className="text-xs text-gray-400 shrink-0">×{selection.quantity}</span>
+        )}
       </div>
 
-      {/* Tile combination children */}
       {selection.child_selections && selection.child_selections.length > 0 && (
         <div className="mt-2 pl-6 space-y-1">
           {selection.child_selections.map(child => (
@@ -183,10 +194,10 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
   );
 };
 
-// ── ZoneDropArea ─────────────────────────────────────────────────────────
+// ── ZoneColumn ─────────────────────────────────────────────────────────
 
 interface ZoneColumnProps {
-  zone: ProjectZone | null; // null = "Unassigned"
+  zone: ProjectZone | null;
   color: string;
   selections: UserSelection[];
   allZones: ProjectZone[];
@@ -202,9 +213,9 @@ interface ZoneColumnProps {
   draggingId: string | null;
   setDraggingId: (id: string | null) => void;
   zoneColorMap: Map<string, string>;
-  // export actions for named zones
-  onExportPlantBoard?: () => void;    // moodboard PDF (one page, 2 images per plant)
-  onExportPlantSelection?: () => void; // plant selection PDF (multi-page, 1 image per plant)
+  readOnly?: boolean;
+  onExportPlantBoard?: () => void;
+  onExportPlantSelection?: () => void;
   onExportCalendar?: () => void;
   generatingExport: string | null;
 }
@@ -212,18 +223,18 @@ interface ZoneColumnProps {
 const ZoneColumn: React.FC<ZoneColumnProps> = ({
   zone, color, selections, allZones, isEditingName, onRename, onStartRename, onDelete,
   onDrop, onRemoveSelection, onQuantityChange, onMoveToZone, dragRef, draggingId, setDraggingId,
-  zoneColorMap, onExportPlantBoard, onExportPlantSelection, onExportCalendar, generatingExport,
+  zoneColorMap, readOnly = false, onExportPlantBoard, onExportPlantSelection, onExportCalendar, generatingExport,
 }) => {
   const [dragOver, setDragOver] = useState(false);
   const [editName, setEditName] = useState(zone?.name || '');
   const [collapsed, setCollapsed] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const isUnassigned = zone === null;
   const title = isUnassigned ? 'Unassigned' : zone.name;
   const plantCount = selections.filter(s => s.plant_id).length;
 
   const handleDragOver = (e: React.DragEvent) => {
+    if (readOnly) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOver(true);
@@ -241,9 +252,7 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
   return (
     <div
       className={`flex flex-col rounded-xl border-2 transition-all min-w-[260px] ${
-        dragOver
-          ? 'border-dashed shadow-lg scale-[1.01]'
-          : 'border-gray-100'
+        dragOver ? 'border-dashed shadow-lg scale-[1.01]' : 'border-gray-100'
       }`}
       style={dragOver ? { borderColor: color } : {}}
       onDragOver={handleDragOver}
@@ -259,19 +268,13 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
           onClick={() => setCollapsed(v => !v)}
           className="text-gray-400 hover:text-gray-600 transition-colors"
         >
-          {collapsed
-            ? <ChevronRight className="w-4 h-4" />
-            : <ChevronDown className="w-4 h-4" />}
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
 
-        <div
-          className="w-2.5 h-2.5 rounded-full shrink-0"
-          style={{ backgroundColor: color }}
-        />
+        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
 
-        {isEditingName ? (
+        {isEditingName && !readOnly ? (
           <input
-            ref={inputRef}
             autoFocus
             value={editName}
             onChange={e => setEditName(e.target.value)}
@@ -285,9 +288,9 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
           />
         ) : (
           <button
-            onDoubleClick={() => { setEditName(zone?.name || ''); onStartRename(); }}
+            onDoubleClick={() => { if (!readOnly && !isUnassigned) { setEditName(zone?.name || ''); onStartRename(); } }}
             className="flex-1 text-left text-sm font-semibold text-gray-800 hover:text-gray-600 transition-colors"
-            title="Double-click to rename"
+            title={readOnly ? undefined : 'Double-click to rename'}
           >
             {title}
           </button>
@@ -295,19 +298,17 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
 
         <span className="text-xs text-gray-400 shrink-0">{selections.length}</span>
 
-        {!isUnassigned && (
+        {!isUnassigned && !readOnly && (
           <div className="flex items-center gap-1">
             <button
               onClick={() => { setEditName(zone?.name || ''); onStartRename(); }}
               className="p-1 rounded hover:bg-white/60 text-gray-400 hover:text-gray-600 transition-colors"
-              title="Rename zone"
             >
               <Edit2 className="w-3 h-3" />
             </button>
             <button
               onClick={onDelete}
               className="p-1 rounded hover:bg-white/60 text-gray-400 hover:text-red-500 transition-colors"
-              title="Delete zone"
             >
               <Trash2 className="w-3 h-3" />
             </button>
@@ -315,7 +316,7 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
         )}
       </div>
 
-      {/* Export bar for named zones with plants */}
+      {/* Export bar */}
       {!isUnassigned && !collapsed && plantCount > 0 && (
         <div
           className="flex items-center gap-1 px-4 py-2 border-b border-gray-100"
@@ -328,7 +329,6 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
               disabled={!!generatingExport}
               className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
               style={{ backgroundColor: color + '20', color }}
-              title="Plant Board"
             >
               {generatingExport === 'plantboard' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Image className="w-3 h-3" />}
               Plant Board
@@ -340,7 +340,6 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
               disabled={!!generatingExport}
               className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
               style={{ backgroundColor: color + '20', color }}
-              title="Plant Selection"
             >
               {generatingExport === 'plantselection' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Layers className="w-3 h-3" />}
               Plant Selection
@@ -352,7 +351,6 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
               disabled={!!generatingExport}
               className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
               style={{ backgroundColor: color + '20', color }}
-              title="Blooming Calendar"
             >
               {generatingExport === 'calendar' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Calendar className="w-3 h-3" />}
               Blooming Calendar
@@ -369,7 +367,7 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
               className="h-16 border-2 border-dashed rounded-lg flex items-center justify-center text-xs transition-colors"
               style={{ borderColor: color + '40', color: color + '80' }}
             >
-              Drop plants here
+              {readOnly ? 'Empty' : 'Drop plants here'}
             </div>
           )}
           {selections.map(sel => (
@@ -377,10 +375,7 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
               key={sel.id}
               selection={sel}
               zones={allZones}
-              onRemove={() => {
-                if (sel.is_tile_combination) onRemoveSelection(sel.id);
-                else onRemoveSelection(sel.id);
-              }}
+              onRemove={() => onRemoveSelection(sel.id)}
               onQuantityChange={(delta) => onQuantityChange(sel.id, sel.quantity, delta)}
               onMoveToZone={(zoneId) => onMoveToZone(sel.id, zoneId)}
               dragRef={dragRef}
@@ -388,6 +383,7 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
               onDragStart={() => setDraggingId(sel.id)}
               onDragEnd={() => setDraggingId(null)}
               zoneColorMap={zoneColorMap}
+              readOnly={readOnly}
             />
           ))}
         </div>
@@ -400,7 +396,8 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
 
 export const SelectionsPage: React.FC = () => {
   const {
-    selections, projects, zones, currentProject, loading,
+    selections, projects, sharedProjects, zones, currentProject,
+    currentProjectPermission, loading,
     removeSelection, removeCombination, updateSelectionQuantity, clearAllSelections,
     createProject, updateProject, deleteProject, setCurrentProject,
     saveCurrentSelectionsToProject, loadProjectSelections, refreshSelections,
@@ -421,6 +418,7 @@ export const SelectionsPage: React.FC = () => {
   const [newProjectDescription, setNewProjectDescription] = useState('');
   const [editingProject, setEditingProject] = useState<{ id: string; name: string; description: string } | null>(null);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [shareModalProjectId, setShareModalProjectId] = useState<string | null>(null);
   const [pendingExport, setPendingExport] = useState<{
     type: 'pdf' | 'moodboard' | 'calendar' | 'plantselection';
     zoneId?: string;
@@ -432,7 +430,10 @@ export const SelectionsPage: React.FC = () => {
 
   const dragRef = useRef<DragState | null>(null);
 
-  // Build stable color map for zones
+  const isReadOnly = currentProjectPermission === 'view';
+  const canEdit = currentProjectPermission !== 'view';
+  const isOwner = currentProjectPermission === 'owner' || currentProjectPermission === null;
+
   const zoneColorMap = new Map<string, string>(
     zones.map((z, i) => [z.id, getZoneColor(i)])
   );
@@ -441,7 +442,6 @@ export const SelectionsPage: React.FC = () => {
   const tileCombinations = selections.filter(s => s.is_tile_combination && s.stone_id && !s.parent_selection_id);
   const regularStoneSelections = selections.filter(s => s.stone_id && !s.is_tile_combination);
 
-  // Selections grouped by zone
   const unassignedSelections = selections.filter(s => !s.zone_id && !s.parent_selection_id);
   const getZoneSelections = (zoneId: string) =>
     selections.filter(s => s.zone_id === zoneId && !s.parent_selection_id);
@@ -562,6 +562,10 @@ export const SelectionsPage: React.FC = () => {
     else await removeSelection(sel.id);
   };
 
+  const shareModalProject = shareModalProjectId
+    ? projects.find(p => p.id === shareModalProjectId)
+    : null;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -572,7 +576,7 @@ export const SelectionsPage: React.FC = () => {
 
   const hasNoSelections = selections.length === 0;
 
-  if (hasNoSelections && projects.length === 0 && !currentProject) {
+  if (hasNoSelections && projects.length === 0 && sharedProjects.length === 0 && !currentProject) {
     return (
       <div className="min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -614,7 +618,8 @@ export const SelectionsPage: React.FC = () => {
                 Current Selection
               </button>
 
-              <div className="space-y-0.5 max-h-80 overflow-y-auto">
+              {/* Owned projects */}
+              <div className="space-y-0.5 max-h-60 overflow-y-auto">
                 {projects.map(project => (
                   <div
                     key={project.id}
@@ -632,6 +637,13 @@ export const SelectionsPage: React.FC = () => {
                       {project.name}
                     </button>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => setShareModalProjectId(project.id)}
+                        className="p-1 hover:text-cyan-600 transition-colors"
+                        title="Share project"
+                      >
+                        <Share2 className="w-3 h-3" />
+                      </button>
                       <button
                         onClick={() => {
                           setEditingProject({ id: project.id, name: project.name, description: project.description || '' });
@@ -654,6 +666,42 @@ export const SelectionsPage: React.FC = () => {
                 ))}
               </div>
 
+              {/* Shared with me */}
+              {sharedProjects.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-1.5 px-1 mb-2">
+                    <Users className="w-3 h-3 text-gray-400" />
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Shared with me</span>
+                  </div>
+                  <div className="space-y-0.5 max-h-48 overflow-y-auto">
+                    {sharedProjects.map(entry => (
+                      <div
+                        key={entry.share.id}
+                        className={`group flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors ${
+                          currentProject?.id === entry.project.id
+                            ? 'bg-cyan-50 text-cyan-700'
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <button
+                          onClick={() => handleLoadProject(entry.project.id)}
+                          className="flex-1 text-left text-sm truncate font-medium min-w-0"
+                          title={entry.project.name}
+                        >
+                          {entry.project.name}
+                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {entry.share.permission === 'view'
+                            ? <Eye className="w-3 h-3 text-gray-400" title="View only" />
+                            : <Edit2 className="w-3 h-3 text-cyan-500" title="Can edit" />
+                          }
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {!currentProject && selections.length > 0 && (
                 <button
                   onClick={() => setShowSaveToProjectModal(true)}
@@ -669,16 +717,18 @@ export const SelectionsPage: React.FC = () => {
             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Zones</h2>
-                <button
-                  onClick={() => setShowNewZoneInput(v => !v)}
-                  className="p-1 text-gray-400 hover:text-cyan-600 transition-colors"
-                  title="Add Zone"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
+                {isOwner && (
+                  <button
+                    onClick={() => setShowNewZoneInput(v => !v)}
+                    className="p-1 text-gray-400 hover:text-cyan-600 transition-colors"
+                    title="Add Zone"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                )}
               </div>
 
-              {showNewZoneInput && (
+              {showNewZoneInput && isOwner && (
                 <div className="flex gap-1.5 mb-3">
                   <input
                     autoFocus
@@ -703,18 +753,10 @@ export const SelectionsPage: React.FC = () => {
 
               <div className="space-y-1">
                 {zones.map((zone, idx) => (
-                  <div
-                    key={zone.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-700"
-                  >
-                    <div
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: getZoneColor(idx) }}
-                    />
+                  <div key={zone.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-700">
+                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: getZoneColor(idx) }} />
                     <span className="flex-1 truncate">{zone.name}</span>
-                    <span className="text-xs text-gray-400">
-                      {getZoneSelections(zone.id).length}
-                    </span>
+                    <span className="text-xs text-gray-400">{getZoneSelections(zone.id).length}</span>
                   </div>
                 ))}
                 {zones.length === 0 && (
@@ -729,11 +771,34 @@ export const SelectionsPage: React.FC = () => {
             {/* Header */}
             <div className="flex items-start justify-between mb-6 gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {currentProject ? currentProject.name : 'Current Selection'}
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {currentProject ? currentProject.name : 'Current Selection'}
+                  </h1>
+                  {/* Permission badge for shared projects */}
+                  {currentProjectPermission === 'view' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200">
+                      <Lock className="w-3 h-3" />
+                      View only
+                    </span>
+                  )}
+                  {currentProjectPermission === 'edit' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-cyan-50 text-cyan-700 border border-cyan-200">
+                      <Edit2 className="w-3 h-3" />
+                      Collaborator
+                    </span>
+                  )}
+                </div>
                 {currentProject?.description && (
                   <p className="text-gray-500 text-sm mt-0.5">{currentProject.description}</p>
+                )}
+                {/* Show owner info for shared projects */}
+                {currentProjectPermission !== 'owner' && currentProjectPermission !== null && currentProject && (
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    by {sharedProjects.find(e => e.project.id === currentProject.id)?.owner_profile?.full_name
+                      || sharedProjects.find(e => e.project.id === currentProject.id)?.owner_profile?.email
+                      || 'another user'}
+                  </p>
                 )}
                 <p className="text-gray-400 text-xs mt-1">
                   {plantSelections.length} plants · {tileCombinations.length} tile combinations · {regularStoneSelections.length} stones
@@ -787,13 +852,15 @@ export const SelectionsPage: React.FC = () => {
                     Plant Selection
                   </button>
 
-                  <button
-                    onClick={() => setShowClearConfirm(true)}
-                    className="px-3 py-2 bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 text-gray-500 hover:text-red-600 rounded-lg text-sm transition-colors flex items-center gap-1.5"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Clear All
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() => setShowClearConfirm(true)}
+                      className="px-3 py-2 bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 text-gray-500 hover:text-red-600 rounded-lg text-sm transition-colors flex items-center gap-1.5"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Clear All
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -803,7 +870,9 @@ export const SelectionsPage: React.FC = () => {
                 <p className="text-gray-500 mb-1">
                   {currentProject ? 'This project has no selections yet' : 'Your current selection is empty'}
                 </p>
-                <p className="text-gray-400 text-sm">Browse plants and stones to add items</p>
+                <p className="text-gray-400 text-sm">
+                  {isReadOnly ? 'This project is view-only.' : 'Browse plants and stones to add items'}
+                </p>
               </div>
             ) : (
               <>
@@ -812,13 +881,15 @@ export const SelectionsPage: React.FC = () => {
                   <div className="mb-8">
                     <div className="flex items-center gap-3 mb-4">
                       <h2 className="text-base font-semibold text-gray-700">Zones</h2>
-                      <button
-                        onClick={() => setShowNewZoneInput(true)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-cyan-600 border border-dashed border-gray-300 hover:border-cyan-400 rounded-lg transition-colors"
-                      >
-                        <Plus className="w-3 h-3" />
-                        Add zone
-                      </button>
+                      {isOwner && (
+                        <button
+                          onClick={() => setShowNewZoneInput(true)}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-cyan-600 border border-dashed border-gray-300 hover:border-cyan-400 rounded-lg transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add zone
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex gap-4 overflow-x-auto pb-2">
@@ -856,6 +927,7 @@ export const SelectionsPage: React.FC = () => {
                             draggingId={draggingId}
                             setDraggingId={setDraggingId}
                             zoneColorMap={zoneColorMap}
+                            readOnly={isReadOnly}
                             generatingExport={zoneGenerating?.zoneId === zone.id ? zoneGenerating.type : null}
                             onExportPlantBoard={zonePlants.length > 0
                               ? () => triggerExport({ type: 'moodboard', zoneId: zone.id })
@@ -891,26 +963,30 @@ export const SelectionsPage: React.FC = () => {
                         draggingId={draggingId}
                         setDraggingId={setDraggingId}
                         zoneColorMap={zoneColorMap}
+                        readOnly={isReadOnly}
                         generatingExport={null}
                       />
                     </div>
                   </div>
                 )}
 
-                {/* ── Flat list (no zones, or full view) ─────── */}
+                {/* ── Flat list ─────── */}
                 {zones.length === 0 && (
                   <>
-                    {/* Add first zone prompt */}
-                    <div className="mb-6 flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
-                      <MapPin className="w-4 h-4 shrink-0" />
-                      <span>Organize your selections by creating zones — then drag plants into them.</span>
-                      <button
-                        onClick={() => setShowNewZoneInput(true)}
-                        className="ml-auto shrink-0 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
-                      >
-                        Add first zone
-                      </button>
-                    </div>
+                    {canEdit && (
+                      <div className="mb-6 flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
+                        <MapPin className="w-4 h-4 shrink-0" />
+                        <span>Organize your selections by creating zones — then drag plants into them.</span>
+                        {isOwner && (
+                          <button
+                            onClick={() => setShowNewZoneInput(true)}
+                            className="ml-auto shrink-0 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                          >
+                            Add first zone
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {plantSelections.length > 0 && (
                       <div className="mb-6">
@@ -929,6 +1005,7 @@ export const SelectionsPage: React.FC = () => {
                               onDragStart={() => setDraggingId(selection.id)}
                               onDragEnd={() => setDraggingId(null)}
                               zoneColorMap={zoneColorMap}
+                              readOnly={isReadOnly}
                             />
                           ))}
                         </div>
@@ -952,6 +1029,7 @@ export const SelectionsPage: React.FC = () => {
                               onDragStart={() => setDraggingId(selection.id)}
                               onDragEnd={() => setDraggingId(null)}
                               zoneColorMap={zoneColorMap}
+                              readOnly={isReadOnly}
                             />
                           ))}
                         </div>
@@ -975,6 +1053,7 @@ export const SelectionsPage: React.FC = () => {
                               onDragStart={() => setDraggingId(selection.id)}
                               onDragEnd={() => setDraggingId(null)}
                               zoneColorMap={zoneColorMap}
+                              readOnly={isReadOnly}
                             />
                           ))}
                         </div>
@@ -994,7 +1073,11 @@ export const SelectionsPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Clear All</h3>
-            <p className="text-gray-500 text-sm mb-6">All selections will be removed. This cannot be undone.</p>
+            <p className="text-gray-500 text-sm mb-6">
+              {currentProjectPermission === 'owner'
+                ? 'All selections from all collaborators will be removed. This cannot be undone.'
+                : 'Your selections in this project will be removed. This cannot be undone.'}
+            </p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setShowClearConfirm(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">Cancel</button>
               <button onClick={handleClearAll} className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">Clear All</button>
@@ -1101,6 +1184,14 @@ export const SelectionsPage: React.FC = () => {
           : 'Plant Selection Export'
         }
       />
+
+      {shareModalProjectId && shareModalProject && (
+        <ProjectShareModal
+          projectId={shareModalProjectId}
+          projectName={shareModalProject.name}
+          onClose={() => setShareModalProjectId(null)}
+        />
+      )}
     </div>
   );
 };
