@@ -35,6 +35,7 @@ interface SelectionsContextType {
   updateZone: (zoneId: string, name: string) => Promise<void>;
   deleteZone: (zoneId: string) => Promise<void>;
   moveSelectionToZone: (selectionId: string, zoneId: string | null) => Promise<void>;
+  duplicateSelectionToZone: (selectionId: string, targetZoneId: string) => Promise<void>;
   refreshZones: () => Promise<void>;
   // Share management
   getProjectShares: (projectId: string) => Promise<ProjectShareWithUser[]>;
@@ -496,6 +497,26 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  const duplicateSelectionToZone = async (selectionId: string, targetZoneId: string) => {
+    if (!user) return;
+    try {
+      const source = selections.find(s => s.id === selectionId);
+      if (!source) return;
+      const { error } = await supabase.from('user_selections').insert({
+        user_id: user.id,
+        plant_id: source.plant_id ?? null,
+        stone_id: source.stone_id ?? null,
+        quantity: source.quantity,
+        project_id: source.project_id ?? null,
+        zone_id: targetZoneId,
+      });
+      if (error) throw error;
+      await fetchSelections(currentProject?.id);
+    } catch (error) {
+      console.error('Error duplicating selection to zone:', error);
+    }
+  };
+
   // Share management
   const getProjectShares = async (projectId: string): Promise<ProjectShareWithUser[]> => {
     try {
@@ -586,6 +607,7 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     updateZone,
     deleteZone,
     moveSelectionToZone,
+    duplicateSelectionToZone,
     refreshZones,
     getProjectShares,
     addProjectShare,

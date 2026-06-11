@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, ShoppingCart, LogOut, Settings, Map, Info, Ticket } from 'lucide-react';
+import { ShoppingCart, LogOut, Settings, Map, Info, Ticket } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSelections } from '../../contexts/SelectionsContext';
 

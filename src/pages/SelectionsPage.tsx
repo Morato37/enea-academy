@@ -48,6 +48,7 @@ interface SelectionCardProps {
   onRemove: () => void;
   onQuantityChange: (delta: number) => void;
   onMoveToZone: (zoneId: string | null) => void;
+  onDuplicateToZone: (zoneId: string) => void;
   dragRef: React.MutableRefObject<DragState | null>;
   isDragging: boolean;
   onDragStart: () => void;
@@ -57,7 +58,7 @@ interface SelectionCardProps {
 }
 
 const SelectionCard: React.FC<SelectionCardProps> = ({
-  selection, zones, onRemove, onQuantityChange, onMoveToZone,
+  selection, zones, onRemove, onQuantityChange, onMoveToZone, onDuplicateToZone,
   dragRef, onDragStart, onDragEnd, zoneColorMap, readOnly = false,
 }) => {
   const [showZoneMenu, setShowZoneMenu] = useState(false);
@@ -119,7 +120,8 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
                 <MapPin className="w-4 h-4" />
               </button>
               {showZoneMenu && (
-                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[160px] py-1">
+                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px] py-1">
+                  <p className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Move to</p>
                   <button
                     onClick={() => { onMoveToZone(null); setShowZoneMenu(false); }}
                     className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-500"
@@ -141,6 +143,23 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
                   ))}
                   {zones.length === 0 && (
                     <p className="px-3 py-1.5 text-xs text-gray-400">No zones yet</p>
+                  )}
+                  {zones.filter(z => z.id !== selection.zone_id).length > 0 && (
+                    <>
+                      <div className="my-1 border-t border-gray-100" />
+                      <p className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Copy to</p>
+                      {zones.filter(z => z.id !== selection.zone_id).map((zone, idx) => (
+                        <button
+                          key={zone.id}
+                          onClick={() => { onDuplicateToZone(zone.id); setShowZoneMenu(false); }}
+                          className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 flex items-center gap-2"
+                          style={{ color: getZoneColor(zones.indexOf(zone)) }}
+                        >
+                          <Plus className="w-3 h-3" />
+                          {zone.name}
+                        </button>
+                      ))}
+                    </>
                   )}
                 </div>
               )}
@@ -209,6 +228,7 @@ interface ZoneColumnProps {
   onRemoveSelection: (id: string) => void;
   onQuantityChange: (id: string, current: number, delta: number) => void;
   onMoveToZone: (selectionId: string, zoneId: string | null) => void;
+  onDuplicateToZone: (selectionId: string, zoneId: string) => void;
   dragRef: React.MutableRefObject<DragState | null>;
   draggingId: string | null;
   setDraggingId: (id: string | null) => void;
@@ -222,7 +242,7 @@ interface ZoneColumnProps {
 
 const ZoneColumn: React.FC<ZoneColumnProps> = ({
   zone, color, selections, allZones, isEditingName, onRename, onStartRename, onDelete,
-  onDrop, onRemoveSelection, onQuantityChange, onMoveToZone, dragRef, draggingId, setDraggingId,
+  onDrop, onRemoveSelection, onQuantityChange, onMoveToZone, onDuplicateToZone, dragRef, draggingId, setDraggingId,
   zoneColorMap, readOnly = false, onExportPlantBoard, onExportPlantSelection, onExportCalendar, generatingExport,
 }) => {
   const [dragOver, setDragOver] = useState(false);
@@ -378,6 +398,7 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
               onRemove={() => onRemoveSelection(sel.id)}
               onQuantityChange={(delta) => onQuantityChange(sel.id, sel.quantity, delta)}
               onMoveToZone={(zoneId) => onMoveToZone(sel.id, zoneId)}
+              onDuplicateToZone={(zoneId) => onDuplicateToZone(sel.id, zoneId)}
               dragRef={dragRef}
               isDragging={draggingId === sel.id}
               onDragStart={() => setDraggingId(sel.id)}
@@ -401,7 +422,7 @@ export const SelectionsPage: React.FC = () => {
     removeSelection, removeCombination, updateSelectionQuantity, clearAllSelections,
     createProject, updateProject, deleteProject, setCurrentProject,
     saveCurrentSelectionsToProject, loadProjectSelections, refreshSelections,
-    createZone, updateZone, deleteZone, moveSelectionToZone,
+    createZone, updateZone, deleteZone, moveSelectionToZone, duplicateSelectionToZone,
   } = useSelections();
 
   const [generatingPDF, setGeneratingPDF] = useState(false);
@@ -923,6 +944,7 @@ export const SelectionsPage: React.FC = () => {
                             }}
                             onQuantityChange={handleQuantityChange}
                             onMoveToZone={moveSelectionToZone}
+                            onDuplicateToZone={duplicateSelectionToZone}
                             dragRef={dragRef}
                             draggingId={draggingId}
                             setDraggingId={setDraggingId}
@@ -959,6 +981,7 @@ export const SelectionsPage: React.FC = () => {
                         }}
                         onQuantityChange={handleQuantityChange}
                         onMoveToZone={moveSelectionToZone}
+                        onDuplicateToZone={duplicateSelectionToZone}
                         dragRef={dragRef}
                         draggingId={draggingId}
                         setDraggingId={setDraggingId}
@@ -1000,6 +1023,7 @@ export const SelectionsPage: React.FC = () => {
                               onRemove={() => handleRemoveSelection(selection)}
                               onQuantityChange={(delta) => handleQuantityChange(selection.id, selection.quantity, delta)}
                               onMoveToZone={(zoneId) => moveSelectionToZone(selection.id, zoneId)}
+                              onDuplicateToZone={(zoneId) => duplicateSelectionToZone(selection.id, zoneId)}
                               dragRef={dragRef}
                               isDragging={draggingId === selection.id}
                               onDragStart={() => setDraggingId(selection.id)}
@@ -1024,6 +1048,7 @@ export const SelectionsPage: React.FC = () => {
                               onRemove={() => handleRemoveSelection(selection)}
                               onQuantityChange={(delta) => handleQuantityChange(selection.id, selection.quantity, delta)}
                               onMoveToZone={(zoneId) => moveSelectionToZone(selection.id, zoneId)}
+                              onDuplicateToZone={(zoneId) => duplicateSelectionToZone(selection.id, zoneId)}
                               dragRef={dragRef}
                               isDragging={draggingId === selection.id}
                               onDragStart={() => setDraggingId(selection.id)}
@@ -1048,6 +1073,7 @@ export const SelectionsPage: React.FC = () => {
                               onRemove={() => handleRemoveSelection(selection)}
                               onQuantityChange={(delta) => handleQuantityChange(selection.id, selection.quantity, delta)}
                               onMoveToZone={(zoneId) => moveSelectionToZone(selection.id, zoneId)}
+                              onDuplicateToZone={(zoneId) => duplicateSelectionToZone(selection.id, zoneId)}
                               dragRef={dragRef}
                               isDragging={draggingId === selection.id}
                               onDragStart={() => setDraggingId(selection.id)}
