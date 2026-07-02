@@ -62,6 +62,12 @@ export const PlantCard: React.FC<PlantCardProps> = ({ plant, images = [] }) => {
 
   const getClimateZones = (): string[] => {
     const zones: string[] = [];
+    if (plant.zone_2a) zones.push('2a');
+    if (plant.zone_2b) zones.push('2b');
+    if (plant.zone_3a) zones.push('3a');
+    if (plant.zone_3b) zones.push('3b');
+    if (plant.zone_4a) zones.push('4a');
+    if (plant.zone_4b) zones.push('4b');
     if (plant.zone_5a) zones.push('5a');
     if (plant.zone_5b) zones.push('5b');
     if (plant.zone_6a) zones.push('6a');

@@ -546,6 +546,7 @@ export const PlantDetailPage: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Hardiness Zones</h2>
               <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                 {[
+                  'zone_2a', 'zone_2b', 'zone_3a', 'zone_3b', 'zone_4a', 'zone_4b',
                   'zone_5a', 'zone_5b', 'zone_6a', 'zone_6b', 'zone_7a', 'zone_7b',
                   'zone_8a', 'zone_8b', 'zone_9a', 'zone_9b', 'zone_10a', 'zone_10b'
                 ].map((key) => (
