@@ -235,6 +235,28 @@ export const UserManagement: React.FC = () => {
     }
   };
 
+  const formatLastLogin = (ts: string | null) => {
+    if (!ts) return { main: 'Never', sub: null };
+    const date = new Date(ts);
+    const now = Date.now();
+    const diff = now - date.getTime();
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    let relative: string;
+    if (mins < 2) relative = 'just now';
+    else if (mins < 60) relative = `${mins}m ago`;
+    else if (hours < 24) relative = `${hours}h ago`;
+    else if (days < 30) relative = `${days}d ago`;
+    else relative = `${Math.floor(days / 30)}mo ago`;
+
+    return {
+      main: date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      sub: `${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} · ${relative}`,
+    };
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-500/20 text-green-400 border-green-500/30';
@@ -468,11 +490,17 @@ export const UserManagement: React.FC = () => {
                     </select>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                      <Clock className="w-4 h-4" />
-                      {user.last_login
-                        ? new Date(user.last_login).toLocaleDateString()
-                        : 'Never'}
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      {(() => {
+                        const { main, sub } = formatLastLogin(user.last_login);
+                        return (
+                          <div>
+                            <div className={main === 'Never' ? 'text-gray-600 italic' : 'text-gray-300'}>{main}</div>
+                            {sub && <div className="text-xs text-gray-500">{sub}</div>}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </td>
                   <td className="px-6 py-4">

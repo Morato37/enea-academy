@@ -23,6 +23,7 @@ interface PlantFiltersProps {
 }
 
 const CLIMATE_ZONE_GROUPS = {
+  subarctic: { name: 'Subarctic', zones: ['2a', '2b', '3a', '3b', '4a', '4b'], color: 'bg-gray-50 border-gray-200' },
   alpine: { name: 'Alpine', zones: ['5a', '5b', '6a', '6b'], color: 'bg-blue-50 border-blue-200' },
   central_european: { name: 'Central european', zones: ['7a', '7b', '8a', '8b'], color: 'bg-amber-50 border-amber-200' },
   mediterranean: { name: 'Mediterranean', zones: ['9a', '9b', '10a', '10b'], color: 'bg-rose-50 border-rose-200' },
@@ -410,7 +411,7 @@ export const PlantFilters: React.FC<PlantFiltersProps> = ({ filters, onFilterCha
       />
 
       <MultiSelectDropdown
-        label="Size (Perennial & Grass)"
+        label="Size"
         options={PLANT_SIZES}
         selectedValues={filters.sizes}
         onChange={(values) => onFilterChange({ ...filters, sizes: values })}

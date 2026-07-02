@@ -100,7 +100,9 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
   const pageHeight = doc.internal.pageSize.getHeight();
   let yPosition = 20;
 
-  const plantSelections = selections.filter(s => s.plant_id);
+  const plantSelections = selections
+    .filter(s => s.plant_id)
+    .sort((a, b) => (a.plant?.botanical_name || '').localeCompare(b.plant?.botanical_name || ''));
   const tileCombinations = selections.filter(s => s.is_tile_combination && s.stone_id && !s.parent_selection_id);
   const regularStoneSelections = selections.filter(s => s.stone_id && !s.is_tile_combination);
   const allStones = [...tileCombinations, ...regularStoneSelections];

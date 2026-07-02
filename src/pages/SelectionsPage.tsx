@@ -64,9 +64,9 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
   const [showZoneMenu, setShowZoneMenu] = useState(false);
   const item = selection.plant || selection.stone;
   const title = selection.plant
-    ? (selection.plant.common_name_de || selection.plant.common_name_en || selection.plant.botanical_name)
+    ? (selection.plant.botanical_name || selection.plant.common_name_en)
     : selection.stone?.name;
-  const subtitle = selection.plant?.botanical_name || selection.stone?.morphology;
+  const subtitle = selection.plant?.common_name_en || selection.stone?.morphology;
   const currentZone = zones.find(z => z.id === selection.zone_id);
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -237,13 +237,14 @@ interface ZoneColumnProps {
   onExportPlantBoard?: () => void;
   onExportPlantSelection?: () => void;
   onExportCalendar?: () => void;
+  onExportPDF?: () => void;
   generatingExport: string | null;
 }
 
 const ZoneColumn: React.FC<ZoneColumnProps> = ({
   zone, color, selections, allZones, isEditingName, onRename, onStartRename, onDelete,
   onDrop, onRemoveSelection, onQuantityChange, onMoveToZone, onDuplicateToZone, dragRef, draggingId, setDraggingId,
-  zoneColorMap, readOnly = false, onExportPlantBoard, onExportPlantSelection, onExportCalendar, generatingExport,
+  zoneColorMap, readOnly = false, onExportPlantBoard, onExportPlantSelection, onExportCalendar, onExportPDF, generatingExport,
 }) => {
   const [dragOver, setDragOver] = useState(false);
   const [editName, setEditName] = useState(zone?.name || '');
@@ -271,7 +272,7 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
 
   return (
     <div
-      className={`flex flex-col rounded-xl border-2 transition-all min-w-[260px] ${
+      className={`flex flex-col flex-1 rounded-xl border-2 transition-all min-w-[240px] ${
         dragOver ? 'border-dashed shadow-lg scale-[1.01]' : 'border-gray-100'
       }`}
       style={dragOver ? { borderColor: color } : {}}
@@ -343,6 +344,17 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
           style={{ backgroundColor: color + '08' }}
         >
           <span className="text-xs text-gray-400 mr-1">Export:</span>
+          {onExportPDF && (
+            <button
+              onClick={onExportPDF}
+              disabled={!!generatingExport}
+              className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+              style={{ backgroundColor: color + '20', color }}
+            >
+              {generatingExport === 'pdf' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+              Export PDF
+            </button>
+          )}
           {onExportPlantBoard && (
             <button
               onClick={onExportPlantBoard}
@@ -354,17 +366,6 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
               Plant Board
             </button>
           )}
-          {onExportPlantSelection && (
-            <button
-              onClick={onExportPlantSelection}
-              disabled={!!generatingExport}
-              className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
-              style={{ backgroundColor: color + '20', color }}
-            >
-              {generatingExport === 'plantselection' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Layers className="w-3 h-3" />}
-              Plant Selection
-            </button>
-          )}
           {onExportCalendar && (
             <button
               onClick={onExportCalendar}
@@ -374,6 +375,17 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
             >
               {generatingExport === 'calendar' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Calendar className="w-3 h-3" />}
               Blooming Calendar
+            </button>
+          )}
+          {onExportPlantSelection && (
+            <button
+              onClick={onExportPlantSelection}
+              disabled={!!generatingExport}
+              className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+              style={{ backgroundColor: color + '20', color }}
+            >
+              {generatingExport === 'plantselection' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Layers className="w-3 h-3" />}
+              Plant Selection
             </button>
           )}
         </div>
@@ -496,8 +508,11 @@ export const SelectionsPage: React.FC = () => {
     try {
       await refreshSelections();
       if (type === 'pdf') {
-        setGeneratingPDF(true);
-        await generatePDF(selections, language);
+        setZoneGen?.('pdf'); setGeneratingPDF(true);
+        const pdfSelections = zoneId
+          ? selections.filter(s => s.zone_id === zoneId && !s.parent_selection_id)
+          : selections;
+        await generatePDF(pdfSelections, language);
       } else if (type === 'moodboard') {
         setZoneGen?.('plantboard'); setGeneratingMoodboard(true);
         await generateMoodboardPDF(exportSelections, projectName, language);
@@ -600,7 +615,7 @@ export const SelectionsPage: React.FC = () => {
   if (hasNoSelections && projects.length === 0 && sharedProjects.length === 0 && !currentProject) {
     return (
       <div className="min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-8">My Selections</h1>
           <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
             <p className="text-gray-600 text-lg mb-2">Your selection is empty</p>
@@ -613,7 +628,7 @@ export const SelectionsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
 
           {/* ── Sidebar ─────────────────────────────────────── */}
@@ -959,6 +974,9 @@ export const SelectionsPage: React.FC = () => {
                               : undefined}
                             onExportCalendar={zonePlants.length > 0
                               ? () => triggerExport({ type: 'calendar', zoneId: zone.id })
+                              : undefined}
+                            onExportPDF={zonePlants.length > 0
+                              ? () => triggerExport({ type: 'pdf', zoneId: zone.id })
                               : undefined}
                           />
                         );

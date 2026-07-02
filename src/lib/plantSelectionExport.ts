@@ -174,6 +174,7 @@ export const generatePlantSelectionPDF = async (
   for (const key of CATEGORY_ORDER) {
     const cat = labels[key];
     if (groups[cat].length === 0) continue;
+    groups[cat].sort((a, b) => (a.botanical_name || '').localeCompare(b.botanical_name || ''));
     groups[cat].forEach((p, i) => items.push({ kind: 'plant', plant: p, catLabel: i === 0 ? cat : undefined }));
   }
 

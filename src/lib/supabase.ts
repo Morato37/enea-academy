@@ -72,6 +72,12 @@ export interface Plant {
   usage_tropical?: boolean;
 
   // Climate zones
+  zone_2a?: boolean;
+  zone_2b?: boolean;
+  zone_3a?: boolean;
+  zone_3b?: boolean;
+  zone_4a?: boolean;
+  zone_4b?: boolean;
   zone_5a?: boolean;
   zone_5b?: boolean;
   zone_6a?: boolean;

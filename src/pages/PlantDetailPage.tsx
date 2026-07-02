@@ -362,10 +362,10 @@ export const PlantDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Perennial Size - Shown when perennial or grass is selected */}
-            {(plant.category_perennial || plant.category_grass) && (
+            {/* Size - Shown for all categories except Tree */}
+            {!plant.category_tree && (
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Perennial / Grass Size</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Size</h2>
                 <div className="max-w-md">
                   <select
                     value={plant.perennial_size || ''}
@@ -378,7 +378,7 @@ export const PlantDetailPage: React.FC = () => {
                     <option value="tall">Tall (80-200 cm)</option>
                   </select>
                   <p className="mt-1 text-sm text-gray-500">
-                    Select the height category for this perennial plant
+                    Select the height category for this plant
                   </p>
                 </div>
               </div>

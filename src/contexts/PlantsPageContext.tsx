@@ -287,12 +287,10 @@ export const PlantsPageProvider: React.FC<{ children: ReactNode }> = ({ children
     }
 
     if (filters.sizes.length > 0) {
-      const perennialOrGrassFilterActive =
-        filters.plantTypes.includes('perennial') || filters.plantTypes.includes('grass');
       filtered = filtered.filter((plant) => {
-        const isPerennialOrGrass = plant.category_perennial || plant.category_grass;
-        if (!isPerennialOrGrass || !perennialOrGrassFilterActive) return true;
+        if (plant.category_tree) return true; // trees are excluded from size filtering
         const plantSizeCategories = getSizeCategory(plant.perennial_size);
+        if (plantSizeCategories.length === 0) return true; // no size data, pass through
         return filters.sizes.some(size => plantSizeCategories.includes(size));
       });
     }

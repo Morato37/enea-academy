@@ -65,11 +65,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       if (session?.user) {
         checkUserProfile(session.user.id);
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          const loginTime = session.user.last_sign_in_at ?? new Date().toISOString();
           (async () => {
             await supabase
               .from('user_profiles')
-              .update({ last_login: new Date().toISOString() })
+              .update({ last_login: loginTime })
               .eq('id', session.user.id);
           })();
         }
