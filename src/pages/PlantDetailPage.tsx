@@ -39,7 +39,10 @@ export const PlantDetailPage: React.FC = () => {
     const colorFields = [
       'color_jan', 'color_feb', 'color_mar', 'color_apr',
       'color_may', 'color_jun', 'color_jul', 'color_aug',
-      'color_sep', 'color_oct', 'color_nov', 'color_dec'
+      'color_sep', 'color_oct', 'color_nov', 'color_dec',
+      'color2_jan', 'color2_feb', 'color2_mar', 'color2_apr',
+      'color2_may', 'color2_jun', 'color2_jul', 'color2_aug',
+      'color2_sep', 'color2_oct', 'color2_nov', 'color2_dec'
     ];
     colorFields.forEach(field => {
       const key = field as keyof typeof cleanedPlant;
@@ -615,28 +618,28 @@ export const PlantDetailPage: React.FC = () => {
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Seasonal Colors</h2>
               <p className="text-sm text-gray-600 mb-4">
-                Set the foliage or flower colors for each month. Leave blank if no specific color for that month.
+                Set the foliage or flower colors for each month. Leave blank if no specific color for that month. Use the second color row to add an optional additional color — when both are set, the blooming calendar shows them split diagonally.
               </p>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {[
-                  { key: 'color_jan', label: 'January' },
-                  { key: 'color_feb', label: 'February' },
-                  { key: 'color_mar', label: 'March' },
-                  { key: 'color_apr', label: 'April' },
-                  { key: 'color_may', label: 'May' },
-                  { key: 'color_jun', label: 'June' },
-                  { key: 'color_jul', label: 'July' },
-                  { key: 'color_aug', label: 'August' },
-                  { key: 'color_sep', label: 'September' },
-                  { key: 'color_oct', label: 'October' },
-                  { key: 'color_nov', label: 'November' },
-                  { key: 'color_dec', label: 'December' },
-                ].map(({ key, label }) => (
+                  { key: 'color_jan', key2: 'color2_jan', label: 'January' },
+                  { key: 'color_feb', key2: 'color2_feb', label: 'February' },
+                  { key: 'color_mar', key2: 'color2_mar', label: 'March' },
+                  { key: 'color_apr', key2: 'color2_apr', label: 'April' },
+                  { key: 'color_may', key2: 'color2_may', label: 'May' },
+                  { key: 'color_jun', key2: 'color2_jun', label: 'June' },
+                  { key: 'color_jul', key2: 'color2_jul', label: 'July' },
+                  { key: 'color_aug', key2: 'color2_aug', label: 'August' },
+                  { key: 'color_sep', key2: 'color2_sep', label: 'September' },
+                  { key: 'color_oct', key2: 'color2_oct', label: 'October' },
+                  { key: 'color_nov', key2: 'color2_nov', label: 'November' },
+                  { key: 'color_dec', key2: 'color2_dec', label: 'December' },
+                ].map(({ key, key2, label }) => (
                   <div key={key}>
                     <label className="block text-sm font-medium text-gray-900 mb-1">
                       {label}
                     </label>
-                    <div className="flex gap-2 items-center">
+                    <div className="flex gap-2 items-center mb-1.5">
                       <input
                         type="color"
                         value={plant[key as keyof Plant] as string || '#86912b'}
@@ -648,6 +651,21 @@ export const PlantDetailPage: React.FC = () => {
                         value={plant[key as keyof Plant] as string || ''}
                         onChange={(e) => setPlant({ ...plant, [key]: e.target.value })}
                         placeholder="#86912b"
+                        className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
+                      />
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="color"
+                        value={plant[key2 as keyof Plant] as string || '#86912b'}
+                        onChange={(e) => setPlant({ ...plant, [key2]: e.target.value })}
+                        className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={plant[key2 as keyof Plant] as string || ''}
+                        onChange={(e) => setPlant({ ...plant, [key2]: e.target.value })}
+                        placeholder="Optional 2nd color"
                         className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
                       />
                     </div>

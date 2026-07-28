@@ -105,6 +105,20 @@ export interface Plant {
   color_nov?: string;
   color_dec?: string;
 
+  // Second seasonal colors (optional, shown diagonally split in blooming calendar)
+  color2_jan?: string;
+  color2_feb?: string;
+  color2_mar?: string;
+  color2_apr?: string;
+  color2_may?: string;
+  color2_jun?: string;
+  color2_jul?: string;
+  color2_aug?: string;
+  color2_sep?: string;
+  color2_oct?: string;
+  color2_nov?: string;
+  color2_dec?: string;
+
   // Special traits
   traits_change_with_location?: string;
   tree_of_the_future?: boolean;

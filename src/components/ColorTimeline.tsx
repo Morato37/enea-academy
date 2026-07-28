@@ -15,6 +15,20 @@ interface ColorTimelineProps {
     nov?: string | null;
     dec?: string | null;
   };
+  colors2?: {
+    jan?: string | null;
+    feb?: string | null;
+    mar?: string | null;
+    apr?: string | null;
+    may?: string | null;
+    jun?: string | null;
+    jul?: string | null;
+    aug?: string | null;
+    sep?: string | null;
+    oct?: string | null;
+    nov?: string | null;
+    dec?: string | null;
+  };
   showLabels?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
@@ -36,6 +50,7 @@ const MONTHS = [
 
 export const ColorTimeline: React.FC<ColorTimelineProps> = ({
   colors,
+  colors2,
   showLabels = false,
   size = 'md',
 }) => {
@@ -46,7 +61,7 @@ export const ColorTimeline: React.FC<ColorTimelineProps> = ({
   };
 
   const hasAnyColor = MONTHS.some(
-    (month) => colors[month.key as keyof typeof colors]
+    (month) => colors[month.key as keyof typeof colors] || (colors2 && colors2[month.key as keyof typeof colors2])
   );
 
   if (!hasAnyColor) {
@@ -61,9 +76,11 @@ export const ColorTimeline: React.FC<ColorTimelineProps> = ({
       <div className="flex gap-1.5">
         {MONTHS.map((month) => {
           const color = colors[month.key as keyof typeof colors];
+          const color2 = colors2 ? colors2[month.key as keyof typeof colors2] : undefined;
           const hasColor = color && color !== '';
+          const hasColor2 = color2 && color2 !== '';
 
-          if (!hasColor) {
+          if (!hasColor && !hasColor2) {
             return (
               <div
                 key={month.key}
@@ -83,14 +100,34 @@ export const ColorTimeline: React.FC<ColorTimelineProps> = ({
             );
           }
 
+          if (hasColor && hasColor2) {
+            return (
+              <div
+                key={month.key}
+                className={`${sizeClasses[size]} rounded-full border-2 border-zinc-700 shadow-sm transition-all overflow-hidden relative`}
+                title={`${month.label}: ${color} / ${color2}`}
+              >
+                <div className="absolute inset-0" style={{ backgroundColor: color }} />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundColor: color2 as string,
+                    clipPath: 'polygon(100% 0, 100% 100%, 0 100%)',
+                  }}
+                />
+              </div>
+            );
+          }
+
+          const activeColor = hasColor ? color : color2;
           return (
             <div
               key={month.key}
               className={`${sizeClasses[size]} rounded-full border-2 border-zinc-700 shadow-sm transition-all`}
               style={{
-                backgroundColor: color,
+                backgroundColor: activeColor,
               }}
-              title={`${month.label}: ${color}`}
+              title={`${month.label}: ${activeColor}`}
             />
           );
         })}

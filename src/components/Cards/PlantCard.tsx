@@ -199,6 +199,20 @@ export const PlantCard: React.FC<PlantCardProps> = ({ plant, images = [] }) => {
               nov: plant.color_nov,
               dec: plant.color_dec,
             }}
+            colors2={{
+              jan: plant.color2_jan,
+              feb: plant.color2_feb,
+              mar: plant.color2_mar,
+              apr: plant.color2_apr,
+              may: plant.color2_may,
+              jun: plant.color2_jun,
+              jul: plant.color2_jul,
+              aug: plant.color2_aug,
+              sep: plant.color2_sep,
+              oct: plant.color2_oct,
+              nov: plant.color2_nov,
+              dec: plant.color2_dec,
+            }}
             size="sm"
           />
         </div>

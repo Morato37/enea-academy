@@ -217,13 +217,33 @@ export const generateBloomingCalendarPDF = async (
         const x = monthColStart + (index * monthColWidth);
         const colorKey = `color_${month.key}` as keyof typeof plant;
         const colorHex = plant[colorKey] as string | undefined;
+        const color2Key = `color2_${month.key}` as keyof typeof plant;
+        const color2Hex = plant[color2Key] as string | undefined;
 
         doc.setDrawColor(220, 220, 220);
         doc.setLineWidth(0.1);
         doc.rect(x, currentY, monthColWidth, rowHeight);
 
-        if (colorHex && colorHex.trim() !== '') {
+        const hasColor1 = colorHex && colorHex.trim() !== '';
+        const hasColor2 = color2Hex && color2Hex.trim() !== '';
+
+        if (hasColor1 && hasColor2) {
+          const rgb1 = hexToRgb(colorHex);
+          const rgb2 = hexToRgb(color2Hex);
+          const cx = x + 0.5;
+          const cy = currentY + 0.5;
+          const cw = monthColWidth - 1;
+          const ch = rowHeight - 1;
+          doc.setFillColor(rgb1.r, rgb1.g, rgb1.b);
+          doc.triangle(cx, cy, cx + cw, cy, cx, cy + ch, 'F');
+          doc.setFillColor(rgb2.r, rgb2.g, rgb2.b);
+          doc.triangle(cx + cw, cy, cx + cw, cy + ch, cx, cy + ch, 'F');
+        } else if (hasColor1) {
           const rgb = hexToRgb(colorHex);
+          doc.setFillColor(rgb.r, rgb.g, rgb.b);
+          doc.rect(x + 0.5, currentY + 0.5, monthColWidth - 1, rowHeight - 1, 'F');
+        } else if (hasColor2) {
+          const rgb = hexToRgb(color2Hex);
           doc.setFillColor(rgb.r, rgb.g, rgb.b);
           doc.rect(x + 0.5, currentY + 0.5, monthColWidth - 1, rowHeight - 1, 'F');
         }

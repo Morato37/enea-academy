@@ -217,6 +217,18 @@ export const PlantsPageProvider: React.FC<{ children: ReactNode }> = ({ children
       plant.color_oct,
       plant.color_nov,
       plant.color_dec,
+      plant.color2_jan,
+      plant.color2_feb,
+      plant.color2_mar,
+      plant.color2_apr,
+      plant.color2_may,
+      plant.color2_jun,
+      plant.color2_jul,
+      plant.color2_aug,
+      plant.color2_sep,
+      plant.color2_oct,
+      plant.color2_nov,
+      plant.color2_dec,
     ];
 
     for (const monthColor of monthColors) {

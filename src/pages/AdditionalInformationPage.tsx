@@ -164,7 +164,7 @@ export const AdditionalInformationPage: React.FC = () => {
               </div>
 
               <a
-                href="https://www.libib.com/library"
+                href="https://www.libib.com/u/eneabibliothek"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center justify-between p-6 bg-gradient-to-br from-sky-50 to-blue-50 border-2 border-sky-300 hover:border-sky-500 rounded-lg transition-all shadow-sm hover:shadow-md"

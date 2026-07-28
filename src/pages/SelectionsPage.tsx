@@ -928,7 +928,7 @@ export const SelectionsPage: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="flex gap-4 overflow-x-auto pb-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-2">
                       {zones.map((zone, idx) => {
                         const color = getZoneColor(idx);
                         const zoneSelections = getZoneSelections(zone.id);
