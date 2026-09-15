@@ -35,8 +35,10 @@ export function parseTreeList(text: string): TreeInput[] {
       const w = find(/crown width|crown diam|kronenbreite|kronendurchm|crown spread/);
       if (w >= 0) { m.wNS = w; m.wEW = -1; idx.wEW = -1; }
     }
-    if (m.wNS >= 0 && m.wEW < 0) idx.wEW = -1;
-    for (const k in m) if (m[k] >= 0) idx[k] = m[k];
+    // With a header row the header is authoritative: optional columns that are not present are absent (-1)
+    // instead of falling back to the positional layout; only the required columns keep their default position.
+    const REQUIRED = new Set(['species', 'dbh', 'height']);
+    for (const k in m) idx[k] = m[k] >= 0 || !REQUIRED.has(k) ? m[k] : idx[k];
   }
   const cell = (r: string[], i: number) => (i >= 0 ? r[i] : undefined);
   return rows
