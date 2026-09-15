@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, LogOut, Settings, Map, Info, Ticket } from 'lucide-react';
+import { ShoppingCart, LogOut, Settings, Map, Info, Ticket, TreePine } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSelections } from '../../contexts/SelectionsContext';
 
@@ -42,6 +42,13 @@ export const Header: React.FC = () => {
               className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
             >
               Stones
+            </Link>
+            <Link
+              to="/tree-benefits"
+              className="text-gray-600 hover:text-cyan-600 font-medium transition-colors flex items-center"
+            >
+              <TreePine className="w-4 h-4 mr-1" />
+              Tree Benefits
             </Link>
             <Link
               to="/additional-information"
@@ -112,6 +119,12 @@ export const Header: React.FC = () => {
             className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
           >
             Stones
+          </Link>
+          <Link
+            to="/tree-benefits"
+            className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
+          >
+            Trees
           </Link>
           <Link
             to="/additional-information"

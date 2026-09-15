@@ -17,6 +17,7 @@ import { PublicStoneDetail } from './pages/PublicStoneDetail';
 import { ZoneMapPage } from './pages/ZoneMapPage';
 import { AdditionalInformationPage } from './pages/AdditionalInformationPage';
 import { TicketsPage } from './pages/TicketsPage';
+import { TreeBenefitsPage } from './pages/TreeBenefitsPage';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
@@ -72,6 +73,14 @@ const AppContent: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <SelectionsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tree-benefits"
+                element={
+                  <ProtectedRoute>
+                    <TreeBenefitsPage />
                   </ProtectedRoute>
                 }
               />
