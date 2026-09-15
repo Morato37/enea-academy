@@ -1,6 +1,5 @@
-import jsPDF from 'jspdf';
-import autoTable, { UserOptions, CellHookData } from 'jspdf-autotable';
-import { ChartConfiguration } from 'chart.js';
+import type jsPDFType from 'jspdf';
+import type { ChartConfiguration } from './chartLazy';
 import { horizons, totals, seriesTotal, polSumOf, O2_PER_PERSON, LANDUSE_OPTIONS, SURFACE_OPTIONS } from './calc';
 import { HEX, chartToImage, projectionChartConfig, oxygenChartConfig } from './charts';
 import { makeT, pdfStrings, locale } from './i18n';
@@ -21,8 +20,13 @@ export interface PdfInput {
 const rgb = (h: string): [number, number, number] => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)) as [number, number, number];
 
 /** Build the multi-page tree benefits report. */
-export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
+export async function buildTreeBenefitsPdf(input: PdfInput): Promise<jsPDFType> {
   const { rows, skipped, params: p, site, lang } = input;
+  const [{ default: jsPDF }, { default: autoTable }, { UserOptions, CellHookData }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+    import('jspdf-autotable'),
+  ]);
   const T = makeT(lang), Pt = pdfStrings(lang);
   const pf = (v: number, d = 0) => Number.isFinite(v) ? v.toLocaleString(locale(lang), { minimumFractionDigits: d, maximumFractionDigits: d }).replace(/[’']/g, "'") : '-';
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
@@ -113,8 +117,8 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
   const cy = sectionTitle(Pt.valueSplit + '  ·  ' + Pt.polByType, y);
   const donutCfg: ChartConfiguration<'doughnut'> = { type: 'doughnut', data: { labels: [Pt.cSeq, Pt.air, Pt.runoff], datasets: [{ data: [s.vC, s.vAir, s.vRun], backgroundColor: [HEX.green, HEX.air, HEX.water], borderWidth: 0 }] },
     options: { cutout: '62%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 } } } } } };
-  const donut = img(donutCfg as unknown as ChartConfiguration, 420, 300);
-  const bars = img({ type: 'bar', data: { labels: ['O3', 'NO2', 'SO2', 'PM2.5', 'CO'], datasets: [{ data: [s.O3, s.NO2, s.SO2, s.PM, s.CO], backgroundColor: HEX.air, borderRadius: 3 }] },
+  const donut = await img(donutCfg as unknown as ChartConfiguration, 420, 300);
+  const bars = await img({ type: 'bar', data: { labels: ['O3', 'NO2', 'SO2', 'PM2.5', 'CO'], datasets: [{ data: [s.O3, s.NO2, s.SO2, s.PM, s.CO], backgroundColor: HEX.air, borderRadius: 3 }] },
     options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 11 } } }, y: { grid: { color: HEX.line }, ticks: { font: { size: 10 } }, title: { display: true, text: 'g / ' + (de ? 'Jahr' : 'yr'), font: { size: 10 } } } } } }, 520, 300);
   doc.addImage(donut, 'JPEG', M, cy, CW * 0.42, CW * 0.42 * 300 / 420); doc.addImage(bars, 'JPEG', M + CW * 0.46, cy, CW * 0.54, CW * 0.54 * 300 / 520);
   y = cy + CW * 0.42 * 300 / 420 + 6;
@@ -137,11 +141,11 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
   const cw = (CW - 6) / 2, ch = cw * 300 / 460;
   const hzLabels = [de ? 'Heute' : 'Today', ...HZ.map(yrLbl)];
   const pick = (k: 'vC' | 'vAir' | 'vRun') => [s[k], ...HZ.map(h => s.proj[h][k])];
-  const stacked = img({ type: 'bar', data: { labels: hzLabels, datasets: [{ label: Pt.cSeq, data: pick('vC'), backgroundColor: HEX.green }, { label: Pt.air, data: pick('vAir'), backgroundColor: HEX.air }, { label: Pt.runoff, data: pick('vRun'), backgroundColor: HEX.water }] },
+  const stacked = await img({ type: 'bar', data: { labels: hzLabels, datasets: [{ label: Pt.cSeq, data: pick('vC'), backgroundColor: HEX.green }, { label: Pt.air, data: pick('vAir'), backgroundColor: HEX.air }, { label: Pt.runoff, data: pick('vRun'), backgroundColor: HEX.water }] },
     options: { plugins: { legend }, scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }, y: { stacked: true, grid: { color: HEX.line }, ticks: { font: { size: 10 } }, title: { display: true, text: `CHF/${a}`, font: { size: 10 } } } } } }, 460, 300);
-  const rp = img({ type: 'line', data: { labels: lbl, datasets: [line(`${Pt.run} m³/${a}`, 'runoff', HEX.water, 'y'), line(`${Pt.pol} g/${a}`, 'polSum', HEX.air, 'y2', true)] }, options: { plugins: { legend }, scales: sc(`m³/${a}`, `g/${a}`) } }, 460, 300);
-  const ca = img({ type: 'line', data: { labels: lbl, datasets: [line(`${de ? 'Kronenfläche' : 'Crown area'} m²`, 'ground', HEX.o2, 'y'), line(`${de ? 'Blattfläche' : 'Leaf area'} m²`, 'la', HEX.green, 'y2', true)] }, options: { plugins: { legend }, scales: sc('m²', 'm²') } }, 460, 300);
-  const sq = img({ type: 'line', data: { labels: lbl, datasets: [line(`${Pt.seq} kg C/${a}`, 'seq', HEX.o2, 'y'), line(`${Pt.storage} kg C`, 'C', HEX.green, 'y2', true)] }, options: { plugins: { legend }, scales: sc(`kg C/${a}`, 'kg C') } }, 460, 300);
+  const rp = await img({ type: 'line', data: { labels: lbl, datasets: [line(`${Pt.run} m³/${a}`, 'runoff', HEX.water, 'y'), line(`${Pt.pol} g/${a}`, 'polSum', HEX.air, 'y2', true)] }, options: { plugins: { legend }, scales: sc(`m³/${a}`, `g/${a}`) } }, 460, 300);
+  const ca = await img({ type: 'line', data: { labels: lbl, datasets: [line(`${de ? 'Kronenfläche' : 'Crown area'} m²`, 'ground', HEX.o2, 'y'), line(`${de ? 'Blattfläche' : 'Leaf area'} m²`, 'la', HEX.green, 'y2', true)] }, options: { plugins: { legend }, scales: sc('m²', 'm²') } }, 460, 300);
+  const sq = await img({ type: 'line', data: { labels: lbl, datasets: [line(`${Pt.seq} kg C/${a}`, 'seq', HEX.o2, 'y'), line(`${Pt.storage} kg C`, 'C', HEX.green, 'y2', true)] }, options: { plugins: { legend }, scales: sc(`kg C/${a}`, 'kg C') } }, 460, 300);
   const cap = (t: string, x: number, yy: number) => { H(9, 'bold', HEX.green); doc.text(t, x, yy); };
   let gy = 42;
   cap(de ? 'Jahreswert nach Leistung' : 'Annual value by service', M, gy); doc.addImage(stacked, 'JPEG', M, gy + 3, cw, ch);
@@ -150,7 +154,7 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
   cap(de ? 'Kronen- und Blattfläche' : 'Crown and leaf area', M, gy); doc.addImage(ca, 'JPEG', M, gy + 3, cw, ch);
   cap(de ? 'Sequestrierung und Speicher' : 'Sequestration and storage', M + cw + 6, gy); doc.addImage(sq, 'JPEG', M + cw + 6, gy + 3, cw, ch);
   gy += ch + 14;
-  const o2img = img(oxygenChartConfig(rows, p, T, lang, true), 900, 320);
+  const o2img = await img(oxygenChartConfig(rows, p, T, lang, true), 900, 320);
   cap(de ? 'Sauerstoffproduktion und versorgte Personen' : 'Oxygen production and people supplied', M, gy); doc.addImage(o2img, 'JPEG', M, gy + 3, CW, CW * 320 / 900);
   gy += CW * 320 / 900 + 8;
   H(7.5, 'normal', HEX.muted); doc.text(doc.splitTextToSize(T('o2Note').replace(/₂/g, '2'), CW), M, gy, { lineHeightFactor: 1.4 });
@@ -161,7 +165,7 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
   for (const r of rows) bySpV[r.species] = (bySpV[r.species] || 0) + r.chf;
   const topSp = Object.entries(bySpV).sort((x, z) => z[1] - x[1]).slice(0, 12);
   const spBarH = Math.max(220, 40 + topSp.length * 24);
-  const spBar = img({ type: 'bar', data: { labels: topSp.map(x => x[0]), datasets: [{ data: topSp.map(x => +x[1].toFixed(2)), backgroundColor: HEX.green, borderRadius: 3 }] },
+  const spBar = await img({ type: 'bar', data: { labels: topSp.map(x => x[0]), datasets: [{ data: topSp.map(x => +x[1].toFixed(2)), backgroundColor: HEX.green, borderRadius: 3 }] },
     options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: HEX.line }, ticks: { font: { size: 10 } }, title: { display: true, text: `CHF/${a}`, font: { size: 10 } } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } } } }, 940, spBarH);
   const spH = Math.min(CW * spBarH / 940, 90);
   cap(de ? 'Jahreswert nach Art (heute)' : 'Annual value by species (today)', M, y); doc.addImage(spBar, 'JPEG', M, y + 3, CW, spH); y += spH + 12;
@@ -200,7 +204,7 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
   doc.addPage('a4', 'portrait');
   hdrBand(T('projTitle'), T('title'));
   H(8.5, 'normal', HEX.muted); doc.text(doc.splitTextToSize(T('projSub'), CW), M, 38, { lineHeightFactor: 1.4 });
-  const pimg = img(projectionChartConfig(rows, p, T, true), 900, 380); doc.addImage(pimg, 'JPEG', M, 50, CW, CW * 380 / 900);
+  const pimg = await img(projectionChartConfig(rows, p, T, true), 900, 380); doc.addImage(pimg, 'JPEG', M, 50, CW, CW * 380 / 900);
   let py = 50 + CW * 380 / 900 + 8;
   const kp = HZ.map(yv => { const q = s.proj[yv]; return [yrLbl(yv), pf(q.C), `CHF ${pf(q.chf)}`, `CHF ${pf(q.cum)}`]; });
   const bw2 = (CW - 2 * 4) / 3, bh2 = 24;
@@ -253,8 +257,8 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
 }
 
 /** Build and download the report. */
-export function exportTreeBenefitsPdf(input: PdfInput): { pages: number; name: string } {
-  const doc = buildTreeBenefitsPdf(input);
+export async function exportTreeBenefitsPdf(input: PdfInput): Promise<{ pages: number; name: string }> {
+  const doc = await buildTreeBenefitsPdf(input);
   const base = input.projectName || input.site.name.split(',')[0];
   const name = `${input.lang === 'de' ? 'Baumleistungen' : 'TreeBenefits'}_${base.replace(/[^\w-]+/g, '-')}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(name);

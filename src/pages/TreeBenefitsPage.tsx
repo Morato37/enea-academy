@@ -104,11 +104,11 @@ export const TreeBenefitsPage: React.FC = () => {
     await copyToClipboard(buildExcelText(rows, T, lang, params, hasClass));
     showToast(T('tCopied'));
   };
-  const onPdf = () => {
+  const onPdf = async () => {
     if (!rows.length) return showToast(T('tFirst'));
     showToast(T('pdfBusy'));
     try {
-      const r = exportTreeBenefitsPdf({
+      const r = await exportTreeBenefitsPdf({
         rows, skipped, params, site, lang,
         sizeClasses: hasClass ? sizeClasses : undefined,
         projectName: mode === 'project' ? [handover?.projectName, handover?.zoneName].filter(Boolean).join(' — ') || undefined : undefined,
