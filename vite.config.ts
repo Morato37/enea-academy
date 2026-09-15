@@ -59,6 +59,7 @@ export default defineConfig({
     }
   ],
   optimizeDeps: {
+    include: ['chart.js', 'jspdf-autotable'],
     exclude: ['lucide-react'],
   },
   publicDir: 'public',
