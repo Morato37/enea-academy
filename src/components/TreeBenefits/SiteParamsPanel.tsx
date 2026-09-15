@@ -3,7 +3,7 @@ import { Loader2, MapPin, Search } from 'lucide-react';
 import { TFn } from '../../lib/treeBenefits/i18n';
 import { SiteParams } from '../../lib/treeBenefits/types';
 import { PRESETS } from '../../lib/treeBenefits/presets';
-import { LANDUSE_OPTIONS, SURFACE_OPTIONS } from '../../lib/treeBenefits/calc';
+import { LANDUSE_OPTIONS, SURFACE_OPTIONS, MAX_HORIZON } from '../../lib/treeBenefits/calc';
 
 export interface GeoStatus { text: string; err: boolean }
 
@@ -118,9 +118,9 @@ export const SiteParamsPanel: React.FC<Props> = ({ T, params, onParamChange, pre
         </label>
       </Group>
       <Group title={T('gProj')} defaultOpen>
-        <NumField label={T('yA')} unit={T('years')} value={params.y1} step={1} min={1} max={100} onChange={set('y1')} />
-        <NumField label={T('yB')} unit={T('years')} value={params.y2} step={1} min={1} max={100} onChange={set('y2')} />
-        <NumField label={T('yC')} unit={T('years')} value={params.y3} step={1} min={1} max={100} onChange={set('y3')} />
+        <NumField label={T('yA')} unit={T('years')} value={params.y1} step={1} min={1} max={MAX_HORIZON} onChange={set('y1')} />
+        <NumField label={T('yB')} unit={T('years')} value={params.y2} step={1} min={1} max={MAX_HORIZON} onChange={set('y2')} />
+        <NumField label={T('yC')} unit={T('years')} value={params.y3} step={1} min={1} max={MAX_HORIZON} onChange={set('y3')} />
       </Group>
       <Group title={T('gPrice')}>
         <NumField label="CO₂" unit="CHF/t" value={params.pCO2} step={5} onChange={set('pCO2')} />

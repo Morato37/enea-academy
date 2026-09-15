@@ -38,8 +38,12 @@ export function sanitizeParams(p: SiteParams): SiteParams {
   return out as unknown as SiteParams;
 }
 
+/** Longest allowed projection horizon in years (the per-year growth loop runs once per tree per year). */
+export const MAX_HORIZON = 100;
+
+/** Projection horizons: clamped to 1..MAX_HORIZON and de-duplicated, so totals never count a year twice. */
 export function horizons(p: SiteParams): number[] {
-  return [p.y1, p.y2, p.y3].map(v => Math.max(1, Math.round(v || 0)));
+  return [...new Set([p.y1, p.y2, p.y3].map(v => Math.min(MAX_HORIZON, Math.max(1, Math.round(v || 0)))))];
 }
 
 /** Total carbon (kg) from DBH: Chojnacky biomass × roots 1.26 × urban factor 0.8 × C fraction 0.5. */
