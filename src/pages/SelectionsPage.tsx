@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSelections } from '../contexts/SelectionsContext';
 import {
   Trash2, Download, Loader2, Plus, Minus, Save,
   CreditCard as Edit2, RefreshCw, Image, Calendar,
   MapPin, X, Check, ChevronDown, ChevronRight,
-  GripVertical, Layers, Share2, Users, Eye, Lock
+  GripVertical, Layers, Share2, Users, Eye, Lock, TreePine
 } from 'lucide-react';
 import { generatePDF } from '../lib/pdfExport';
 import { generateMoodboardPDF } from '../lib/moodboardExport';
@@ -13,6 +14,7 @@ import { generatePlantSelectionPDF } from '../lib/plantSelectionExport';
 import { LanguageSelectionModal } from '../components/LanguageSelectionModal';
 import { ProjectShareModal } from '../components/Selections/ProjectShareModal';
 import { UserSelection, ProjectZone } from '../lib/supabase';
+import { buildHandover, countTreeSelections, TREE_BENEFITS_PATH } from '../lib/treeBenefits/handover';
 
 // ── Drag state shared via refs ──────────────────────────────────────────────
 interface DragState {
@@ -238,13 +240,14 @@ interface ZoneColumnProps {
   onExportPlantSelection?: () => void;
   onExportCalendar?: () => void;
   onExportPDF?: () => void;
+  onTreeBenefits?: () => void;
   generatingExport: string | null;
 }
 
 const ZoneColumn: React.FC<ZoneColumnProps> = ({
   zone, color, selections, allZones, isEditingName, onRename, onStartRename, onDelete,
   onDrop, onRemoveSelection, onQuantityChange, onMoveToZone, onDuplicateToZone, dragRef, draggingId, setDraggingId,
-  zoneColorMap, readOnly = false, onExportPlantBoard, onExportPlantSelection, onExportCalendar, onExportPDF, generatingExport,
+  zoneColorMap, readOnly = false, onExportPlantBoard, onExportPlantSelection, onExportCalendar, onExportPDF, onTreeBenefits, generatingExport,
 }) => {
   const [dragOver, setDragOver] = useState(false);
   const [editName, setEditName] = useState(zone?.name || '');
@@ -388,6 +391,18 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
               Plant Selection
             </button>
           )}
+          {onTreeBenefits && (
+            <button
+              onClick={onTreeBenefits}
+              disabled={!!generatingExport}
+              title="Tree Benefits (i-Tree Eco)"
+              className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+              style={{ backgroundColor: color + '20', color }}
+            >
+              <TreePine className="w-3 h-3" />
+              Tree Benefits
+            </button>
+          )}
         </div>
       )}
 
@@ -472,6 +487,16 @@ export const SelectionsPage: React.FC = () => {
   );
 
   const plantSelections = selections.filter(s => s.plant_id);
+  const navigate = useNavigate();
+  const treeSelectionCount = countTreeSelections(selections);
+
+  // Hand the trees of the current project (or one zone) over to the Tree Benefits calculator
+  const openTreeBenefits = (zoneId?: string) => {
+    const source = zoneId ? selections.filter(s => s.zone_id === zoneId) : selections;
+    const zoneName = zoneId ? zones.find(z => z.id === zoneId)?.name : undefined;
+    const handover = buildHandover(source, currentProject?.name, zoneName);
+    navigate(TREE_BENEFITS_PATH, { state: { handover } });
+  };
   const tileCombinations = selections.filter(s => s.is_tile_combination && s.stone_id && !s.parent_selection_id);
   const regularStoneSelections = selections.filter(s => s.stone_id && !s.is_tile_combination);
 
@@ -888,6 +913,16 @@ export const SelectionsPage: React.FC = () => {
                     Plant Selection
                   </button>
 
+                  <button
+                    onClick={() => openTreeBenefits()}
+                    disabled={treeSelectionCount === 0}
+                    title={treeSelectionCount === 0 ? 'No trees or palms in this selection' : `${treeSelectionCount} tree selections`}
+                    className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <TreePine className="w-4 h-4" />
+                    Tree Benefits
+                  </button>
+
                   {canEdit && (
                     <button
                       onClick={() => setShowClearConfirm(true)}
@@ -977,6 +1012,9 @@ export const SelectionsPage: React.FC = () => {
                               : undefined}
                             onExportPDF={zonePlants.length > 0
                               ? () => triggerExport({ type: 'pdf', zoneId: zone.id })
+                              : undefined}
+                            onTreeBenefits={countTreeSelections(zoneSelections) > 0
+                              ? () => openTreeBenefits(zone.id)
                               : undefined}
                           />
                         );
