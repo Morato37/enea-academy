@@ -43,13 +43,15 @@ export const Header: React.FC = () => {
             >
               Stones
             </Link>
-            <Link
-              to="/tree-benefits"
-              className="text-gray-600 hover:text-cyan-600 font-medium transition-colors flex items-center"
-            >
-              <TreePine className="w-4 h-4 mr-1" />
-              Tree Benefits
-            </Link>
+            {isAdmin && (
+              <Link
+                to="/tree-benefits"
+                className="text-gray-600 hover:text-cyan-600 font-medium transition-colors flex items-center"
+              >
+                <TreePine className="w-4 h-4 mr-1" />
+                Tree Benefits
+              </Link>
+            )}
             <Link
               to="/additional-information"
               className="text-gray-600 hover:text-cyan-600 font-medium transition-colors flex items-center"
@@ -120,12 +122,14 @@ export const Header: React.FC = () => {
           >
             Stones
           </Link>
-          <Link
-            to="/tree-benefits"
-            className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
-          >
-            Trees
-          </Link>
+          {isAdmin && (
+            <Link
+              to="/tree-benefits"
+              className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
+            >
+              Trees
+            </Link>
+          )}
           <Link
             to="/additional-information"
             className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"

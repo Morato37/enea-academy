@@ -79,7 +79,7 @@ const AppContent: React.FC = () => {
               <Route
                 path="/tree-benefits"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute adminOnly>
                     <TreeBenefitsPage />
                   </ProtectedRoute>
                 }

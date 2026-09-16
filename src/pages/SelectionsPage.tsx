@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { useSelections } from '../contexts/SelectionsContext';
 import {
   Trash2, Download, Loader2, Plus, Minus, Save,
@@ -451,6 +452,7 @@ export const SelectionsPage: React.FC = () => {
     saveCurrentSelectionsToProject, loadProjectSelections, refreshSelections,
     createZone, updateZone, deleteZone, moveSelectionToZone, duplicateSelectionToZone,
   } = useSelections();
+  const { isAdmin } = useAuth();
 
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [generatingMoodboard, setGeneratingMoodboard] = useState(false);
@@ -913,6 +915,7 @@ export const SelectionsPage: React.FC = () => {
                     Plant Selection
                   </button>
 
+                  {isAdmin && (
                   <button
                     onClick={() => openTreeBenefits()}
                     disabled={treeSelectionCount === 0}
@@ -922,6 +925,7 @@ export const SelectionsPage: React.FC = () => {
                     <TreePine className="w-4 h-4" />
                     Tree Benefits
                   </button>
+                  )}
 
                   {canEdit && (
                     <button
@@ -1013,7 +1017,7 @@ export const SelectionsPage: React.FC = () => {
                             onExportPDF={zonePlants.length > 0
                               ? () => triggerExport({ type: 'pdf', zoneId: zone.id })
                               : undefined}
-                            onTreeBenefits={countTreeSelections(zoneSelections) > 0
+                            onTreeBenefits={isAdmin && countTreeSelections(zoneSelections) > 0
                               ? () => openTreeBenefits(zone.id)
                               : undefined}
                           />
