@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Download, BookOpen, Wrench, ExternalLink, MapPin, Library, Copy, Check, FolderOpen } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { File, FileText, Download, Wrench, ExternalLink, MapPin, Library, Copy, Check, FolderOpen, FileImage, Film, Archive } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DocumentMetadata {
   id: string;
@@ -8,12 +10,17 @@ interface DocumentMetadata {
   displayName: string;
   description: string | null;
   category: 'general_information' | 'templates' | 'technical_information';
+  subgroup: string | null;
+  sortOrder: number;
+  mimeType: string;
+  fileType: string;
   fileSize: number;
   storagePath: string;
   url: string;
 }
 
 export const AdditionalInformationPage: React.FC = () => {
+  const { isAdmin } = useAuth();
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [pathCopied, setPathCopied] = useState(false);
@@ -45,6 +52,10 @@ export const AdditionalInformationPage: React.FC = () => {
         displayName: doc.display_name,
         description: doc.description,
         category: doc.category,
+        subgroup: doc.subgroup || null,
+        sortOrder: doc.sort_order || 0,
+        mimeType: doc.mime_type || 'application/pdf',
+        fileType: doc.file_type || 'PDF',
         fileSize: doc.file_size || 0,
         storagePath: doc.storage_path,
         url: supabase.storage.from('documents').getPublicUrl(doc.storage_path).data.publicUrl
@@ -62,16 +73,34 @@ export const AdditionalInformationPage: React.FC = () => {
     return documents.filter(doc => doc.category === category);
   };
 
-  const renderDocumentCard = (doc: DocumentMetadata, colorClasses: any) => (
+  const getDocumentStyles = (mimeType: string) => {
+    if (mimeType.startsWith('video/')) {
+      return { Icon: Film, bg: 'from-rose-50 to-red-50', border: 'border-rose-300 hover:border-rose-500', icon: 'bg-rose-500 group-hover:bg-rose-600', text: 'text-rose-600 group-hover:text-rose-700' };
+    }
+    if (mimeType.startsWith('image/')) {
+      return { Icon: FileImage, bg: 'from-amber-50 to-yellow-50', border: 'border-amber-300 hover:border-amber-500', icon: 'bg-amber-500 group-hover:bg-amber-600', text: 'text-amber-700 group-hover:text-amber-800' };
+    }
+    if (mimeType.includes('zip')) {
+      return { Icon: Archive, bg: 'from-slate-50 to-gray-100', border: 'border-slate-300 hover:border-slate-500', icon: 'bg-slate-600 group-hover:bg-slate-700', text: 'text-slate-700 group-hover:text-slate-900' };
+    }
+    if (mimeType === 'application/pdf') {
+      return { Icon: FileText, bg: 'from-cyan-50 to-blue-50', border: 'border-cyan-300 hover:border-cyan-500', icon: 'bg-cyan-600 group-hover:bg-cyan-700', text: 'text-cyan-700 group-hover:text-cyan-800' };
+    }
+    return { Icon: File, bg: 'from-emerald-50 to-green-50', border: 'border-emerald-300 hover:border-emerald-500', icon: 'bg-emerald-600 group-hover:bg-emerald-700', text: 'text-emerald-700 group-hover:text-emerald-800' };
+  };
+
+  const renderDocumentCard = (doc: DocumentMetadata) => {
+    const { Icon, bg, border, icon, text } = getDocumentStyles(doc.mimeType);
+    return (
     <a
       key={doc.id}
       href={doc.url}
       download
-      className={`group relative bg-gradient-to-br ${colorClasses.bg} rounded-lg border-2 ${colorClasses.border} transition-all p-6 shadow-sm hover:shadow-md`}
+      className={`group relative bg-gradient-to-br ${bg} rounded-lg border-2 ${border} transition-all p-6 shadow-sm hover:shadow-md`}
     >
       <div className="flex items-start gap-4">
-        <div className={`flex-shrink-0 w-16 h-16 ${colorClasses.icon} rounded-lg flex items-center justify-center transition-colors`}>
-          <FileText className="w-8 h-8 text-white" />
+        <div className={`flex-shrink-0 w-16 h-16 ${icon} rounded-lg flex items-center justify-center transition-colors`}>
+          <Icon className="w-8 h-8 text-white" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -82,18 +111,32 @@ export const AdditionalInformationPage: React.FC = () => {
               {doc.description}
             </p>
           )}
-          <div className={`flex items-center gap-2 ${colorClasses.text} font-medium`}>
+          <div className={`flex items-center gap-2 ${text} font-medium`}>
             <Download className="w-5 h-5" />
-            <span>Download PDF</span>
+            <span>{doc.mimeType.startsWith('video/') ? 'Watch video' : 'Open file'}</span>
           </div>
         </div>
       </div>
     </a>
-  );
+    );
+  };
 
-  const generalInfoDocs = getDocumentsByCategory('general_information').reverse();
-  const templateDocs = getDocumentsByCategory('templates');
-  const technicalDocs = getDocumentsByCategory('technical_information');
+  const groupDocuments = (category: DocumentMetadata['category']) => {
+    const grouped = new Map<string, DocumentMetadata[]>();
+    getDocumentsByCategory(category).forEach((doc) => {
+      const group = doc.subgroup?.trim() || '';
+      const existing = grouped.get(group) || [];
+      grouped.set(group, [...existing, doc]);
+    });
+    return Array.from(grouped.entries()).map(([name, docs]) => ({
+      name,
+      documents: docs.sort((a, b) => a.sortOrder - b.sortOrder || a.displayName.localeCompare(b.displayName)),
+    }));
+  };
+
+  const generalInfoGroups = groupDocuments('general_information');
+  const technicalGroups = groupDocuments('technical_information');
+  const generalInfoDocs = generalInfoGroups.flatMap((group) => group.documents);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -101,7 +144,7 @@ export const AdditionalInformationPage: React.FC = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Additional Information</h1>
           <p className="text-gray-700">
-            Access guides, templates, and technical documentation for professional landscape design
+            Access guides and technical documentation for professional landscape design
           </p>
         </div>
 
@@ -124,7 +167,6 @@ export const AdditionalInformationPage: React.FC = () => {
                   </p>
                 </div>
               </div>
-
               {generalInfoDocs.length === 0 ? (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
                   <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -136,16 +178,15 @@ export const AdditionalInformationPage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {generalInfoDocs.map((doc) => {
-                    const colorClasses = {
-                      bg: 'from-cyan-50 to-blue-50',
-                      border: 'border-cyan-300 hover:border-cyan-500',
-                      icon: 'bg-cyan-500 group-hover:bg-cyan-600',
-                      text: 'text-cyan-600 group-hover:text-cyan-700'
-                    };
-                    return renderDocumentCard(doc, colorClasses);
-                  })}
+                <div className="space-y-8">
+                  {generalInfoGroups.map((group) => (
+                    <div key={group.name || 'ungrouped'}>
+                      {group.name && <h3 className="text-lg font-semibold text-gray-900 mb-4">{group.name}</h3>}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {group.documents.map((doc) => renderDocumentCard(doc))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </section>
@@ -163,67 +204,52 @@ export const AdditionalInformationPage: React.FC = () => {
                 </div>
               </div>
 
-              <a
-                href="https://www.libib.com/u/eneabibliothek"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center justify-between p-6 bg-gradient-to-br from-sky-50 to-blue-50 border-2 border-sky-300 hover:border-sky-500 rounded-lg transition-all shadow-sm hover:shadow-md"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-sky-500 group-hover:bg-sky-600 rounded-lg flex items-center justify-center transition-colors">
-                    <Library className="w-8 h-8 text-white" />
+              {isAdmin ? (
+                <Link
+                  to="/library"
+                  className="group flex items-center justify-between p-6 bg-gradient-to-br from-sky-50 to-blue-50 border-2 border-sky-300 hover:border-sky-500 rounded-lg transition-all shadow-sm hover:shadow-md"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-sky-500 group-hover:bg-sky-600 rounded-lg flex items-center justify-center transition-colors">
+                      <Library className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        Enea Library
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Browse and reserve books from the Enea collection
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                      Enea Library
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Browse and access the complete Enea book and reference collection
-                    </p>
-                  </div>
-                </div>
-                <ExternalLink className="w-6 h-6 text-sky-600 group-hover:text-sky-700 flex-shrink-0" />
-              </a>
-            </section>
-
-            <section className="bg-white rounded-lg border border-gray-300 p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-emerald-600" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold text-gray-900">Templates</h2>
-                  <p className="text-gray-600 text-sm">
-                    Professional templates for landscape planning and documentation
-                  </p>
-                </div>
-              </div>
-
-              {templateDocs.length === 0 ? (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
-                  <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 text-lg font-medium mb-2">
-                    Coming Soon
-                  </p>
-                  <p className="text-gray-500 text-sm">
-                    Templates for project documentation, planting plans, and material specifications will be available here
-                  </p>
-                </div>
+                  <ExternalLink className="w-6 h-6 text-sky-600 group-hover:text-sky-700 flex-shrink-0" />
+                </Link>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {templateDocs.map((doc) => {
-                    const colorClasses = {
-                      bg: 'from-emerald-50 to-green-50',
-                      border: 'border-emerald-300 hover:border-emerald-500',
-                      icon: 'bg-emerald-500 group-hover:bg-emerald-600',
-                      text: 'text-emerald-600 group-hover:text-emerald-700'
-                    };
-                    return renderDocumentCard(doc, colorClasses);
-                  })}
-                </div>
+                <a
+                  href="https://www.libib.com/u/eneabibliothek"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center justify-between p-6 bg-gradient-to-br from-sky-50 to-blue-50 border-2 border-sky-300 hover:border-sky-500 rounded-lg transition-all shadow-sm hover:shadow-md"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-sky-500 group-hover:bg-sky-600 rounded-lg flex items-center justify-center transition-colors">
+                      <Library className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        Enea Library
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Browse and access the complete Enea book and reference collection
+                      </p>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-6 h-6 text-sky-600 group-hover:text-sky-700 flex-shrink-0" />
+                </a>
               )}
             </section>
 
+            {false && (
             <section className="bg-white rounded-lg border border-gray-300 p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -265,38 +291,38 @@ export const AdditionalInformationPage: React.FC = () => {
                           {pathCopied ? (
                             <>
                               <Check className="w-4 h-4" />
-                              Pfad kopiert!
+                              Path copied!
                             </>
                           ) : (
                             <>
                               <Copy className="w-4 h-4" />
-                              Pfad kopieren
+                              Copy path
                             </>
                           )}
                         </button>
                         <span className="text-xs text-gray-500">
-                          Dann <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-gray-700 font-mono">Win+E</kbd> offnen und <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-gray-700 font-mono">Strg+V</kbd> in die Adressleiste einfugen
+                          Then press <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-gray-700 font-mono">Win+E</kbd> to open Explorer and paste with <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-gray-700 font-mono">Ctrl+V</kbd> into the address bar
                         </span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {technicalDocs.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {technicalDocs.map((doc) => {
-                      const colorClasses = {
-                        bg: 'from-orange-50 to-amber-50',
-                        border: 'border-orange-300 hover:border-orange-500',
-                        icon: 'bg-orange-500 group-hover:bg-orange-600',
-                        text: 'text-orange-600 group-hover:text-orange-700'
-                      };
-                      return renderDocumentCard(doc, colorClasses);
-                    })}
+                {technicalGroups.length > 0 && (
+                  <div className="space-y-8">
+                    {technicalGroups.map((group) => (
+                      <div key={group.name || 'ungrouped'}>
+                        {group.name && <h3 className="text-lg font-semibold text-gray-900 mb-4">{group.name}</h3>}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {group.documents.map((doc) => renderDocumentCard(doc))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
             </section>
+            )}
 
             <section className="bg-white rounded-lg border border-gray-300 p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-6">

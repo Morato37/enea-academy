@@ -13,12 +13,12 @@ interface Props {
 }
 
 const Kpi: React.FC<{ label: string; value: React.ReactNode; sub?: React.ReactNode; dot?: string; highlight?: boolean }> = ({ label, value, sub, dot, highlight }) => (
-  <div className={`border-b border-r border-gray-200 p-4 ${highlight ? 'bg-green-50' : 'bg-white'}`}>
+  <div className={`border-b border-r border-gray-200 p-4 ${highlight ? 'bg-[#E4F0E6]' : 'bg-white'}`}>
     <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-gray-500 hyphens-auto break-words">
       {dot && <i className="inline-block h-2 w-2 rounded-sm" style={{ background: dot }} />}
       {label}
     </div>
-    <div className={`mt-1.5 font-mono text-[22px] font-medium leading-tight tabular-nums ${highlight ? 'text-green-700' : 'text-gray-900'}`}>{value}</div>
+    <div className={`mt-1.5 font-mono text-[22px] font-medium leading-tight tabular-nums ${highlight ? 'text-[#2F7041]' : 'text-gray-900'}`}>{value}</div>
     {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
   </div>
 );

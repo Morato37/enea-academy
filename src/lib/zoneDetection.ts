@@ -106,19 +106,21 @@ function calculateElevationAdjustment(elevation: number): number {
 
 function adjustZoneForElevation(zoneCode: string, elevationShift: number): string | null {
   const zoneMap: Record<string, number> = {
-    '5a': 0, '5b': 1, '6a': 2, '6b': 3, '7a': 4, '7b': 5,
-    '8a': 6, '8b': 7, '9a': 8, '9b': 9, '10a': 10, '10b': 11,
+    '1a': 0, '1b': 1, '2a': 2, '2b': 3, '3a': 4, '3b': 5, '4a': 6, '4b': 7,
+    '5a': 8, '5b': 9, '6a': 10, '6b': 11, '7a': 12, '7b': 13,
+    '8a': 14, '8b': 15, '9a': 16, '9b': 17, '10a': 18, '10b': 19,
   };
 
   const reverseMap: Record<number, string> = {
-    0: '5a', 1: '5b', 2: '6a', 3: '6b', 4: '7a', 5: '7b',
-    6: '8a', 7: '8b', 8: '9a', 9: '9b', 10: '10a', 11: '10b',
+    0: '1a', 1: '1b', 2: '2a', 3: '2b', 4: '3a', 5: '3b', 6: '4a', 7: '4b',
+    8: '5a', 9: '5b', 10: '6a', 11: '6b', 12: '7a', 13: '7b',
+    14: '8a', 15: '8b', 16: '9a', 17: '9b', 18: '10a', 19: '10b',
   };
 
   const currentIndex = zoneMap[zoneCode];
   if (currentIndex === undefined) return null;
 
-  const newIndex = Math.max(0, Math.min(11, currentIndex - elevationShift));
+  const newIndex = Math.max(0, Math.min(19, currentIndex - elevationShift));
   return reverseMap[newIndex];
 }
 
@@ -317,31 +319,73 @@ async function detectZonesFromDatabase(
   }
 }
 
-function fallbackZoneDetection(latitude: number, elevation?: number): ZoneDetectionResult {
+function fallbackZoneDetection(latitude: number, longitude: number, elevation?: number): ZoneDetectionResult {
+  // Longitude determines continental vs. maritime climate influence.
+  // Western Europe (oceanic): warmer winters at same latitude.
+  // Eastern Europe / Russia (continental): much colder winters.
+  // Example: Munich (48°N, 11°E) = zone 7a, but Moscow (55°N, 37°E) = zone 5a.
   let baseZone: string;
 
-  if (latitude >= 65) {
-    baseZone = '5a';
-  } else if (latitude >= 62) {
-    baseZone = '5b';
-  } else if (latitude >= 58) {
-    baseZone = '6a';
-  } else if (latitude >= 55) {
-    baseZone = '6b';
-  } else if (latitude >= 52) {
-    baseZone = '7a';
-  } else if (latitude >= 48) {
-    baseZone = '7b';
-  } else if (latitude >= 46) {
-    baseZone = '8a';
-  } else if (latitude >= 44) {
-    baseZone = '8b';
-  } else if (latitude >= 41) {
-    baseZone = '9a';
-  } else if (latitude >= 38) {
-    baseZone = '9b';
+  // Continental climate: Russia, Eastern Europe, Siberia (longitude > 30°E)
+  if (longitude > 30) {
+    if (latitude >= 68) {
+      baseZone = '1a';
+    } else if (latitude >= 65) {
+      baseZone = '1b';
+    } else if (latitude >= 62) {
+      baseZone = '2a';
+    } else if (latitude >= 60) {
+      baseZone = '3a';
+    } else if (latitude >= 58) {
+      baseZone = '4a';
+    } else if (latitude >= 56) {
+      baseZone = '5a';  // Moscow (55.75°N) = zone 5a
+    } else if (latitude >= 54) {
+      baseZone = '5b';
+    } else if (latitude >= 52) {
+      baseZone = '6a';
+    } else if (latitude >= 50) {
+      baseZone = '6b';
+    } else if (latitude >= 48) {
+      baseZone = '7a';
+    } else if (latitude >= 46) {
+      baseZone = '7b';
+    } else if (latitude >= 44) {
+      baseZone = '8a';
+    } else if (latitude >= 41) {
+      baseZone = '8b';
+    } else if (latitude >= 38) {
+      baseZone = '9a';
+    } else {
+      baseZone = '9b';
+    }
   } else {
-    baseZone = '10a';
+    // Western / Central Europe (oceanic, longitude <= 30°E)
+    if (latitude >= 68) {
+      baseZone = '1a';
+    } else if (latitude >= 65) {
+      baseZone = '1b';
+    } else if (latitude >= 62) {
+      baseZone = '2a';
+    } else if (latitude >= 58) {
+      baseZone = '4b';
+    } else if (latitude >= 55) {
+      baseZone = '5b';
+    } else if (latitude >= 52) {
+      baseZone = '6a';
+    } else if (latitude >= 48) {
+      baseZone = '7a';
+    } else if (latitude >= 46) {
+      baseZone = '7b';
+    } else if (latitude >= 44) {
+      baseZone = '8a';
+    } else if (latitude >= 41) {
+      baseZone = '8b';
+    } else if (latitude >= 38) {
+      baseZone = '9a';
+    } else {
+      baseZone = '10a';
+    }
   }
 
   if (elevation && elevation > 500) {
@@ -361,34 +405,59 @@ function fallbackZoneDetection(latitude: number, elevation?: number): ZoneDetect
   };
 }
 
+const ZONE_ORDER_FULL = ['1a', '1b', '2a', '2b', '3a', '3b', '4a', '4b', '5a', '5b', '6a', '6b', '7a', '7b', '8a', '8b', '9a', '9b', '10a', '10b'];
+
+function zoneDifference(zoneA: string, zoneB: string): number {
+  const idxA = ZONE_ORDER_FULL.indexOf(zoneA);
+  const idxB = ZONE_ORDER_FULL.indexOf(zoneB);
+  if (idxA === -1 || idxB === -1) return 99;
+  return Math.abs(idxA - idxB);
+}
+
 export async function detectHardinessZones(
   latitude: number,
   longitude: number,
   elevation?: number
 ): Promise<ZoneDetectionResult> {
-  const climateResult = await detectZonesFromClimateData(latitude, longitude);
+  const fallback = fallbackZoneDetection(latitude, longitude, elevation);
+  const fallbackZone = fallback.zones[0];
+
+  const [climateResult, dbResult] = await Promise.all([
+    detectZonesFromClimateData(latitude, longitude),
+    detectZonesFromDatabase(latitude, longitude, elevation),
+  ]);
 
   if (climateResult && climateResult.confidence >= 0.75) {
-    return climateResult;
+    if (zoneDifference(climateResult.zones[0], fallbackZone) <= 2) {
+      return climateResult;
+    }
+    return {
+      ...fallback,
+      source: 'fallback',
+      dataSource: 'estimated',
+    };
   }
-
-  const dbResult = await detectZonesFromDatabase(latitude, longitude, elevation);
 
   if (dbResult && dbResult.confidence >= 0.85) {
-    return dbResult;
+    if (zoneDifference(dbResult.zones[0], fallbackZone) <= 2) {
+      return dbResult;
+    }
+    return {
+      ...fallback,
+      source: 'fallback',
+      dataSource: 'estimated',
+    };
   }
 
-  if (climateResult) {
+  if (climateResult && zoneDifference(climateResult.zones[0], fallbackZone) <= 2) {
     return climateResult;
   }
 
-  if (dbResult && dbResult.confidence >= 0.75) {
+  if (dbResult && dbResult.confidence >= 0.75 && zoneDifference(dbResult.zones[0], fallbackZone) <= 2) {
     return dbResult;
   }
 
-  const fallback = fallbackZoneDetection(latitude, elevation);
-
-  if (dbResult && dbResult.zones.length > 0) {
+  if (dbResult && dbResult.zones.length > 0 && zoneDifference(dbResult.zones[0], fallbackZone) <= 2) {
     return {
       ...dbResult,
       confidence: Math.max(dbResult.confidence, fallback.confidence),

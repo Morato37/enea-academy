@@ -1,4 +1,5 @@
 import { SizeClassKey, SizeClassStandard, ProjectTreeInput, TreeInput } from './types';
+import { supabase, TreeSizeClass } from '../supabase';
 
 export const SIZE_CLASS_KEYS: SizeClassKey[] = ['small', 'medium', 'large'];
 
@@ -44,16 +45,54 @@ export function saveSizeClasses(classes: Record<SizeClassKey, SizeClassStandard>
 }
 
 /**
+ * Fetch species-specific size class dimensions from the database for the given plant IDs.
+ * Returns a map keyed by `plantId:sizeClass` -> SizeClassStandard.
+ * Entries with all-zero values are skipped (treated as not set).
+ */
+export async function fetchSpeciesSizeClasses(
+  plantIds: number[]
+): Promise<Map<string, SizeClassStandard>> {
+  const out = new Map<string, SizeClassStandard>();
+  if (plantIds.length === 0) return out;
+  try {
+    const { data, error } = await supabase
+      .from('tree_size_classes')
+      .select('plant_id, size_class, label, dbh, height, crown_width, crown_base')
+      .in('plant_id', plantIds);
+    if (error || !data) return out;
+    for (const row of data as TreeSizeClass[]) {
+      if (!row.dbh && !row.height && !row.crown_width && !row.crown_base) continue;
+      out.set(`${row.plant_id}:${row.size_class}`, {
+        label: row.label || DEFAULT_SIZE_CLASSES[row.size_class as SizeClassKey].label,
+        dbh: row.dbh,
+        height: row.height,
+        crownWidth: row.crown_width,
+        crownBase: row.crown_base,
+      });
+    }
+  } catch {
+    // table might not exist yet — silently fall back to defaults
+  }
+  return out;
+}
+
+/**
  * Expand project trees (species × quantity × size class) into individual tree inputs.
  * IDs are numbered per species so they stay readable in the results table.
+ * If speciesOverrides contains a matching entry, those dimensions are used instead of the generic class.
  */
 export function expandProjectTrees(
   trees: ProjectTreeInput[],
-  classes: Record<SizeClassKey, SizeClassStandard>
+  classes: Record<SizeClassKey, SizeClassStandard>,
+  speciesOverrides?: Map<string, SizeClassStandard>
 ): TreeInput[] {
   const out: TreeInput[] = [];
   trees.forEach((t, i) => {
-    const std = classes[t.sizeClass] || classes.medium;
+    let std = classes[t.sizeClass] || classes.medium;
+    if (speciesOverrides && t.plantId) {
+      const ov = speciesOverrides.get(`${t.plantId}:${t.sizeClass}`);
+      if (ov) std = ov;
+    }
     const qty = Math.max(0, Math.min(999, Math.round(t.quantity || 0)));
     for (let k = 1; k <= qty; k++) {
       out.push({

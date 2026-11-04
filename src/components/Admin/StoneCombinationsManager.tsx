@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader, Plus, X, Search, Trash2 } from 'lucide-react';
+import { Loader, Plus, X, Search } from 'lucide-react';
 import { supabase, Stone, StoneCombination, StoneCategory } from '../../lib/supabase';
 
 interface StoneCombinationsManagerProps {
@@ -11,7 +11,6 @@ interface StoneCombinationsManagerProps {
 export const StoneCombinationsManager: React.FC<StoneCombinationsManagerProps> = ({
   stoneId,
   stoneCategory,
-  stoneName,
 }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

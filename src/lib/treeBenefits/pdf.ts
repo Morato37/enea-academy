@@ -1,5 +1,6 @@
-import type jsPDFType from 'jspdf';
-import type { ChartConfiguration } from './chartLazy';
+import jsPDF from 'jspdf';
+import autoTable, { UserOptions, CellHookData } from 'jspdf-autotable';
+import { ChartConfiguration } from 'chart.js';
 import { horizons, totals, seriesTotal, polSumOf, O2_PER_PERSON, LANDUSE_OPTIONS, SURFACE_OPTIONS } from './calc';
 import { HEX, chartToImage, projectionChartConfig, oxygenChartConfig } from './charts';
 import { makeT, pdfStrings, locale } from './i18n';
@@ -20,15 +21,10 @@ export interface PdfInput {
 const rgb = (h: string): [number, number, number] => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)) as [number, number, number];
 
 /** Build the multi-page tree benefits report. */
-export async function buildTreeBenefitsPdf(input: PdfInput): Promise<jsPDFType> {
+export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
   const { rows, skipped, params: p, site, lang } = input;
-  const [{ default: jsPDF }, { default: autoTable }, { UserOptions, CellHookData }] = await Promise.all([
-    import('jspdf'),
-    import('jspdf-autotable'),
-    import('jspdf-autotable'),
-  ]);
   const T = makeT(lang), Pt = pdfStrings(lang);
-  const pf = (v: number, d = 0) => Number.isFinite(v) ? v.toLocaleString(locale(lang), { minimumFractionDigits: d, maximumFractionDigits: d }).replace(/[’']/g, "'") : '-';
+  const pf = (v: number, d = 0) => Number.isFinite(v) ? v.toLocaleString(locale(lang), { minimumFractionDigits: d, maximumFractionDigits: d }).replace(/['']/g, "'") : '-';
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
   const s = totals(rows, p), n = rows.length;
   const W = 210, M = 16, CW = W - 2 * M;
@@ -40,8 +36,8 @@ export async function buildTreeBenefitsPdf(input: PdfInput): Promise<jsPDFType> 
   const H = (size: number, style: 'normal' | 'bold' = 'normal', color = HEX.ink) => { doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(...rgb(color)); };
   const hdrBand = (title: string, sub: string) => {
     doc.setFillColor(...rgb(HEX.green)); doc.rect(0, 0, W, 30, 'F');
-    H(19, 'bold', '#FFFFFF'); doc.text(title, M, 14); H(9.5, 'normal', '#D7E6D9'); doc.text(sub, M, 21);
-    H(9, 'bold', '#FFFFFF'); doc.text(Pt.by, W - M, 12, { align: 'right' }); H(8, 'normal', '#D7E6D9'); doc.text(`${Pt.date} ${today}`, W - M, 18, { align: 'right' });
+    H(19, 'bold', '#FFFFFF'); doc.text(title, M, 14); H(9.5, 'normal', '#bbf7d0'); doc.text(sub, M, 21);
+    H(9, 'bold', '#FFFFFF'); doc.text(Pt.by, W - M, 12, { align: 'right' }); H(8, 'normal', '#bbf7d0'); doc.text(`${Pt.date} ${today}`, W - M, 18, { align: 'right' });
   };
   const sectionTitle = (t: string, y: number) => { H(12, 'bold', HEX.green); doc.text(t, M, y); doc.setDrawColor(...rgb(HEX.line)); doc.setLineWidth(0.3); doc.line(M, y + 2, W - M, y + 2); return y + 9; };
   const baseParse = (d: CellHookData) => {
@@ -67,7 +63,7 @@ export async function buildTreeBenefitsPdf(input: PdfInput): Promise<jsPDFType> 
   const kpis: [string, string, string][] = [
     [Pt.trees, String(n), `${skipped.length} ${T('kSkip')}`], [Pt.storage, pf(s.C), Pt.storageU], [Pt.seq, pf(s.seq, 1), Pt.seqU],
     [Pt.o2, pf(s.o2, 1), `${Pt.o2U} · ${T('kO2S', pf(s.o2 / O2_PER_PERSON, 1)).replace('≈', '~')}`],
-    [Pt.pol, pf(polSum), Pt.polU], [Pt.run, pf(s.runoff, 1), Pt.runU], [de ? 'Kronenfläche' : 'Crown area', pf(s.ground), 'm²'], [Pt.value, 'CHF ' + pf(s.chf), Pt.valueU],
+    [Pt.pol, pf(polSum), Pt.polU], [Pt.run, pf(s.runoff, 1), Pt.runU], [Pt.value, 'CHF ' + pf(s.chf), Pt.valueU],
   ];
   const bw = (CW - 3 * 4) / 4, bh = 21;
   kpis.forEach((k, i) => {
@@ -92,7 +88,6 @@ export async function buildTreeBenefitsPdf(input: PdfInput): Promise<jsPDFType> 
   };
   const hzRows = [
     [de ? 'Ø Stammdurchmesser cm' : 'Mean DBH cm', ...col('dbh')],
-    [`${de ? 'Kronenfläche' : 'Crown area'} m²`, ...col('ground')],
     [`${Pt.storage} kg C`, ...col('C')],
     [`${Pt.seq} kg C/${a}`, ...col('seq')],
     [`${Pt.o2} kg/${a}`, ...col('o2')],
@@ -117,8 +112,8 @@ export async function buildTreeBenefitsPdf(input: PdfInput): Promise<jsPDFType> 
   const cy = sectionTitle(Pt.valueSplit + '  ·  ' + Pt.polByType, y);
   const donutCfg: ChartConfiguration<'doughnut'> = { type: 'doughnut', data: { labels: [Pt.cSeq, Pt.air, Pt.runoff], datasets: [{ data: [s.vC, s.vAir, s.vRun], backgroundColor: [HEX.green, HEX.air, HEX.water], borderWidth: 0 }] },
     options: { cutout: '62%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 } } } } } };
-  const donut = await img(donutCfg as unknown as ChartConfiguration, 420, 300);
-  const bars = await img({ type: 'bar', data: { labels: ['O3', 'NO2', 'SO2', 'PM2.5', 'CO'], datasets: [{ data: [s.O3, s.NO2, s.SO2, s.PM, s.CO], backgroundColor: HEX.air, borderRadius: 3 }] },
+  const donut = img(donutCfg as unknown as ChartConfiguration, 420, 300);
+  const bars = img({ type: 'bar', data: { labels: ['O3', 'NO2', 'SO2', 'PM2.5', 'CO'], datasets: [{ data: [s.O3, s.NO2, s.SO2, s.PM, s.CO], backgroundColor: HEX.air, borderRadius: 3 }] },
     options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 11 } } }, y: { grid: { color: HEX.line }, ticks: { font: { size: 10 } }, title: { display: true, text: 'g / ' + (de ? 'Jahr' : 'yr'), font: { size: 10 } } } } } }, 520, 300);
   doc.addImage(donut, 'JPEG', M, cy, CW * 0.42, CW * 0.42 * 300 / 420); doc.addImage(bars, 'JPEG', M + CW * 0.46, cy, CW * 0.54, CW * 0.54 * 300 / 520);
   y = cy + CW * 0.42 * 300 / 420 + 6;
@@ -141,20 +136,18 @@ export async function buildTreeBenefitsPdf(input: PdfInput): Promise<jsPDFType> 
   const cw = (CW - 6) / 2, ch = cw * 300 / 460;
   const hzLabels = [de ? 'Heute' : 'Today', ...HZ.map(yrLbl)];
   const pick = (k: 'vC' | 'vAir' | 'vRun') => [s[k], ...HZ.map(h => s.proj[h][k])];
-  const stacked = await img({ type: 'bar', data: { labels: hzLabels, datasets: [{ label: Pt.cSeq, data: pick('vC'), backgroundColor: HEX.green }, { label: Pt.air, data: pick('vAir'), backgroundColor: HEX.air }, { label: Pt.runoff, data: pick('vRun'), backgroundColor: HEX.water }] },
+  const stacked = img({ type: 'bar', data: { labels: hzLabels, datasets: [{ label: Pt.cSeq, data: pick('vC'), backgroundColor: HEX.green }, { label: Pt.air, data: pick('vAir'), backgroundColor: HEX.air }, { label: Pt.runoff, data: pick('vRun'), backgroundColor: HEX.water }] },
     options: { plugins: { legend }, scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }, y: { stacked: true, grid: { color: HEX.line }, ticks: { font: { size: 10 } }, title: { display: true, text: `CHF/${a}`, font: { size: 10 } } } } } }, 460, 300);
-  const rp = await img({ type: 'line', data: { labels: lbl, datasets: [line(`${Pt.run} m³/${a}`, 'runoff', HEX.water, 'y'), line(`${Pt.pol} g/${a}`, 'polSum', HEX.air, 'y2', true)] }, options: { plugins: { legend }, scales: sc(`m³/${a}`, `g/${a}`) } }, 460, 300);
-  const ca = await img({ type: 'line', data: { labels: lbl, datasets: [line(`${de ? 'Kronenfläche' : 'Crown area'} m²`, 'ground', HEX.o2, 'y'), line(`${de ? 'Blattfläche' : 'Leaf area'} m²`, 'la', HEX.green, 'y2', true)] }, options: { plugins: { legend }, scales: sc('m²', 'm²') } }, 460, 300);
-  const sq = await img({ type: 'line', data: { labels: lbl, datasets: [line(`${Pt.seq} kg C/${a}`, 'seq', HEX.o2, 'y'), line(`${Pt.storage} kg C`, 'C', HEX.green, 'y2', true)] }, options: { plugins: { legend }, scales: sc(`kg C/${a}`, 'kg C') } }, 460, 300);
+  const rp = img({ type: 'line', data: { labels: lbl, datasets: [line(`${Pt.run} m³/${a}`, 'runoff', HEX.water, 'y'), line(`${Pt.pol} g/${a}`, 'polSum', HEX.air, 'y2', true)] }, options: { plugins: { legend }, scales: sc(`m³/${a}`, `g/${a}`) } }, 460, 300);
+  const sq = img({ type: 'line', data: { labels: lbl, datasets: [line(`${Pt.seq} kg C/${a}`, 'seq', HEX.o2, 'y'), line(`${Pt.storage} kg C`, 'C', HEX.green, 'y2', true)] }, options: { plugins: { legend }, scales: sc(`kg C/${a}`, 'kg C') } }, 460, 300);
   const cap = (t: string, x: number, yy: number) => { H(9, 'bold', HEX.green); doc.text(t, x, yy); };
   let gy = 42;
   cap(de ? 'Jahreswert nach Leistung' : 'Annual value by service', M, gy); doc.addImage(stacked, 'JPEG', M, gy + 3, cw, ch);
   cap(de ? 'Abfluss und Schadstoffentzug' : 'Runoff and pollution removal', M + cw + 6, gy); doc.addImage(rp, 'JPEG', M + cw + 6, gy + 3, cw, ch);
   gy += ch + 14;
-  cap(de ? 'Kronen- und Blattfläche' : 'Crown and leaf area', M, gy); doc.addImage(ca, 'JPEG', M, gy + 3, cw, ch);
-  cap(de ? 'Sequestrierung und Speicher' : 'Sequestration and storage', M + cw + 6, gy); doc.addImage(sq, 'JPEG', M + cw + 6, gy + 3, cw, ch);
+  cap(de ? 'Sequestrierung und Speicher' : 'Sequestration and storage', M, gy); doc.addImage(sq, 'JPEG', M, gy + 3, cw, ch);
   gy += ch + 14;
-  const o2img = await img(oxygenChartConfig(rows, p, T, lang, true), 900, 320);
+  const o2img = img(oxygenChartConfig(rows, p, T, lang, true), 900, 320);
   cap(de ? 'Sauerstoffproduktion und versorgte Personen' : 'Oxygen production and people supplied', M, gy); doc.addImage(o2img, 'JPEG', M, gy + 3, CW, CW * 320 / 900);
   gy += CW * 320 / 900 + 8;
   H(7.5, 'normal', HEX.muted); doc.text(doc.splitTextToSize(T('o2Note').replace(/₂/g, '2'), CW), M, gy, { lineHeightFactor: 1.4 });
@@ -165,7 +158,7 @@ export async function buildTreeBenefitsPdf(input: PdfInput): Promise<jsPDFType> 
   for (const r of rows) bySpV[r.species] = (bySpV[r.species] || 0) + r.chf;
   const topSp = Object.entries(bySpV).sort((x, z) => z[1] - x[1]).slice(0, 12);
   const spBarH = Math.max(220, 40 + topSp.length * 24);
-  const spBar = await img({ type: 'bar', data: { labels: topSp.map(x => x[0]), datasets: [{ data: topSp.map(x => +x[1].toFixed(2)), backgroundColor: HEX.green, borderRadius: 3 }] },
+  const spBar = img({ type: 'bar', data: { labels: topSp.map(x => x[0]), datasets: [{ data: topSp.map(x => +x[1].toFixed(2)), backgroundColor: HEX.green, borderRadius: 3 }] },
     options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: HEX.line }, ticks: { font: { size: 10 } }, title: { display: true, text: `CHF/${a}`, font: { size: 10 } } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } } } }, 940, spBarH);
   const spH = Math.min(CW * spBarH / 940, 90);
   cap(de ? 'Jahreswert nach Art (heute)' : 'Annual value by species (today)', M, y); doc.addImage(spBar, 'JPEG', M, y + 3, CW, spH); y += spH + 12;
@@ -181,16 +174,16 @@ export async function buildTreeBenefitsPdf(input: PdfInput): Promise<jsPDFType> 
   // ---- Per-tree table (landscape)
   doc.addPage('a4', 'landscape');
   const LW = 297;
-  doc.setFillColor(...rgb(HEX.green)); doc.rect(0, 0, LW, 14, 'F'); H(11, 'bold', '#FFFFFF'); doc.text(Pt.perTree, M, 9.5); H(8, 'normal', '#D7E6D9'); doc.text(`${T('title')} · ${today}`, LW - M, 9.5, { align: 'right' });
+  doc.setFillColor(...rgb(HEX.green)); doc.rect(0, 0, LW, 14, 'F'); H(11, 'bold', '#FFFFFF'); doc.text(Pt.perTree, M, 9.5); H(8, 'normal', '#bbf7d0'); doc.text(`${T('title')} · ${today}`, LW - M, 9.5, { align: 'right' });
   const hdr = [...Pt.hdr]; if (hasClass) hdr.splice(3, 0, Pt.sizeClass);
   const body = rows.map(r => {
     const v = [r.species, r.id ?? '', r.sp.ev ? Pt.ev : Pt.dec];
     if (hasClass) v.push(r.sizeClass ? T(r.sizeClass) : '');
-    v.push(pf(r.dbh, 1), pf(r.height, 1), pf(r.ground, 1), pf(r.la, 1), pf(r.lai, 2), pf(r.C), pf(r.seq, 2), pf(r.o2, 2), pf(r.pol.CO, 2), pf(r.pol.O3, 1), pf(r.pol.NO2, 1), pf(r.pol.SO2, 1), pf(r.pol.PM, 2), pf(r.runoff, 2), pf(r.chf, 2), r.flags.map(k => T(k)).join('; '));
+    v.push(pf(r.dbh, 1), pf(r.height, 1), pf(r.lai, 2), pf(r.C), pf(r.seq, 2), pf(r.o2, 2), pf(r.pol.CO, 2), pf(r.pol.O3, 1), pf(r.pol.NO2, 1), pf(r.pol.SO2, 1), pf(r.pol.PM, 2), pf(r.runoff, 2), pf(r.chf, 2), r.flags.map(k => T(k)).join('; '));
     return v;
   });
   const tot = [Pt.total, '', '']; if (hasClass) tot.push('');
-  tot.push('', '', pf(s.ground, 1), pf(s.la, 1), '', pf(s.C), pf(s.seq, 2), pf(s.o2, 2), pf(s.CO, 2), pf(s.O3, 1), pf(s.NO2, 1), pf(s.SO2, 1), pf(s.PM, 2), pf(s.runoff, 2), pf(s.chf, 2), '');
+  tot.push('', '', '', pf(s.C), pf(s.seq, 2), pf(s.o2, 2), pf(s.CO, 2), pf(s.O3, 1), pf(s.NO2, 1), pf(s.SO2, 1), pf(s.PM, 2), pf(s.runoff, 2), pf(s.chf, 2), '');
   body.push(tot);
   const flagCol = hdr.length - 1, textCols = hasClass ? 4 : 3;
   autoTable(doc, {
@@ -204,7 +197,7 @@ export async function buildTreeBenefitsPdf(input: PdfInput): Promise<jsPDFType> 
   doc.addPage('a4', 'portrait');
   hdrBand(T('projTitle'), T('title'));
   H(8.5, 'normal', HEX.muted); doc.text(doc.splitTextToSize(T('projSub'), CW), M, 38, { lineHeightFactor: 1.4 });
-  const pimg = await img(projectionChartConfig(rows, p, T, true), 900, 380); doc.addImage(pimg, 'JPEG', M, 50, CW, CW * 380 / 900);
+  const pimg = img(projectionChartConfig(rows, p, T, true), 900, 380); doc.addImage(pimg, 'JPEG', M, 50, CW, CW * 380 / 900);
   let py = 50 + CW * 380 / 900 + 8;
   const kp = HZ.map(yv => { const q = s.proj[yv]; return [yrLbl(yv), pf(q.C), `CHF ${pf(q.chf)}`, `CHF ${pf(q.cum)}`]; });
   const bw2 = (CW - 2 * 4) / 3, bh2 = 24;
@@ -257,8 +250,8 @@ export async function buildTreeBenefitsPdf(input: PdfInput): Promise<jsPDFType> 
 }
 
 /** Build and download the report. */
-export async function exportTreeBenefitsPdf(input: PdfInput): Promise<{ pages: number; name: string }> {
-  const doc = await buildTreeBenefitsPdf(input);
+export function exportTreeBenefitsPdf(input: PdfInput): { pages: number; name: string } {
+  const doc = buildTreeBenefitsPdf(input);
   const base = input.projectName || input.site.name.split(',')[0];
   const name = `${input.lang === 'de' ? 'Baumleistungen' : 'TreeBenefits'}_${base.replace(/[^\w-]+/g, '-')}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(name);

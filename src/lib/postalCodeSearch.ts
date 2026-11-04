@@ -84,47 +84,38 @@ export async function searchPostalCodeSuggestions(query: string, limit: number =
     }
 
     if (data.length > 0) {
-      const results: PostalCodeResult[] = [];
-      for (const item of data) {
-        const detection = await detectZoneForLocation(
-          Number(item.latitude),
-          Number(item.longitude),
-          item.city_name || undefined
-        );
-
-        const regionName = getRegionNameFromZone(detection.zone, item.country_code);
-
-        results.push({
+      return data.map((item) => {
+        const regionName = getRegionNameFromZone(item.zone_code || '', item.country_code);
+        return {
           id: item.id,
           postalCode: item.postal_code,
           countryCode: item.country_code,
           cityName: item.city_name || '',
           latitude: Number(item.latitude),
           longitude: Number(item.longitude),
-          zoneCode: detection.zone,
+          zoneCode: item.zone_code || '',
           regionName: regionName || item.region_name || '',
-          confidenceScore: detection.confidence,
-          elevation: detection.elevation,
-          dataSource: detection.source,
-        });
-      }
-
-      return results;
+          confidenceScore: Number(item.confidence_score) || 0.65,
+          elevation: item.elevation ? Number(item.elevation) : undefined,
+          dataSource: item.data_source || 'cache',
+        };
+      });
     }
 
     const nominatimResults = await nominatimService.searchByQuery(cleanedQuery);
 
-    const processedResults: PostalCodeResult[] = [];
-    for (const nominatimResult of nominatimResults.slice(0, limit)) {
+    const detectionPromises = nominatimResults.slice(0, limit).map(async (nominatimResult) => {
       const detection = await detectZoneForLocation(
         nominatimResult.latitude,
         nominatimResult.longitude,
-        nominatimResult.cityName
+        nominatimResult.cityName,
+        undefined,
+        true
       );
 
       const regionName = getRegionNameFromZone(detection.zone, nominatimResult.countryCode);
 
-      processedResults.push({
+      return {
         id: crypto.randomUUID(),
         postalCode: '',
         countryCode: nominatimResult.countryCode,
@@ -136,10 +127,10 @@ export async function searchPostalCodeSuggestions(query: string, limit: number =
         confidenceScore: detection.confidence,
         elevation: detection.elevation,
         dataSource: detection.source,
-      });
-    }
+      };
+    });
 
-    return processedResults;
+    return await Promise.all(detectionPromises);
   } catch (error) {
     console.error('Error searching postal code suggestions:', error);
     return [];

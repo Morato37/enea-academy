@@ -1,0 +1,59 @@
+Ich habe für die Projekt-Selektion eine neue Funktion "Schnittform" vorbereitet. Die folgenden Dateien liegen bereits im Projekt:
+
+- public/schnittformen/*.png  (40 Skizzen, Dateiname = <gattung>_<schnittform>.png)
+- src/lib/pruningForms.ts  (Katalog der Schnittformen, Zuordnung Gattung -> Skizzen)
+- src/lib/pruningFormPdf.ts  (lädt eine Skizze als PNG für jsPDF)
+- src/components/PruningForm/  (PruningFormPicker, PruningFormBadge, PruningFormSummary, index.ts)
+- supabase/migrations/20261029120000_add_pruning_form_to_selection_items.sql
+
+Diese Dateien bitte NICHT umschreiben, nur einbinden. Aufgaben:
+
+1. Datenbank
+   Finde die Tabelle, in der die Positionen einer Projekt-Selektion gespeichert sind (eine Zeile pro Pflanze in einer Selektion).
+   Ersetze in der Migration den Platzhalter "selection_items" überall durch diesen Tabellennamen und wende die Migration an.
+   Prüfe, ob es einen UNIQUE-Constraint auf Selektion + Pflanze gibt. Falls ja, ersetze ihn wie im Kommentar am Ende der Migration beschrieben.
+   RLS-Policies dieser Tabelle nicht ändern.
+
+2. Typ, Laden, Speichern
+   Ergänze das Feld pruning_form (string | null) im TypeScript-Typ der Selektionsposition und in allen Supabase-Abfragen, die Positionen laden.
+   Schreibe eine Funktion, die pruning_form einer einzelnen Position per update speichert.
+
+3. Auswahl auf der Selektionsseite
+   In der Komponente, die die Pflanzen einer Selektion auflistet (SelectionsPage oder deren Unterkomponente):
+   Zeige bei jeder Position, deren Pflanze ein Baum oder eine Palme ist (category_tree = true oder category_palm = true), diese Komponente:
+     <PruningFormPicker
+       botanicalName={plant.botanical_name}
+       value={item.pruning_form}
+       onChange={code => speichern(item.id, code)}
+     />
+   Import: import { PruningFormPicker } from '../components/PruningForm' (Pfad anpassen).
+   Optimistisch aktualisieren, bei einem Fehler zurücksetzen und die Fehlermeldung so anzeigen, wie es in der App sonst üblich ist.
+   Für Pflanzen, die keine Bäume oder Palmen sind, nichts anzeigen.
+   Die Picker-Komponente braucht etwas Breite (ca. 220 px). Wenn die Zeile zu schmal ist, darf sie auf kleinen Bildschirmen unter den Pflanzennamen umbrechen.
+
+4. Dieselbe Pflanze mit verschiedenen Schnittformen
+   Wenn die App verhindert, dass eine Pflanze zweimal in derselben Selektion steht, lass das zu, solange die Schnittformen verschieden sind.
+   Füge bei Baumpositionen einen kleinen Button "Weitere Schnittform" hinzu. Er legt eine Kopie der Position mit pruning_form = null an (übrige Felder wie Menge übernehmen oder Standardwert der App).
+
+5. Übersicht für Sales
+   Zeige auf der Selektionsseite unter der Positionsliste:
+     <PruningFormSummary items={...} />
+   items = alle Baum- und Palmenpositionen als { id, botanicalName, commonName, quantity, pruningForm }.
+   commonName und quantity nur, wenn es diese Felder gibt, sonst weglassen.
+
+6. Exporte (nur falls vorhanden)
+   PDF-Export der Selektion (jsPDF / jspdf-autotable):
+   - Neue Spalte "Schnittform" mit dem Formnamen (pruningFormExportText aus src/lib/pruningFormPdf.ts).
+   - Vor dem Erzeugen der Tabelle alle Skizzen mit Promise.all(getPruningSketchForPdf(botanicalName, pruning_form)) laden.
+   - Im didDrawCell-Hook der Spalte die Skizze mit fitSketch in eine Box von ca. 12 x 14 mm zeichnen (doc.addImage(sketch.dataUrl, 'PNG', ...)), Zeilenhöhe entsprechend erhöhen (minCellHeight).
+   - Wenn keine Skizze geladen werden kann, nur den Namen ausgeben.
+   Excel- oder CSV-Export: Spalte "Schnittform" mit pruningFormExportText(item.pruning_form) ergänzen.
+   Gibt es keinen dieser Exporte, diesen Punkt überspringen.
+
+7. Sprache
+   Wenn die App eine Sprachumschaltung (de/en/it) hat, die aktuelle Sprache als language-Prop an PruningFormPicker, PruningFormBadge und PruningFormSummary übergeben. Sonst nichts übergeben (Standard ist Deutsch).
+
+8. Sonst nichts ändern
+   Keine Umbenennungen, kein Umbau bestehender Komponenten, keine neuen npm-Pakete.
+
+Zum Schluss: Liste kurz auf, welche Dateien du geändert hast und welchen Tabellennamen du in der Migration eingesetzt hast.

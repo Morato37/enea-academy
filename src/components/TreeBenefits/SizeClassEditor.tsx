@@ -10,7 +10,7 @@ interface Props {
   onChange: (classes: Record<SizeClassKey, SizeClassStandard>) => void;
 }
 
-const numCls = 'w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-right font-mono text-sm focus:border-green-600 focus:outline-none';
+const numCls = 'w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-right font-mono text-sm focus:border-[#3C8150] focus:outline-none';
 
 /** Editable table with the standard dimensions of the three tree size classes. */
 export const SizeClassEditor: React.FC<Props> = ({ T, classes, onChange }) => {
@@ -23,7 +23,7 @@ export const SizeClassEditor: React.FC<Props> = ({ T, classes, onChange }) => {
 
   return (
     <details className="group rounded-lg border border-gray-200 bg-gray-50">
-      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-green-700">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-[#2F7041]">
         <span>{T('scTitle')}</span>
         <span className="font-mono text-gray-400 group-open:hidden">+</span>
         <span className="hidden font-mono text-gray-400 group-open:inline">–</span>
@@ -48,7 +48,7 @@ export const SizeClassEditor: React.FC<Props> = ({ T, classes, onChange }) => {
                 return (
                   <tr key={k}>
                     <td className="py-1 pr-2 font-medium text-gray-800">{T(k)}</td>
-                    <td className="py-1 pr-2"><input type="text" value={c.label} onChange={e => update(k, 'label', e.target.value)} className="w-28 rounded border border-gray-300 bg-white px-2 py-1 text-sm focus:border-green-600 focus:outline-none" /></td>
+                    <td className="py-1 pr-2"><input type="text" value={c.label} onChange={e => update(k, 'label', e.target.value)} className="w-28 rounded border border-gray-300 bg-white px-2 py-1 text-sm focus:border-[#3C8150] focus:outline-none" /></td>
                     <td className="py-1 pr-2"><input type="number" step={0.5} min={0.5} value={c.dbh} onChange={e => update(k, 'dbh', e.target.value)} className={numCls} /></td>
                     <td className="py-1 pr-2"><input type="number" step={0.5} min={0.5} value={c.height} onChange={e => update(k, 'height', e.target.value)} className={numCls} /></td>
                     <td className="py-1 pr-2"><input type="number" step={0.5} min={0.5} value={c.crownWidth} onChange={e => update(k, 'crownWidth', e.target.value)} className={numCls} /></td>
@@ -62,7 +62,7 @@ export const SizeClassEditor: React.FC<Props> = ({ T, classes, onChange }) => {
         <button
           type="button"
           onClick={() => onChange({ ...DEFAULT_SIZE_CLASSES })}
-          className="mt-3 flex items-center gap-1 text-xs text-gray-500 hover:text-green-700"
+          className="mt-3 flex items-center gap-1 text-xs text-gray-500 hover:text-[#2F7041]"
         >
           <RotateCcw className="h-3 w-3" /> {T('scReset')}
         </button>

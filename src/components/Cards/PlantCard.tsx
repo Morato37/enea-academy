@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plant } from '../../lib/supabase';
 import { useSelections } from '../../contexts/SelectionsContext';
-import { Check, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, Plus, ChevronLeft, ChevronRight, Ruler } from 'lucide-react';
 import { ColorTimeline } from '../ColorTimeline';
 
 interface PlantCardProps {
@@ -17,7 +17,9 @@ export const PlantCard: React.FC<PlantCardProps> = ({ plant, images = [] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [failedIndexes, setFailedIndexes] = useState<Set<number>>(new Set());
 
-  const allImages = images.length > 0 ? images : (plant.image_url ? [plant.image_url] : [DEFAULT_IMAGE]);
+  const allImages = [...new Set(
+    images.length > 0 ? images : (plant.image_url ? [plant.image_url] : [DEFAULT_IMAGE])
+  )];
   const validImages = allImages.filter((_, i) => !failedIndexes.has(i));
   const hasMultiple = validImages.length > 1;
 
@@ -25,15 +27,12 @@ export const PlantCard: React.FC<PlantCardProps> = ({ plant, images = [] }) => {
     setFailedIndexes(prev => {
       const next = new Set(prev);
       next.add(index);
+      if (currentIndex === index) {
+        const nextIndex = allImages.findIndex((_, i) => i > index && !next.has(i));
+        const prevIndex = allImages.findIndex((_, i) => i < index && !next.has(i));
+        setCurrentIndex(nextIndex !== -1 ? nextIndex : prevIndex !== -1 ? prevIndex : 0);
+      }
       return next;
-    });
-    // Advance to next non-failed image
-    setCurrentIndex(prev => {
-      if (prev !== index) return prev;
-      const nextIndex = allImages.findIndex((_, i) => i > index && !failedIndexes.has(i));
-      if (nextIndex !== -1) return nextIndex;
-      const prevIndex = allImages.findIndex((_, i) => i < index && !failedIndexes.has(i));
-      return prevIndex !== -1 ? prevIndex : prev;
     });
   };
 
@@ -62,6 +61,8 @@ export const PlantCard: React.FC<PlantCardProps> = ({ plant, images = [] }) => {
 
   const getClimateZones = (): string[] => {
     const zones: string[] = [];
+    if (plant.zone_1a) zones.push('1a');
+    if (plant.zone_1b) zones.push('1b');
     if (plant.zone_2a) zones.push('2a');
     if (plant.zone_2b) zones.push('2b');
     if (plant.zone_3a) zones.push('3a');
@@ -131,7 +132,7 @@ export const PlantCard: React.FC<PlantCardProps> = ({ plant, images = [] }) => {
               <ChevronRight className="w-5 h-5" />
             </button>
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-              {validImages.map((url, dotPos) => (
+              {validImages.map((url) => (
                 <div
                   key={url}
                   className={`w-1.5 h-1.5 rounded-full transition-colors ${allImages.indexOf(url) === currentIndex ? 'bg-white' : 'bg-white/40'}`}
@@ -157,7 +158,12 @@ export const PlantCard: React.FC<PlantCardProps> = ({ plant, images = [] }) => {
       <div className="p-4">
         <div className="mb-4">
           <div className="mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">{plant.botanical_name}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 break-words leading-snug">{plant.botanical_name}</h3>
+            {(plant.common_name_de || plant.common_name_en) && (
+              <p className="text-sm text-gray-500 mt-0.5 break-words leading-snug">
+                {[plant.common_name_de, plant.common_name_en].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {plant.layer && (
@@ -179,6 +185,14 @@ export const PlantCard: React.FC<PlantCardProps> = ({ plant, images = [] }) => {
                   </span>
                 ))}
               </div>
+            )}
+            {(plant.height_min_cm != null || plant.height_max_cm != null) && (
+              <span className="inline-flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded text-xs font-semibold text-green-700 border border-green-200">
+                <Ruler className="w-3 h-3" />
+                {plant.height_min_cm != null && `Min. ${plant.height_min_cm} m`}
+                {plant.height_min_cm != null && plant.height_max_cm != null && <span aria-hidden="true">·</span>}
+                {plant.height_max_cm != null && `Max. ${plant.height_max_cm} m`}
+              </span>
             )}
           </div>
         </div>

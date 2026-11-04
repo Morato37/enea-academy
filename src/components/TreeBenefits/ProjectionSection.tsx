@@ -32,14 +32,14 @@ export const ProjectionSection: React.FC<Props> = ({ T, lang, rows, params, tota
   return (
     <div className="mt-6">
       <div className="mb-2 flex items-baseline gap-2">
-        <span className="rounded border border-green-300 px-1.5 font-mono text-[11px] leading-[18px] text-green-700"><TrendingUp className="inline h-3 w-3" /></span>
+        <span className="rounded border border-[#9FBEA5] px-1.5 font-mono text-[11px] leading-[18px] text-[#2F7041]"><TrendingUp className="inline h-3 w-3" /></span>
         <h2 className="text-lg font-semibold text-gray-900">{T('projTitle')}</h2>
       </div>
       <p className="mb-3 text-xs text-gray-500">{T('projSub')}</p>
       <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white">
         <table className="w-full font-mono text-[12.5px] tabular-nums">
           <thead>
-            <tr className="bg-green-50 font-sans text-[11px] uppercase tracking-wider text-green-700">
+            <tr className="bg-[#E4F0E6] font-sans text-[11px] uppercase tracking-wider text-[#2F7041]">
               <th className="px-3 py-2" />
               <th className="px-3 py-2 text-right">{T('today')}</th>
               {HZ.map(y => <th key={y} className="px-3 py-2 text-right">{T('yr', y)}</th>)}

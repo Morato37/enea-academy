@@ -1,5 +1,7 @@
 import jsPDF from 'jspdf';
 import { UserSelection, supabase } from './supabase';
+import { getShrubSalesDetails } from './plantCategories';
+import { getPruningSketchForPdf, fitSketch, pruningFormExportText, PdfSketch } from './pruningFormPdf';
 
 const loadPlantImage = async (plantId: number): Promise<string | null> => {
   try {
@@ -72,22 +74,31 @@ interface IconDef {
   file: string;
   labelDe: string;
   labelEn: string;
+  legendCol: number; // 0-3, explicit legend grid position
+  legendRow: number; // 0-2
   check: (p: NonNullable<UserSelection['plant']>) => boolean;
+  drawFn?: (doc: jsPDF, x: number, y: number, size: number) => void;
 }
 
+// Legend grid: 4 cols × 3 rows, column-major
+// Col 0: Butterfly | Bee | Bird
+// Col 1: Klimaprofiteur | Immergrün | (empty — native removed)
+// Col 2: Saisonale Aspekte | Essbar | Heilpflanze
+// Col 3: Sonnig | Halbschattig | Schattig
 const ICON_DEFS: IconDef[] = [
-  { file: '/icons/schmetterlingsweide.jpeg', labelDe: 'Schmetterlingsweide', labelEn: 'Butterfly habitat',  check: p => !!p.characteristic_butterflies },
-  { file: '/icons/bienenweide.jpeg',         labelDe: 'Bienenweide',         labelEn: 'Bee habitat',         check: p => !!(p.characteristic_bees || p.characteristic_honeybees || p.characteristic_bumblebees) },
-  { file: '/icons/vogelnahrgeholz.jpeg',     labelDe: 'Vogelnährgehölz',     labelEn: 'Bird habitat',        check: p => !!p.characteristic_birds },
-  { file: '/icons/einheimisch.jpeg',         labelDe: 'Einheimisch',         labelEn: 'Native',              check: p => !!p.characteristic_native },
-  { file: '/icons/klimaprofiteur.jpeg',      labelDe: 'Klimaprofiteur',      labelEn: 'Climate benefit',     check: p => !!p.tree_of_the_future },
-  { file: '/icons/immergrun.jpeg',           labelDe: 'Immergrün',           labelEn: 'Evergreen',           check: p => !!p.characteristic_evergreen },
-  { file: '/icons/saisonal.jpeg',            labelDe: 'Saisonale Aspekte',   labelEn: 'Seasonal',            check: p => !!p.usage_seasonal },
-  { file: '/icons/essbar.jpeg',              labelDe: 'Essbar',              labelEn: 'Edible',              check: p => !!p.category_culinary_plant },
-  { file: '/icons/heilplfanze.jpeg',         labelDe: 'Heilpflanze',         labelEn: 'Medicinal',           check: p => !!p.category_medicinal_herbs },
-  { file: '/icons/sonnig.png',               labelDe: 'Sonnig',              labelEn: 'Sunny',               check: p => !!p.exposure_sun },
-  { file: '/icons/halbschattig.png',         labelDe: 'Halbschattig',        labelEn: 'Half shade',          check: p => !!p.exposure_halfshade },
-  { file: '/icons/schattig.png',             labelDe: 'Schattig',            labelEn: 'Shade',               check: p => !!p.exposure_shade },
+  { file: '/icons/BUTTERFLY_ICON.png',  labelDe: 'Schmetterlingsweide', labelEn: 'Butterfly habitat', legendCol: 0, legendRow: 0, check: p => !!p.characteristic_butterflies },
+  { file: '/icons/BEE_ICON.png',        labelDe: 'Bienenweide',         labelEn: 'Bee habitat',       legendCol: 0, legendRow: 1, check: p => !!(p.characteristic_bees || p.characteristic_honeybees || p.characteristic_bumblebees) },
+  { file: '/icons/BIRD_ICON.png',       labelDe: 'Vogelnährgehölz',    labelEn: 'Bird habitat',      legendCol: 0, legendRow: 2, check: p => !!p.characteristic_birds },
+  { file: '/images/native/einheimisch.jpg', labelDe: 'Einheimisch',     labelEn: 'Native',            legendCol: 1, legendRow: 0, check: p => !!p.characteristic_native },
+  { file: '/icons/EVERGREEN_ICON.png', labelDe: 'Klimaprofiteur',      labelEn: 'Climate benefit',   legendCol: 1, legendRow: 1, check: p => !!p.tree_of_the_future },
+  { file: '/icons/snowflake_grau_1.jpg',labelDe: 'Immergr\u00fcn',           labelEn: 'Evergreen',         legendCol: 1, legendRow: 2, check: p => !!p.characteristic_evergreen },
+  { file: '/icons/FLOWER.png',          labelDe: 'Saisonale Aspekte',   labelEn: 'Seasonal',          legendCol: 2, legendRow: 0, check: p => !!p.usage_seasonal },
+  { file: '/icons/Apple_grau_1.jpg',    labelDe: 'Essbar',              labelEn: 'Edible',            legendCol: 2, legendRow: 1, check: p => !!p.category_culinary_plant },
+  { file: '/icons/MEDICINAL.png',       labelDe: 'Heilpflanze',         labelEn: 'Medicinal',         legendCol: 2, legendRow: 2, check: p => !!p.category_medicinal_herbs },
+  { file: '/icons/sonnig.png',          labelDe: 'Sonnig',              labelEn: 'Sunny',             legendCol: 3, legendRow: 0, check: p => !!p.exposure_sun,
+    drawFn: (doc, x, y, size) => { doc.setDrawColor(80, 80, 80); doc.setLineWidth(0.45); doc.circle(x + size / 2, y + size / 2, size / 2 - 0.25, 'S'); } },
+  { file: '/icons/halbschattig.png',    labelDe: 'Halbschattig',        labelEn: 'Half shade',        legendCol: 3, legendRow: 1, check: p => !!p.exposure_halfshade },
+  { file: '/icons/schattig.png',        labelDe: 'Schattig',            labelEn: 'Shade',             legendCol: 3, legendRow: 2, check: p => !!p.exposure_shade },
 ];
 
 const iconCache = new Map<string, string>();
@@ -149,34 +160,71 @@ const assignCategory = (
   return labels.perennials;
 };
 
+// ── Size helper ──────────────────────────────────────────────────────────────
+
+const PERENNIAL_SIZE_MAP: Record<string, { de: string; en: string }> = {
+  short:  { de: 'Klein (30–40 cm)',  en: 'Small (30–40 cm)' },
+  medium: { de: 'Mittel (40–80 cm)',  en: 'Medium (40–80 cm)' },
+  tall:   { de: 'Groß (80–200 cm)',   en: 'Tall (80–200 cm)' },
+};
+
+const formatSize = (
+  plant: NonNullable<UserSelection['plant']>,
+  language: 'de' | 'en'
+): string => {
+  if (plant.perennial_size) {
+    const entry = PERENNIAL_SIZE_MAP[plant.perennial_size];
+    if (entry) return language === 'de' ? entry.de : entry.en;
+    return plant.perennial_size;
+  }
+  const hMin = plant.height_min_cm;
+  const hMax = plant.height_max_cm;
+  if (hMin != null && hMax != null) {
+    return language === 'de' ? `${hMin}–${hMax} cm` : `${hMin}–${hMax} cm`;
+  }
+  if (hMin != null) return `${hMin} cm`;
+  if (hMax != null) return `${hMax} cm`;
+  return '';
+};
+
 // ── Main export ──────────────────────────────────────────────────────────────
 
 export const generatePlantSelectionPDF = async (
   selections: UserSelection[],
-  projectName?: string,
+  _projectName?: string,
   language: 'de' | 'en' = 'de'
 ): Promise<void> => {
   const labels: CategoryLabels = language === 'de'
     ? { trees: 'Bäume', shrubs: 'Sträucher', grasses: 'Gräser', perennials: 'Stauden', bulbs: 'Zwiebeln', ferns: 'Farne', climbing: 'Kletterpflanzen' }
     : { trees: 'Trees', shrubs: 'Shrubs', grasses: 'Grasses', perennials: 'Perennials', bulbs: 'Bulbs', ferns: 'Ferns', climbing: 'Climbing Plants' };
 
-  // Build ordered list with category info attached
-  const groups: { [cat: string]: NonNullable<UserSelection['plant']>[] } = {};
-  for (const key of CATEGORY_ORDER) groups[labels[key]] = [];
-  selections.forEach(sel => {
-    if (!sel.plant) return;
-    groups[assignCategory(sel.plant, labels)].push(sel.plant);
+  const mixLabels = new Map<string, string>();
+  const grouped = new Map<string, NonNullable<UserSelection['plant']>[]>();
+  selections.forEach(selection => {
+    if (!selection.plant) return;
+    const mixKey = selection.zone_id || '__unassigned__';
+    mixLabels.set(mixKey, selection.zone?.name || (language === 'de' ? 'Ohne Mix' : 'Unassigned'));
+    const plants = grouped.get(mixKey) || [];
+    if (!plants.some(plant => plant.id === selection.plant!.id)) plants.push(selection.plant);
+    grouped.set(mixKey, plants);
   });
 
-  // Flat list of items — plant with optional category label on first of each group
-  type Item = { kind: 'plant'; plant: NonNullable<UserSelection['plant']>; catLabel?: string };
-  const items: Item[] = [];
-  for (const key of CATEGORY_ORDER) {
-    const cat = labels[key];
-    if (groups[cat].length === 0) continue;
-    groups[cat].sort((a, b) => (a.botanical_name || '').localeCompare(b.botanical_name || ''));
-    groups[cat].forEach((p, i) => items.push({ kind: 'plant', plant: p, catLabel: i === 0 ? cat : undefined }));
-  }
+  type Item = { kind: 'plant'; plant: NonNullable<UserSelection['plant']>; selection: UserSelection; catLabel?: string };
+  const items: Item[] = [...grouped.entries()]
+    .sort(([keyA], [keyB]) => {
+      if (keyA === '__unassigned__') return 1;
+      if (keyB === '__unassigned__') return -1;
+      const orderA = selections.find(selection => selection.zone_id === keyA)?.zone?.display_order ?? Number.MAX_SAFE_INTEGER;
+      const orderB = selections.find(selection => selection.zone_id === keyB)?.zone?.display_order ?? Number.MAX_SAFE_INTEGER;
+      return orderA - orderB || (mixLabels.get(keyA) || '').localeCompare(mixLabels.get(keyB) || '');
+    })
+    .flatMap(([mixKey, plants]) => {
+      plants.sort((a, b) => (a.botanical_name || '').localeCompare(b.botanical_name || ''));
+      return plants.map((plant, index) => {
+        const selection = selections.find(item => item.plant?.id === plant.id && (item.zone_id || '__unassigned__') === mixKey);
+        return { kind: 'plant' as const, plant, selection: selection!, catLabel: index === 0 ? mixLabels.get(mixKey) : undefined };
+      });
+    });
 
   if (items.length === 0) return;
 
@@ -192,12 +240,11 @@ export const generatePlantSelectionPDF = async (
 
   // Legend strip height at top of first page
   const LEGEND_ICON_SIZE = 5.5; // mm
-  const LEGEND_ITEM_W = 34;     // fixed width per item — tight, content-driven
-  const LEGEND_COLS = Math.floor((PAGE_W - margin * 2) / LEGEND_ITEM_W);
-  const LEGEND_ROWS = Math.ceil(ICON_DEFS.length / LEGEND_COLS);
-  const LEGEND_ROW_H = LEGEND_ICON_SIZE + 4;
+  const LEGEND_ROWS = 3;
+  const LEGEND_ITEM_W = 55;
+  const legendStartX = margin;
+  const LEGEND_ROW_H = LEGEND_ICON_SIZE + 1.5;
   const LEGEND_H = LEGEND_ROWS * LEGEND_ROW_H + 4;
-  const SEPARATOR_H = 3;
 
   // Cell layout
   const cellW = (PAGE_W - margin * 2 - colGap * (cols - 1)) / cols; // ~58mm
@@ -205,7 +252,7 @@ export const generatePlantSelectionPDF = async (
   const ICON_SIZE = 4;          // mm — icons under latin name
   const ICON_GAP = 1.2;
   const ICON_ROW_H = ICON_SIZE + 1.5;
-  const NAME_H = 9;             // common + botanic names (tighter)
+  const NAME_H = 12;            // common + botanic names + size line
   const CAT_LABEL_H = 5.5;      // extra space above image when a category label is shown
   const CELL_H = imgH + NAME_H + ICON_ROW_H + rowGap;
   const CELL_H_WITH_LABEL = CELL_H + CAT_LABEL_H;
@@ -218,15 +265,18 @@ export const generatePlantSelectionPDF = async (
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(80, 80, 80);
 
-    ICON_DEFS.forEach((def, idx) => {
-      const li = idx % LEGEND_COLS;
-      const lRow = Math.floor(idx / LEGEND_COLS);
-      const lx = margin + li * LEGEND_ITEM_W;
-      const ly = startY + lRow * LEGEND_ROW_H;
+    ICON_DEFS.forEach((def) => {
+      const lx = legendStartX + def.legendCol * LEGEND_ITEM_W;
+      const ly = startY + def.legendRow * LEGEND_ROW_H;
 
-      const iconData = iconCache.get(def.file);
-      if (iconData) {
-        doc.addImage(iconData, 'PNG', lx, ly, LEGEND_ICON_SIZE, LEGEND_ICON_SIZE);
+      if (def.drawFn) {
+        def.drawFn(doc, lx, ly, LEGEND_ICON_SIZE);
+      } else {
+        const iconData = iconCache.get(def.file);
+        if (iconData) {
+          const iconFmt = def.file.match(/\.jpe?g$/i) ? 'JPEG' : 'PNG';
+          doc.addImage(iconData, iconFmt, lx, ly, LEGEND_ICON_SIZE, LEGEND_ICON_SIZE);
+        }
       }
 
       const label = language === 'de' ? def.labelDe : def.labelEn;
@@ -237,26 +287,19 @@ export const generatePlantSelectionPDF = async (
     });
   };
 
-  // Thin separator line
-  const drawSeparator = (y: number) => {
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
-    doc.line(margin, y, PAGE_W - margin, y);
-  };
-
   // ── First page setup ──────────────────────────────────────────────────────
   let page = 1;
   drawLegend(margin);
-  drawSeparator(margin + LEGEND_H);
 
   let col = 0;
-  let rowY = margin + LEGEND_H + SEPARATOR_H;
+  let rowY = margin + LEGEND_H;
 
   const nextPage = () => {
     doc.addPage('a3', 'l');
     page++;
     col = 0;
-    rowY = margin + 4;
+    drawLegend(margin);
+    rowY = margin + LEGEND_H;
   };
 
   // Pre-compute which item indices start a labeled row so every cell in that
@@ -325,7 +368,7 @@ export const generatePlantSelectionPDF = async (
     }
 
     // Image placeholder
-    doc.setFillColor(225, 225, 225);
+    doc.setFillColor(255, 255, 255);
     doc.rect(x, imgY, cellW, imgH, 'F');
 
     // Image
@@ -356,15 +399,55 @@ export const generatePlantSelectionPDF = async (
     doc.setTextColor(110, 110, 110);
     doc.text(doc.splitTextToSize(plant.botanical_name || '', cellW)[0] || '', x, nameY + 3.2);
 
+    // Size line (perennial_size or height range)
+    const sizeText = formatSize(plant, language);
+    const shrubDetails = plant.category_shrub ? getShrubSalesDetails(item.selection.notes) : { form: '', linearMeters: undefined };
+    const shrubText = shrubDetails.form || shrubDetails.linearMeters !== undefined
+      ? `${shrubDetails.form === 'wave' ? 'Wave' : shrubDetails.form === 'hedge' ? 'Hedge' : 'Shrub'}${shrubDetails.linearMeters !== undefined ? ` · ${shrubDetails.linearMeters} linear m` : ''}`
+      : '';
+    const detailText = [sizeText, shrubText].filter(Boolean).join(' · ');
+    if (detailText) {
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(90, 90, 90);
+      doc.text(doc.splitTextToSize(detailText, cellW)[0], x, nameY + 6.4);
+    }
+
     // Icons row
     const applicableIcons = ICON_DEFS.filter(def => def.check(plant));
-    const iconRowY = nameY + 3.2 + 2.2;
+    const iconRowY = nameY + (detailText ? 9.6 : 3.2) + 2.2;
     applicableIcons.forEach((def, ii) => {
       const iconX = x + ii * (ICON_SIZE + ICON_GAP);
       if (iconX + ICON_SIZE > x + cellW) return;
-      const iconData = iconCache.get(def.file);
-      if (iconData) doc.addImage(iconData, 'PNG', iconX, iconRowY, ICON_SIZE, ICON_SIZE);
+      if (def.drawFn) {
+        def.drawFn(doc, iconX, iconRowY, ICON_SIZE);
+      } else {
+        const iconData = iconCache.get(def.file);
+        if (iconData) doc.addImage(iconData, def.file.match(/\.jpe?g$/i) ? 'JPEG' : 'PNG', iconX, iconRowY, ICON_SIZE, ICON_SIZE);
+      }
     });
+
+    // Pruning form sketch (for trees with a selected form)
+    if (plant.category_tree && item.selection.pruning_form) {
+      try {
+        const sketch: PdfSketch | null = await getPruningSketchForPdf(plant.botanical_name, item.selection.pruning_form);
+        if (sketch) {
+          const sketchMaxW = cellW * 0.45;
+          const sketchMaxH = imgH * 0.35;
+          const fit = fitSketch(sketch, sketchMaxW, sketchMaxH);
+          const sketchX = x + cellW - fit.w - 1.5;
+          const sketchY = imgY + 1.5;
+          doc.addImage(sketch.dataUrl, 'PNG', sketchX + fit.dx, sketchY + fit.dy, fit.w, fit.h);
+          const formLabel = pruningFormExportText(item.selection.pruning_form, language === 'de' ? 'de' : 'en');
+          if (formLabel) {
+            doc.setFontSize(5.5);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(80, 80, 80);
+            doc.text(formLabel, sketchX, sketchY + fit.h + 3);
+          }
+        }
+      } catch { /* keep cell as-is */ }
+    }
 
     advanceCell(rowOffset);
   }

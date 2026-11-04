@@ -7,6 +7,15 @@ interface PlantWithImage extends Plant {
   primaryImageUrl?: string;
 }
 
+const CATEGORY_FIELDS: (keyof Plant)[] = [
+  'category_shrub', 'category_tree', 'category_palm', 'category_perennial',
+  'category_annual', 'category_biannual', 'category_grass', 'category_succulent',
+  'category_bulb', 'category_acquatic', 'category_nonvascular', 'category_fern',
+  'category_climbing_plant', 'category_formal_hedge', 'category_wild_hedge',
+  'category_toxic_plant', 'category_ground_cover', 'category_culinary_plant',
+  'category_medicinal_herbs',
+];
+
 const SCROLL_POSITION_KEY = 'admin-plant-list-scroll';
 const SEARCH_TERM_KEY = 'admin-plant-list-search';
 
@@ -21,7 +30,6 @@ export const PlantList: React.FC = () => {
     }
   });
   const navigate = useNavigate();
-  const tableContainerRef = useRef<HTMLDivElement>(null);
   const scrollRestoredRef = useRef(false);
 
   useEffect(() => {
@@ -128,6 +136,7 @@ export const PlantList: React.FC = () => {
     plant.common_name_en?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     plant.common_name_de?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const uncategorizedPlants = plants.filter((plant) => !CATEGORY_FIELDS.some((field) => plant[field] === true));
 
   if (loading) {
     return (
@@ -158,6 +167,50 @@ export const PlantList: React.FC = () => {
           Add New Plant
         </button>
       </div>
+
+      <section className="bg-amber-50 rounded-lg border border-amber-200 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Plants without a category</h2>
+            <p className="text-sm text-gray-600 mt-1">These plants have no category assigned yet.</p>
+          </div>
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">{uncategorizedPlants.length}</span>
+        </div>
+        {uncategorizedPlants.length === 0 ? (
+          <p className="text-sm text-green-700">All plants have at least one category.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-amber-200 bg-white">
+            <table className="w-full">
+              <thead className="bg-amber-100/60 border-b border-amber-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Botanical Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Common Name</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-amber-100">
+                {uncategorizedPlants.map((plant) => (
+                  <tr key={plant.id} className="hover:bg-amber-50">
+                    <td className="px-4 py-3 text-sm text-gray-700">{plant.id}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{plant.botanical_name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{[plant.common_name_de, plant.common_name_en].filter(Boolean).join(' · ') || '-'}</td>
+                    <td className="px-4 py-3 text-right text-sm">
+                      <button
+                        onClick={() => saveScrollAndNavigate(`/admin/plant/${plant.id}?from=plants`)}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                      >
+                        <Edit className="w-3 h-3" />
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="overflow-x-auto">
@@ -198,7 +251,7 @@ export const PlantList: React.FC = () => {
                       {plant.botanical_name}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {plant.common_name_en || plant.common_name_de || '-'}
+                      {[plant.common_name_de, plant.common_name_en].filter(Boolean).join(' · ') || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {plant.primaryImageUrl ? (

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useSearchParams } from 'react-router-dom';
-import { Leaf, Mountain, MapPin, Users, Upload, FileText, Ticket } from 'lucide-react';
+import {
+  Leaf, Mountain, MapPin, Users, Upload, FileText, Ticket, Ruler, Library,
+  ArrowLeft,
+} from 'lucide-react';
 import { PlantList } from '../components/Admin/PlantList';
 import { StoneList } from '../components/Admin/StoneList';
 import { ZoneManagement } from '../components/Admin/ZoneManagement';
@@ -9,15 +12,125 @@ import { UserManagement } from '../components/Admin/UserManagement';
 import { BulkImageUploader } from '../components/Admin/BulkImageUploader';
 import PDFUploader from '../components/Admin/PDFUploader';
 import { TicketManagement } from '../components/Admin/TicketManagement';
+import { TreeSizeClassesEditor } from '../components/Admin/TreeSizeClassesEditor';
+import { LibraryManagement } from '../components/Admin/LibraryManagement';
 import { supabase } from '../lib/supabase';
+
+type AdminTool =
+  | 'plants' | 'stones' | 'zones' | 'users'
+  | 'bulk-upload' | 'pdfs' | 'tickets' | 'tree-sizes' | 'library';
+
+interface ToolTile {
+  key: AdminTool;
+  label: string;
+  description: string;
+  icon: React.ElementType;
+  color: string;
+  bgColor: string;
+  hoverBg: string;
+  ring: string;
+}
+
+const TOOLS: ToolTile[] = [
+  {
+    key: 'plants',
+    label: 'Plants',
+    description: 'Add, edit and manage the plant catalog',
+    icon: Leaf,
+    color: 'text-[#2F7041]',
+    bgColor: 'bg-green-50',
+    hoverBg: 'hover:bg-green-100',
+    ring: 'hover:ring-green-300',
+  },
+  {
+    key: 'stones',
+    label: 'Stones',
+    description: 'Manage stones, finishes and combinations',
+    icon: Mountain,
+    color: 'text-slate-600',
+    bgColor: 'bg-slate-50',
+    hoverBg: 'hover:bg-slate-100',
+    ring: 'hover:ring-slate-300',
+  },
+  {
+    key: 'library',
+    label: 'Library',
+    description: 'Manage book catalog and reservations',
+    icon: Library,
+    color: 'text-sky-600',
+    bgColor: 'bg-sky-50',
+    hoverBg: 'hover:bg-sky-100',
+    ring: 'hover:ring-sky-300',
+  },
+  {
+    key: 'zones',
+    label: 'Zone Management',
+    description: 'Postal codes and climate zone data',
+    icon: MapPin,
+    color: 'text-teal-600',
+    bgColor: 'bg-teal-50',
+    hoverBg: 'hover:bg-teal-100',
+    ring: 'hover:ring-teal-300',
+  },
+  {
+    key: 'tree-sizes',
+    label: 'Tree Size Classes',
+    description: 'Define size classes for tree benefit calculations',
+    icon: Ruler,
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50',
+    hoverBg: 'hover:bg-emerald-100',
+    ring: 'hover:ring-emerald-300',
+  },
+  {
+    key: 'users',
+    label: 'User Management',
+    description: 'Manage user accounts, roles and access',
+    icon: Users,
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-50',
+    hoverBg: 'hover:bg-orange-100',
+    ring: 'hover:ring-orange-300',
+  },
+  {
+    key: 'bulk-upload',
+    label: 'Bulk Image Upload',
+    description: 'Upload multiple plant or stone images at once',
+    icon: Upload,
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50',
+    hoverBg: 'hover:bg-blue-100',
+    ring: 'hover:ring-blue-300',
+  },
+  {
+    key: 'pdfs',
+    label: 'Media Upload',
+    description: 'Upload PDFs and other media documents',
+    icon: FileText,
+    color: 'text-rose-600',
+    bgColor: 'bg-rose-50',
+    hoverBg: 'hover:bg-rose-100',
+    ring: 'hover:ring-rose-300',
+  },
+  {
+    key: 'tickets',
+    label: 'Tickets',
+    description: 'Review and manage user-submitted tickets',
+    icon: Ticket,
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-50',
+    hoverBg: 'hover:bg-amber-100',
+    ring: 'hover:ring-amber-300',
+  },
+];
 
 export const AdminPage: React.FC = () => {
   const { isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [stats, setStats] = useState({ plants: 0, stones: 0 });
+  const [stats, setStats] = useState({ plants: 0, stones: 0, users: 0, tickets: 0 });
 
-  const tabParam = searchParams.get('tab') as 'plants' | 'stones' | 'zones' | 'users' | 'bulk-upload' | 'pdfs' | 'tickets' | null;
-  const activeTab = tabParam || 'plants';
+  const tabParam = searchParams.get('tab') as AdminTool | null;
+  const activeTab: AdminTool | null = tabParam || null;
 
   useEffect(() => {
     loadStats();
@@ -25,17 +138,21 @@ export const AdminPage: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      const [plantsResult, stonesResult] = await Promise.all([
+      const [plantsRes, stonesRes, usersRes, ticketsRes] = await Promise.all([
         supabase.from('plants_flat').select('id', { count: 'exact', head: true }),
         supabase.from('stones').select('id', { count: 'exact', head: true }),
+        supabase.from('user_profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('tickets').select('id', { count: 'exact', head: true }),
       ]);
 
       setStats({
-        plants: plantsResult.count || 0,
-        stones: stonesResult.count || 0,
+        plants: plantsRes.count || 0,
+        stones: stonesRes.count || 0,
+        users: usersRes.count || 0,
+        tickets: ticketsRes.count || 0,
       });
-    } catch (err) {
-      console.error('Error loading stats:', err);
+    } catch {
+      // Stats are decorative; ignore errors
     }
   };
 
@@ -43,149 +160,153 @@ export const AdminPage: React.FC = () => {
     return <Navigate to="/" replace />;
   }
 
-  return (
-    <div className="min-h-screen bg-transparent">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
+  const goBack = () => setSearchParams({});
 
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-cyan-600 font-medium">Total Plants</p>
-                <p className="text-2xl font-bold text-cyan-900 mt-1">{stats.plants}</p>
+  const statFor = (key: AdminTool): string | null => {
+    switch (key) {
+      case 'plants': return stats.plants.toLocaleString();
+      case 'stones': return stats.stones.toLocaleString();
+      case 'users': return stats.users.toLocaleString();
+      case 'tickets': return stats.tickets.toLocaleString();
+      default: return null;
+    }
+  };
+
+  // --- Tool view (individual admin tool is active) ---
+  if (activeTab) {
+    const tool = TOOLS.find(t => t.key === activeTab);
+    const ToolIcon = tool?.icon || Leaf;
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-14">
+              <button
+                onClick={goBack}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Dashboard
+              </button>
+              <div className="flex items-center gap-2">
+                <ToolIcon className={`w-5 h-5 ${tool?.color || 'text-gray-600'}`} />
+                <span className="font-semibold text-gray-900">{tool?.label || activeTab}</span>
               </div>
-              <Leaf className="w-8 h-8 text-cyan-600" />
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 font-medium">Total Stones</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.stones}</p>
-              </div>
-              <Mountain className="w-8 h-8 text-gray-600" />
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 font-medium">Total Items</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.plants + stats.stones}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-orange-600 font-medium">User Management</p>
-                <p className="text-sm text-gray-600 mt-1">Manage users & access</p>
-              </div>
-              <Users className="w-8 h-8 text-orange-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="border-b border-gray-200">
-            <div className="flex overflow-x-auto">
-              <button
-                onClick={() => setSearchParams({ tab: 'plants' })}
-                className={`flex items-center px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === 'plants'
-                    ? 'border-b-2 border-cyan-600 text-cyan-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Leaf className="w-5 h-5 mr-2" />
-                Manage Plants
-              </button>
-              <button
-                onClick={() => setSearchParams({ tab: 'bulk-upload' })}
-                className={`flex items-center px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === 'bulk-upload'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Upload className="w-5 h-5 mr-2" />
-                Bulk Upload
-              </button>
-              <button
-                onClick={() => setSearchParams({ tab: 'stones' })}
-                className={`flex items-center px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === 'stones'
-                    ? 'border-b-2 border-gray-600 text-gray-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Mountain className="w-5 h-5 mr-2" />
-                Manage Stones
-              </button>
-              <button
-                onClick={() => setSearchParams({ tab: 'zones' })}
-                className={`flex items-center px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === 'zones'
-                    ? 'border-b-2 border-cyan-600 text-cyan-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <MapPin className="w-5 h-5 mr-2" />
-                Zone Management
-              </button>
-              <button
-                onClick={() => setSearchParams({ tab: 'users' })}
-                className={`flex items-center px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === 'users'
-                    ? 'border-b-2 border-orange-600 text-orange-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Users className="w-5 h-5 mr-2" />
-                User Management
-              </button>
-              <button
-                onClick={() => setSearchParams({ tab: 'pdfs' })}
-                className={`flex items-center px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === 'pdfs'
-                    ? 'border-b-2 border-red-600 text-red-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <FileText className="w-5 h-5 mr-2" />
-                PDF Upload
-              </button>
-              <button
-                onClick={() => setSearchParams({ tab: 'tickets' })}
-                className={`flex items-center px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === 'tickets'
-                    ? 'border-b-2 border-purple-600 text-purple-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Ticket className="w-5 h-5 mr-2" />
-                Tickets
-              </button>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {activeTab === 'plants' ? (
+            <PlantList />
+          ) : activeTab === 'bulk-upload' ? (
+            <BulkImageUploader />
+          ) : activeTab === 'stones' ? (
+            <StoneList />
+          ) : activeTab === 'zones' ? (
+            <ZoneManagement />
+          ) : activeTab === 'users' ? (
+            <UserManagement />
+          ) : activeTab === 'pdfs' ? (
+            <PDFUploader />
+          ) : activeTab === 'tree-sizes' ? (
+            <TreeSizeClassesEditor />
+          ) : activeTab === 'library' ? (
+            <LibraryManagement />
+          ) : (
+            <TicketManagement />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- Overview (tile dashboard) ---
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">Admin Dashboard</h1>
+          <p className="text-gray-500 mt-2 text-lg">Select a tool to manage your platform</p>
+        </div>
+
+        {/* Stats row */}
+        <div className="mb-10 grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Plants</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.plants.toLocaleString()}</p>
+              </div>
+              <div className="w-11 h-11 rounded-lg bg-green-50 flex items-center justify-center">
+                <Leaf className="w-6 h-6 text-[#2F7041]" />
+              </div>
             </div>
           </div>
-
-          <div className="p-8">
-            {activeTab === 'plants' ? (
-              <PlantList />
-            ) : activeTab === 'bulk-upload' ? (
-              <BulkImageUploader />
-            ) : activeTab === 'stones' ? (
-              <StoneList />
-            ) : activeTab === 'zones' ? (
-              <ZoneManagement />
-            ) : activeTab === 'users' ? (
-              <UserManagement />
-            ) : activeTab === 'pdfs' ? (
-              <PDFUploader />
-            ) : (
-              <TicketManagement />
-            )}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Stones</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.stones.toLocaleString()}</p>
+              </div>
+              <div className="w-11 h-11 rounded-lg bg-slate-50 flex items-center justify-center">
+                <Mountain className="w-6 h-6 text-slate-600" />
+              </div>
+            </div>
           </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Users</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.users.toLocaleString()}</p>
+              </div>
+              <div className="w-11 h-11 rounded-lg bg-orange-50 flex items-center justify-center">
+                <Users className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Tickets</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.tickets.toLocaleString()}</p>
+              </div>
+              <div className="w-11 h-11 rounded-lg bg-amber-50 flex items-center justify-center">
+                <Ticket className="w-6 h-6 text-amber-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tool tiles */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {TOOLS.map(tool => {
+            const Icon = tool.icon;
+            const stat = statFor(tool.key);
+
+            return (
+              <button
+                key={tool.key}
+                onClick={() => setSearchParams({ tab: tool.key })}
+                className={`group text-left bg-white rounded-xl shadow-sm border border-gray-100 p-6 ring-2 ring-transparent ${tool.hoverBg} ${tool.ring} transition-all duration-200 hover:shadow-md`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`w-14 h-14 rounded-xl ${tool.bgColor} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+                    <Icon className={`w-7 h-7 ${tool.color}`} />
+                  </div>
+                  {stat && (
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${tool.bgColor} ${tool.color}`}>
+                      {stat}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">{tool.label}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{tool.description}</p>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

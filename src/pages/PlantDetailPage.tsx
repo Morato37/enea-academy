@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase, Plant } from '../lib/supabase';
-import { ArrowLeft, Save, Loader, X, Star, Upload, Check, AlertCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Save, Loader, X, Star, Upload, Check, AlertCircle, Clock, Copy } from 'lucide-react';
 import { ImageUploader } from '../components/Admin/ImageUploader';
 import { useAutoSave } from '../lib/useAutoSave';
 
@@ -19,6 +19,7 @@ export const PlantDetailPage: React.FC = () => {
   });
   const [pendingImages, setPendingImages] = useState<{ file: File; preview: string; isPrimary: boolean }[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
 
   const isNewPlant = id === 'new';
 
@@ -215,6 +216,63 @@ export const PlantDetailPage: React.FC = () => {
     setPendingImages(newImages);
   };
 
+  const handleDuplicate = async () => {
+    if (isNewPlant || !plant.botanical_name) return;
+    setDuplicating(true);
+    try {
+      const { id: _id, created_at, updated_at, image_url, ...rest } = plant;
+      const plantData = Object.fromEntries(
+        Object.entries(rest).filter(([_, v]) => {
+          if (typeof v === 'boolean') return true;
+          return v !== undefined && v !== null && v !== '';
+        })
+      );
+      plantData.botanical_name = `${plant.botanical_name} (Copy)`;
+
+      const { data: newPlant, error } = await supabase
+        .from('plants_flat')
+        .insert([plantData])
+        .select()
+        .single();
+      if (error) throw error;
+
+      const { data: images, error: imgError } = await supabase
+        .from('plant_images')
+        .select('image_url, display_order, is_primary')
+        .eq('plant_id', id)
+        .order('display_order', { ascending: true });
+      if (imgError) throw imgError;
+
+      if (images && images.length > 0) {
+        const newImages = images.map(img => ({
+          plant_id: newPlant.id,
+          image_url: img.image_url,
+          display_order: img.display_order,
+          is_primary: img.is_primary,
+        }));
+        const { error: insertError } = await supabase
+          .from('plant_images')
+          .insert(newImages);
+        if (insertError) throw insertError;
+
+        const primary = images.find(img => img.is_primary);
+        if (primary) {
+          await supabase
+            .from('plants_flat')
+            .update({ image_url: primary.image_url })
+            .eq('id', newPlant.id);
+        }
+      }
+
+      navigate(`/admin/plant/${newPlant.id}?from=${fromTab}`);
+    } catch (err: any) {
+      console.error('Error duplicating plant:', err);
+      alert(`Failed to duplicate plant: ${err.message || JSON.stringify(err)}`);
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -259,10 +317,20 @@ export const PlantDetailPage: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center mb-6">
+          <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
               {isNewPlant ? 'Add New Plant' : 'Edit Plant'}
             </h1>
+            {!isNewPlant && (
+              <button
+                onClick={handleDuplicate}
+                disabled={duplicating}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors text-sm font-medium"
+              >
+                {duplicating ? <Loader className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                Duplicate
+              </button>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -303,10 +371,54 @@ export const PlantDetailPage: React.FC = () => {
                     value={plant.common_name_de || ''}
                     onChange={(e) => setPlant({ ...plant, common_name_de: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
-                    placeholder="e.g., Japanischer Fächerahorn"
+                    placeholder="e.g., Japanese maple"
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Height Range */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Height Range (m)</h2>
+              <div className="grid grid-cols-2 gap-4 max-w-md">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
+                    Min Height (m)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={plant.height_min_cm ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                      setPlant({ ...plant, height_min_cm: isNaN(val as number) ? null : val });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
+                    placeholder="e.g., 0.3"
+                    step="0.1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
+                    Max Height (m)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={plant.height_max_cm ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                      setPlant({ ...plant, height_max_cm: isNaN(val as number) ? null : val });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
+                    placeholder="e.g., 1.2"
+                    step="0.1"
+                  />
+                </div>
+              </div>
+              <p className="mt-1 text-sm text-gray-500">
+                Enter the mature height range for this plant in meters
+              </p>
             </div>
 
             {/* Plant Categories */}
@@ -549,7 +661,7 @@ export const PlantDetailPage: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Hardiness Zones</h2>
               <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                 {[
-                  'zone_2a', 'zone_2b', 'zone_3a', 'zone_3b', 'zone_4a', 'zone_4b',
+                  'zone_1a', 'zone_1b', 'zone_2a', 'zone_2b', 'zone_3a', 'zone_3b', 'zone_4a', 'zone_4b',
                   'zone_5a', 'zone_5b', 'zone_6a', 'zone_6b', 'zone_7a', 'zone_7b',
                   'zone_8a', 'zone_8b', 'zone_9a', 'zone_9b', 'zone_10a', 'zone_10b'
                 ].map((key) => (
@@ -611,6 +723,62 @@ export const PlantDetailPage: React.FC = () => {
                     </span>
                   </label>
                 )}
+                {plant.tree_of_the_future && (
+                  <div className="col-span-2 md:col-span-3 ml-6 pl-3 border-l-2 border-green-200 space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={plant.tree_of_the_future_drought || false}
+                        onChange={(e) => setPlant({ ...plant, tree_of_the_future_drought: e.target.checked })}
+                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      <span className="text-sm text-gray-700">Drought tolerant</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={plant.tree_of_the_future_flooding || false}
+                        onChange={(e) => setPlant({ ...plant, tree_of_the_future_flooding: e.target.checked })}
+                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      <span className="text-sm text-gray-700">Flooding tolerant</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={plant.tree_of_the_future_salt || false}
+                        onChange={(e) => setPlant({ ...plant, tree_of_the_future_salt: e.target.checked })}
+                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      <span className="text-sm text-gray-700">Salt tolerant</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Garden Styles */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Garden Styles</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {[
+                  { key: 'garden_style_new_japanese', label: 'New Japanese' },
+                  { key: 'garden_style_alpine', label: 'Alpine' },
+                  { key: 'garden_style_residential', label: 'Residential' },
+                  { key: 'garden_style_mediterranean', label: 'Mediterranean' },
+                  { key: 'garden_style_swiss_farmhouse', label: 'Swiss Farmhouse' },
+                  { key: 'garden_style_wild', label: 'Wild' },
+                ].map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={plant[key as keyof Plant] as boolean || false}
+                      onChange={(e) => setPlant({ ...plant, [key]: e.target.checked })}
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                    />
+                    <span className="text-sm text-gray-900">{label}</span>
+                  </label>
+                ))}
               </div>
             </div>
 

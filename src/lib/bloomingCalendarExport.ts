@@ -137,6 +137,17 @@ export const generateBloomingCalendarPDF = async (
       if (sel.plant) groups[assignCat(sel.plant)].push(sel);
     });
 
+    for (const key of categoryOrder) {
+      const seenIds = new Set<number | string>();
+      groups[categoryLabels[key]] = groups[categoryLabels[key]].filter(sel => {
+        if (!sel.plant) return false;
+        if (seenIds.has(sel.plant.id)) return false;
+        seenIds.add(sel.plant.id);
+        return true;
+      });
+      groups[categoryLabels[key]].sort((a, b) => (a.plant?.botanical_name || '').localeCompare(b.plant?.botanical_name || ''));
+    }
+
     return categoryOrder
       .map(key => ({ category: categoryLabels[key], items: groups[categoryLabels[key]] }))
       .filter(g => g.items.length > 0);
@@ -151,13 +162,15 @@ export const generateBloomingCalendarPDF = async (
   const monthColStart = margin + 165;
   const monthColWidth = 12;
   const colRemarks = monthColStart + (MONTHS.length * monthColWidth) + 5;
-  const rowHeight = 7;
+  const baseRowHeight = 7;
   const categoryTitleHeight = 6;
+  const remarksWidth = pageWidth - margin - colRemarks - 4;
+  const remarksLineHeight = 3.2;
 
   drawTableHeader();
 
   for (const group of groups) {
-    if (currentY + categoryTitleHeight + rowHeight > pageHeight - 30) {
+    if (currentY + categoryTitleHeight + baseRowHeight > pageHeight - 30) {
       await addFooter(pageNumber);
       doc.addPage();
       pageNumber++;
@@ -183,6 +196,36 @@ export const generateBloomingCalendarPDF = async (
       const plant = selection.plant;
       if (!plant) continue;
 
+      const remarks: string[] = [];
+      if (language === 'de') {
+        if (plant.characteristic_native) remarks.push('heimisch');
+        if (plant.characteristic_butterflies) remarks.push('Schmetterlinge');
+        if (plant.characteristic_bees) remarks.push('Bienen');
+        if (plant.characteristic_honeybees) remarks.push('Honigbienen');
+        if (plant.characteristic_bumblebees) remarks.push('Hummeln');
+        if (plant.characteristic_hoverflies) remarks.push('Schwebfliegen');
+        if (plant.characteristic_beetles) remarks.push('Käfer');
+        if (plant.characteristic_birds) remarks.push('Vögel');
+      } else {
+        if (plant.characteristic_native) remarks.push('native');
+        if (plant.characteristic_butterflies) remarks.push('butterflies');
+        if (plant.characteristic_bees) remarks.push('bees');
+        if (plant.characteristic_honeybees) remarks.push('honeybees');
+        if (plant.characteristic_bumblebees) remarks.push('bumblebees');
+        if (plant.characteristic_hoverflies) remarks.push('hoverflies');
+        if (plant.characteristic_beetles) remarks.push('beetles');
+        if (plant.characteristic_birds) remarks.push('birds');
+      }
+
+      const remarksText = remarks.join(', ');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      const remarksLines = remarksText ? doc.splitTextToSize(remarksText, remarksWidth) : [];
+      const rowHeight = Math.max(
+        baseRowHeight,
+        6 + Math.max(0, remarksLines.length - 1) * remarksLineHeight
+      );
+
       if (currentY + rowHeight > pageHeight - 30) {
         await addFooter(pageNumber);
         doc.addPage();
@@ -199,8 +242,8 @@ export const generateBloomingCalendarPDF = async (
       doc.setFillColor(255, 255, 255);
       doc.rect(margin, currentY, pageWidth - 2 * margin, rowHeight, 'F');
 
-      doc.setDrawColor(220, 220, 220);
-      doc.setLineWidth(0.1);
+      doc.setDrawColor(150, 150, 150);
+      doc.setLineWidth(0.2);
       doc.rect(margin, currentY, colNameBotanic - margin, rowHeight);
       doc.rect(colNameBotanic, currentY, monthColStart - colNameBotanic, rowHeight);
       doc.rect(colRemarks, currentY, pageWidth - margin - colRemarks, rowHeight);
@@ -220,12 +263,14 @@ export const generateBloomingCalendarPDF = async (
         const color2Key = `color2_${month.key}` as keyof typeof plant;
         const color2Hex = plant[color2Key] as string | undefined;
 
-        doc.setDrawColor(220, 220, 220);
-        doc.setLineWidth(0.1);
+        doc.setDrawColor(150, 150, 150);
+        doc.setLineWidth(0.2);
         doc.rect(x, currentY, monthColWidth, rowHeight);
 
         const hasColor1 = colorHex && colorHex.trim() !== '';
         const hasColor2 = color2Hex && color2Hex.trim() !== '';
+
+        const isWhite = (r: number, g: number, b: number) => r >= 250 && g >= 250 && b >= 250;
 
         if (hasColor1 && hasColor2) {
           const rgb1 = hexToRgb(colorHex);
@@ -238,35 +283,46 @@ export const generateBloomingCalendarPDF = async (
           doc.triangle(cx, cy, cx + cw, cy, cx, cy + ch, 'F');
           doc.setFillColor(rgb2.r, rgb2.g, rgb2.b);
           doc.triangle(cx + cw, cy, cx + cw, cy + ch, cx, cy + ch, 'F');
+          if (isWhite(rgb1.r, rgb1.g, rgb1.b) || isWhite(rgb2.r, rgb2.g, rgb2.b)) {
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.4);
+            doc.rect(cx, cy, cw, ch);
+            doc.setDrawColor(150, 150, 150);
+            doc.setLineWidth(0.2);
+          }
         } else if (hasColor1) {
           const rgb = hexToRgb(colorHex);
           doc.setFillColor(rgb.r, rgb.g, rgb.b);
           doc.rect(x + 0.5, currentY + 0.5, monthColWidth - 1, rowHeight - 1, 'F');
+          if (isWhite(rgb.r, rgb.g, rgb.b)) {
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.4);
+            doc.rect(x + 0.5, currentY + 0.5, monthColWidth - 1, rowHeight - 1);
+            doc.setDrawColor(150, 150, 150);
+            doc.setLineWidth(0.2);
+          }
         } else if (hasColor2) {
           const rgb = hexToRgb(color2Hex);
           doc.setFillColor(rgb.r, rgb.g, rgb.b);
           doc.rect(x + 0.5, currentY + 0.5, monthColWidth - 1, rowHeight - 1, 'F');
+          if (isWhite(rgb.r, rgb.g, rgb.b)) {
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.4);
+            doc.rect(x + 0.5, currentY + 0.5, monthColWidth - 1, rowHeight - 1);
+            doc.setDrawColor(150, 150, 150);
+            doc.setLineWidth(0.2);
+          }
         }
       });
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       doc.setTextColor(80, 80, 80);
-
-      const remarks: string[] = [];
-      if (language === 'de') {
-        if (plant.characteristic_native) remarks.push('heimisch');
-        if (plant.characteristic_butterflies) remarks.push('Schmetterlinge');
-        if (plant.characteristic_bees) remarks.push('Bienen');
-      } else {
-        if (plant.characteristic_native) remarks.push('native');
-        if (plant.characteristic_butterflies) remarks.push('butterflies');
-        if (plant.characteristic_bees) remarks.push('bees');
-      }
-
-      const remarksText = remarks.join(', ');
-      if (remarksText) {
-        doc.text(remarksText, colRemarks + 2, currentY + 4.5, { maxWidth: 60 });
+      if (remarksLines.length > 0) {
+        doc.text(remarksLines, colRemarks + 2, currentY + 4.5, {
+          maxWidth: remarksWidth,
+          lineHeightFactor: 1,
+        });
       }
 
       currentY += rowHeight;

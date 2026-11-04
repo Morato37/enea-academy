@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { PostalCodeSearch } from '../components/ZoneMap/PostalCodeSearch';
 import { ZoneLegend } from '../components/ZoneMap/ZoneLegend';
 import { ResultsPanel } from '../components/ZoneMap/ResultsPanel';
+import { ManualZoneSelector } from '../components/ZoneMap/ManualZoneSelector';
 import { getZoneColor, getZoneLabel } from '../lib/zoneColors';
 import { Loader2, Info } from 'lucide-react';
 import { LayerDistribution } from '../components/LayerDistribution';
@@ -45,10 +46,12 @@ export const ZoneMapPage: React.FC = () => {
     stones,
     loading,
     showResults,
+    manualZone,
     handleLocationSelect,
     handleCloseResults,
     handleUsageFilterChange,
     handleMapClick,
+    handleManualZoneSelect,
   } = useZoneMap();
 
   return (
@@ -143,11 +146,15 @@ export const ZoneMapPage: React.FC = () => {
         </MapContainer>
 
         <div className="absolute top-4 left-4 z-[1000] w-56 md:w-72 hidden sm:block space-y-4">
+          <ManualZoneSelector
+            onZoneSelect={handleManualZoneSelect}
+            activeZone={manualZone}
+          />
           <ZoneLegend />
           <LayerDistribution />
         </div>
 
-        {!selectedLocation && (
+        {!selectedLocation && !manualZone && (
           <div className="absolute bottom-8 left-4 right-4 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-[1000] bg-zinc-900/95 backdrop-blur-sm border border-zinc-700 rounded-lg px-4 md:px-6 py-3 md:py-4 shadow-2xl md:max-w-md">
             <div className="flex items-start gap-2 md:gap-3">
               <Info className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
@@ -156,7 +163,7 @@ export const ZoneMapPage: React.FC = () => {
                   Select Location
                 </p>
                 <p className="text-xs md:text-sm text-gray-400">
-                  Click on the map or enter a postal code to find suitable plants and stones for your hardiness zone.
+                  Click on the map, enter a postal code, or pick a hardiness zone from the filter on the left to find suitable plants and stones.
                 </p>
               </div>
             </div>
@@ -172,12 +179,12 @@ export const ZoneMapPage: React.FC = () => {
           </div>
         )}
 
-        {showResults && selectedLocation && (
+        {showResults && (selectedLocation || manualZone) && (
           <ResultsPanel
             plants={plants}
             stones={stones}
-            zoneCode={selectedLocation.zoneCode}
-            cityName={selectedLocation.cityName}
+            zoneCode={selectedLocation?.zoneCode || manualZone || ''}
+            cityName={selectedLocation?.cityName || 'Manual Zone Selection'}
             onClose={handleCloseResults}
             onUsageFilterChange={handleUsageFilterChange}
           />

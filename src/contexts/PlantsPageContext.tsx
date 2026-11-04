@@ -31,7 +31,11 @@ const defaultFilters: PlantFilterState = {
   nativeStatus: [],
   leafPersistence: [],
   treeOfTheFuture: false,
+  treeOfTheFutureDrought: false,
+  treeOfTheFutureFlooding: false,
+  treeOfTheFutureSalt: false,
   naturalisticPlantingDesign: false,
+  gardenStyles: [],
 };
 
 export const PlantsPageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -66,16 +70,18 @@ export const PlantsPageProvider: React.FC<{ children: ReactNode }> = ({ children
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        fetchPlants();
+        fetchPlants(true);
       }
     };
 
+    const handleFocus = () => fetchPlants(true);
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', fetchPlants);
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', fetchPlants);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
@@ -109,7 +115,12 @@ export const PlantsPageProvider: React.FC<{ children: ReactNode }> = ({ children
             if (b.is_primary !== a.is_primary) return (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0);
             return a.display_order - b.display_order;
           });
-          map.set(plant.id, sorted.map(i => i.image_url));
+          const imageUrls = [...new Set(
+            sorted
+              .map(i => i.image_url)
+              .filter((url): url is string => Boolean(url))
+          )];
+          map.set(plant.id, imageUrls);
         }
       }
       setPlantImagesMap(map);
@@ -188,11 +199,15 @@ export const PlantsPageProvider: React.FC<{ children: ReactNode }> = ({ children
       categories.push('blue');
     }
 
-    if (r > 120 && b > 120 && g < Math.min(r, b) - 20 && Math.abs(r - b) < 60) {
+    if (r > 120 && b > 120 && g < Math.min(r, b) - 20 && Math.abs(r - b) < 60 && brightness < 180) {
       categories.push('purple');
     }
 
     if (r > 180 && g > 120 && b > 120 && r > g + 20 && r > b + 20 && brightness > 150) {
+      categories.push('pink');
+    }
+
+    if (r > 200 && b > 200 && g < Math.min(r, b) - 40 && brightness > 180) {
       categories.push('pink');
     }
 
@@ -247,12 +262,12 @@ export const PlantsPageProvider: React.FC<{ children: ReactNode }> = ({ children
     let filtered = [...plants];
 
     if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
+      const searchLower = filters.search.toLowerCase().replace(/\s+/g, ' ').trim();
       filtered = filtered.filter(
         (plant) =>
-          plant.botanical_name.toLowerCase().includes(searchLower) ||
-          plant.common_name_en?.toLowerCase().includes(searchLower) ||
-          plant.common_name_de?.toLowerCase().includes(searchLower)
+          plant.botanical_name.toLowerCase().replace(/\s+/g, ' ').includes(searchLower) ||
+          plant.common_name_en?.toLowerCase().replace(/\s+/g, ' ').includes(searchLower) ||
+          plant.common_name_de?.toLowerCase().replace(/\s+/g, ' ').includes(searchLower)
       );
     }
 
@@ -311,6 +326,18 @@ export const PlantsPageProvider: React.FC<{ children: ReactNode }> = ({ children
       filtered = filtered.filter((plant) => plant.tree_of_the_future === true);
     }
 
+    if (filters.treeOfTheFutureDrought) {
+      filtered = filtered.filter((plant) => plant.tree_of_the_future_drought === true);
+    }
+
+    if (filters.treeOfTheFutureFlooding) {
+      filtered = filtered.filter((plant) => plant.tree_of_the_future_flooding === true);
+    }
+
+    if (filters.treeOfTheFutureSalt) {
+      filtered = filtered.filter((plant) => plant.tree_of_the_future_salt === true);
+    }
+
     if (filters.naturalisticPlantingDesign) {
       filtered = filtered.filter((plant) => plant.layer && plant.layer.trim() !== '');
     }
@@ -367,6 +394,15 @@ export const PlantsPageProvider: React.FC<{ children: ReactNode }> = ({ children
 
     if (filters.colors.length > 0) {
       filtered = filtered.filter((plant) => plantHasColor(plant, filters.colors));
+    }
+
+    if (filters.gardenStyles.length > 0) {
+      filtered = filtered.filter((plant) =>
+        filters.gardenStyles.some((style) => {
+          const key = `garden_style_${style}` as keyof Plant;
+          return plant[key] === true;
+        })
+      );
     }
 
     setFilteredPlants(filtered);

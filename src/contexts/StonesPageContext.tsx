@@ -62,11 +62,11 @@ export const StonesPageProvider: React.FC<{ children: ReactNode }> = ({ children
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', fetchStones);
+    window.addEventListener('focus', () => fetchStones());
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', fetchStones);
+      window.removeEventListener('focus', () => fetchStones());
     };
   }, []);
 

@@ -18,6 +18,9 @@ import { ZoneMapPage } from './pages/ZoneMapPage';
 import { AdditionalInformationPage } from './pages/AdditionalInformationPage';
 import { TicketsPage } from './pages/TicketsPage';
 import { TreeBenefitsPage } from './pages/TreeBenefitsPage';
+import { BloomCalendarListPage } from './pages/BloomCalendarListPage';
+import { BloomCalendarEditorPage } from './pages/BloomCalendarEditorPage';
+import { LibraryPage } from './pages/LibraryPage';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
@@ -77,18 +80,26 @@ const AppContent: React.FC = () => {
                 }
               />
               <Route
+                path="/tickets"
+                element={
+                  <ProtectedRoute>
+                    <TicketsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/tree-benefits"
                 element={
-                  <ProtectedRoute adminOnly>
+                  <ProtectedRoute>
                     <TreeBenefitsPage />
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="/tickets"
+                path="/library"
                 element={
                   <ProtectedRoute>
-                    <TicketsPage />
+                    <LibraryPage />
                   </ProtectedRoute>
                 }
               />
@@ -113,6 +124,22 @@ const AppContent: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <StoneDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/bluehkalender"
+                element={
+                  <ProtectedRoute>
+                    <BloomCalendarListPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/bluehkalender/:id"
+                element={
+                  <ProtectedRoute>
+                    <BloomCalendarEditorPage />
                   </ProtectedRoute>
                 }
               />

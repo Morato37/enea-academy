@@ -1,0 +1,78 @@
+src/components/Admin/FinishImageManager.tsx(189,15): error TS2345: Argument of type '"new"' is not assignable to parameter of type 'SetStateAction<number | null>'.
+src/components/Admin/FinishImageManager.tsx(293,25): error TS2367: This comparison appears to be unintentional because the types 'number | null' and 'string' have no overlap.
+src/components/Admin/FinishImageManager.tsx(296,16): error TS2367: This comparison appears to be unintentional because the types 'number | null' and 'string' have no overlap.
+src/components/Admin/FinishQRCodeGenerator.tsx(35,52): error TS6133: 'finishLabel' is declared but its value is never read.
+src/components/Admin/ImageUploader.tsx(3,1): error TS6133: 'convertToPng' is declared but its value is never read.
+src/components/Admin/ImageUploader.tsx(4,18): error TS6133: 'X' is declared but its value is never read.
+src/components/Admin/ImageUploader.tsx(24,3): error TS6133: 'currentImageUrl' is declared but its value is never read.
+src/components/Admin/ImageUploader.tsx(179,13): error TS6133: 'column' is declared but its value is never read.
+src/components/Admin/PlantList.tsx(24,9): error TS6133: 'tableContainerRef' is declared but its value is never read.
+src/components/Admin/StoneCombinationsManager.tsx(2,35): error TS6133: 'Trash2' is declared but its value is never read.
+src/components/Admin/StoneCombinationsManager.tsx(14,3): error TS6133: 'stoneName' is declared but its value is never read.
+src/components/Admin/UserManagement.tsx(160,73): error TS6133: 'fullName' is declared but its value is never read.
+src/components/Cards/PlantCard.tsx(133,38): error TS6133: 'dotPos' is declared but its value is never read.
+src/components/Cards/StoneCard.tsx(71,9): error TS6133: 'climateZones' is declared but its value is never read.
+src/components/Cards/StoneCard.tsx(72,9): error TS6133: 'applications' is declared but its value is never read.
+src/components/Cards/StoneCard.tsx(73,9): error TS6133: 'finishes' is declared but its value is never read.
+src/components/Cards/StoneCard.tsx(74,9): error TS6133: 'frostResistance' is declared but its value is never read.
+src/components/ColorTimeline.tsx(128,17): error TS2322: Type 'string | null | undefined' is not assignable to type 'BackgroundColor | undefined'.
+src/components/Filters/LocationFilter.tsx(194,9): error TS6133: 'handleManualRegionSelect' is declared but its value is never read.
+src/components/Filters/PlantFilters.tsx(44,7): error TS6133: 'GARDEN_STYLES' is declared but its value is never read.
+src/components/Filters/StoneFilters.tsx(1,27): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/Filters/StoneFilters.tsx(3,1): error TS6133: 'Stone' is declared but its value is never read.
+src/components/Selections/ProjectShareModal.tsx(12,7): error TS6133: 'PermissionBadge' is declared but its value is never read.
+src/components/Stones/TileCombinationModal.tsx(18,10): error TS6133: 'combinations' is declared but its value is never read.
+src/components/ZoneMap/ResultsPanel.tsx(230,9): error TS2304: Cannot find name 'setMatrixApproach'.
+src/components/ZoneMap/ResultsPanel.tsx(294,21): error TS2352: Conversion of type 'Plant' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/components/ZoneMap/ResultsPanel.tsx(297,21): error TS2352: Conversion of type 'Plant' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/components/ZoneMap/ResultsPanel.tsx(638,23): error TS2322: Type '{ key: number; stone: Stone; onTileSelect: ((tile: Stone) => void) | undefined; isTileMode: boolean; }' is not assignable to type 'IntrinsicAttributes & StoneCardProps'.
+src/components/ZoneMap/ResultsPanel.tsx(650,10): error TS2741: Property 'isOpen' is missing in type '{ tile: Stone; onClose: () => void; onConfirm: (tileId: number, cobblestoneIds: number[]) => Promise<void>; }' but required in type 'TileCombinationModalProps'.
+src/contexts/PlantsPageContext.tsx(78,38): error TS2769: No overload matches this call.
+src/contexts/PlantsPageContext.tsx(82,43): error TS2769: No overload matches this call.
+src/contexts/StonesPageContext.tsx(65,38): error TS2769: No overload matches this call.
+src/contexts/StonesPageContext.tsx(69,43): error TS2769: No overload matches this call.
+src/lib/calculationExport.ts(5,3): error TS6133: 'getCategoryLabel' is declared but its value is never read.
+src/lib/pdfExport.ts(133,15): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(138,15): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(152,15): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(155,15): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(167,17): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(170,17): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(182,13): error TS6133: 'startY' is declared but its value is never read.
+src/lib/pdfExport.ts(185,19): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(195,21): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(244,19): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(372,23): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(377,23): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(396,21): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(399,21): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(461,17): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(463,17): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(478,19): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(523,19): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(616,23): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(619,23): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(647,25): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(652,25): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(690,23): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(693,23): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(747,25): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(751,25): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/lib/pdfExport.ts(770,34): error TS2339: Property 'producer' does not exist on type 'Stone'.
+src/lib/pdfExport.ts(771,54): error TS2339: Property 'producer' does not exist on type 'Stone'.
+src/lib/pdfExport.ts(775,34): error TS2339: Property 'region_of_use' does not exist on type 'Stone'.
+src/lib/pdfExport.ts(776,60): error TS2339: Property 'region_of_use' does not exist on type 'Stone'.
+src/lib/pdfExport.ts(782,34): error TS2339: Property 'application' does not exist on type 'Stone'.
+src/lib/pdfExport.ts(783,62): error TS2339: Property 'application' does not exist on type 'Stone'.
+src/lib/pdfExport.ts(789,34): error TS2339: Property 'surface_finish' does not exist on type 'Stone'.
+src/lib/pdfExport.ts(790,62): error TS2339: Property 'surface_finish' does not exist on type 'Stone'.
+src/lib/pdfExport.ts(796,34): error TS2339: Property 'features' does not exist on type 'Stone'.
+src/lib/pdfExport.ts(797,62): error TS2339: Property 'features' does not exist on type 'Stone'.
+src/lib/plantCategories.ts(1,32): error TS6133: 'ProjectZone' is declared but its value is never read.
+src/lib/plantCategories.ts(122,22): error TS2740: Type '{}' is missing the following properties from type 'Record<PlantCategoryKey, number | undefined>': tree, shrub, perennial, annual, and 12 more.
+src/lib/plantSelectionExport.ts(165,3): error TS6133: 'projectName' is declared but its value is never read.
+src/lib/plantSelectionExport.ts(209,9): error TS6133: 'LEGEND_COLS' is declared but its value is never read.
+src/pages/SelectionsPage.tsx(159,81): error TS6133: 'idx' is declared but its value is never read.
+src/pages/SelectionsPage.tsx(594,9): error TS6133: 'isOwner' is declared but its value is never read.
+src/pages/SelectionsPage.tsx(862,70): error TS2322: Type '{ className: string; title: string; }' is not assignable to type 'IntrinsicAttributes & LucideProps'.
+src/pages/SelectionsPage.tsx(863,72): error TS2322: Type '{ className: string; title: string; }' is not assignable to type 'IntrinsicAttributes & LucideProps'.

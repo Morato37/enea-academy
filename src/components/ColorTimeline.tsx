@@ -125,7 +125,7 @@ export const ColorTimeline: React.FC<ColorTimelineProps> = ({
               key={month.key}
               className={`${sizeClasses[size]} rounded-full border-2 border-zinc-700 shadow-sm transition-all`}
               style={{
-                backgroundColor: activeColor,
+                backgroundColor: activeColor ?? undefined,
               }}
               title={`${month.label}: ${activeColor}`}
             />

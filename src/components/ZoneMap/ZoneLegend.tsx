@@ -2,7 +2,7 @@ import React from 'react';
 import { ZONE_COLORS, ZONE_TEMP_RANGES } from '../../lib/zoneColors';
 
 export const ZoneLegend: React.FC = () => {
-  const displayZones = ['2a', '2b', '3a', '3b', '4a', '4b', '5a', '5b', '6a', '6b', '7a', '7b', '8a', '8b', '9a', '9b', '10a', '10b'];
+  const displayZones = ['1a', '1b', '2a', '2b', '3a', '3b', '4a', '4b', '5a', '5b', '6a', '6b', '7a', '7b', '8a', '8b', '9a', '9b', '10a', '10b'];
 
   return (
     <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm">

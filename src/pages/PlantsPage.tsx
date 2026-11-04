@@ -4,6 +4,7 @@ import { LocationFilter } from '../components/Filters/LocationFilter';
 import { PlantCard } from '../components/Cards/PlantCard';
 import { Loader2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { LayerDistribution } from '../components/LayerDistribution';
+import { GardenStylesPanel } from '../components/GardenStylesPanel';
 import { usePlantsPage } from '../contexts/PlantsPageContext';
 
 const PAGE_SIZE = 30;
@@ -21,7 +22,9 @@ export const PlantsPage: React.FC = () => {
   } = usePlantsPage();
 
   const [page, setPage] = useState(1);
+  const [pageInput, setPageInput] = useState('');
   const [layerPanelOpen, setLayerPanelOpen] = useState(true);
+  const [gardenStylesPanelOpen, setGardenStylesPanelOpen] = useState(true);
 
   // Reset to first page whenever filters change
   useEffect(() => {
@@ -42,8 +45,16 @@ export const PlantsPage: React.FC = () => {
   const pagePlants = filteredPlants.slice(pageStart, pageStart + PAGE_SIZE);
 
   const goTo = (p: number) => {
-    setPage(p);
+    const targetPage = Math.min(Math.max(p, 1), totalPages);
+    setPage(targetPage);
+    setPageInput('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePageSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const targetPage = Number.parseInt(pageInput, 10);
+    if (!Number.isNaN(targetPage)) goTo(targetPage);
   };
 
   const buildPageNumbers = () => {
@@ -67,7 +78,7 @@ export const PlantsPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Enea's Academy - Plant Database</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Enea Academy - Plant Database</h1>
             <p className="text-gray-700">
               Browse our collection of {plants.length} plants
               {filteredPlants.length !== plants.length &&
@@ -162,6 +173,20 @@ export const PlantsPage: React.FC = () => {
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
+                      <form onSubmit={handlePageSubmit} className="ml-3 flex items-center gap-1.5">
+                        <label htmlFor="plant-page-input" className="text-xs text-gray-500 whitespace-nowrap">Go to page</label>
+                        <input
+                          id="plant-page-input"
+                          type="number"
+                          min={1}
+                          max={totalPages}
+                          value={pageInput}
+                          onChange={(event) => setPageInput(event.target.value)}
+                          placeholder={String(safePage)}
+                          className="w-14 h-9 rounded border border-gray-300 bg-white px-2 text-center text-sm text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                          aria-label="Page number"
+                        />
+                      </form>
                     </div>
                   </div>
                 )}
@@ -188,6 +213,26 @@ export const PlantsPage: React.FC = () => {
           </div>
         </aside>
       )}
+
+      <aside
+        className="fixed top-32 z-50 transition-transform duration-300 ease-in-out"
+        style={{
+          right: gardenStylesPanelOpen
+            ? (filters.naturalisticPlantingDesign && layerPanelOpen ? '19rem' : '2rem')
+            : '-16rem'
+        }}
+      >
+        <button
+          onClick={() => setGardenStylesPanelOpen(o => !o)}
+          className="absolute -left-8 top-4 bg-white border border-gray-200 rounded-l-lg px-1.5 py-3 shadow-md hover:bg-gray-50 transition-colors flex items-center justify-center"
+          title={gardenStylesPanelOpen ? 'Hide panel' : 'Show Garden Styles'}
+        >
+          {gardenStylesPanelOpen ? <ChevronRight size={14} className="text-gray-600" /> : <ChevronLeft size={14} className="text-gray-600" />}
+        </button>
+        <div className="w-64 max-h-[calc(100vh-10rem)] overflow-y-auto">
+          <GardenStylesPanel filters={filters} onFilterChange={setFilters} />
+        </div>
+      </aside>
     </div>
   );
 };

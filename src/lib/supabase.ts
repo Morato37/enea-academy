@@ -72,6 +72,8 @@ export interface Plant {
   usage_tropical?: boolean;
 
   // Climate zones
+  zone_1a?: boolean;
+  zone_1b?: boolean;
   zone_2a?: boolean;
   zone_2b?: boolean;
   zone_3a?: boolean;
@@ -119,13 +121,26 @@ export interface Plant {
   color2_nov?: string;
   color2_dec?: string;
 
-  // Special traits
-  traits_change_with_location?: string;
   tree_of_the_future?: boolean;
+  tree_of_the_future_drought?: boolean;
+  tree_of_the_future_flooding?: boolean;
+  tree_of_the_future_salt?: boolean;
   layer?: string;
+
+  // Garden styles
+  garden_style_new_japanese?: boolean;
+  garden_style_alpine?: boolean;
+  garden_style_residential?: boolean;
+  garden_style_mediterranean?: boolean;
+  garden_style_swiss_farmhouse?: boolean;
+  garden_style_wild?: boolean;
 
   // Perennial size (only for perennials)
   perennial_size?: string;
+
+  // Height range in centimeters (applies to all plants)
+  height_min_cm?: number | null;
+  height_max_cm?: number | null;
 
   // Plant characteristics
   characteristic_evergreen?: boolean;
@@ -219,6 +234,7 @@ export interface Project {
   user_id: string;
   name: string;
   description?: string;
+  folder_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -270,10 +286,51 @@ export interface UserSelection {
   parent_selection_id?: string;
   is_tile_combination?: boolean;
   combination_reference?: string;
+  pruning_form?: string | null;
+  tree_height_cm?: number | null;
   created_at: string;
   plant?: Plant;
   stone?: Stone;
   project?: Project;
   zone?: ProjectZone;
   child_selections?: UserSelection[];
+}
+
+export interface ProjectPlan {
+  id: string;
+  project_id?: string;
+  user_id: string;
+  display_name: string;
+  storage_path: string;
+  file_size: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectPlanZone {
+  id: string;
+  plan_id: string;
+  zone_id?: string;
+  x_pct: number;
+  y_pct: number;
+  w_pct: number;
+  h_pct: number;
+  polygon_points?: Array<{ x: number; y: number }> | null;
+  page_number: number;
+  created_at: string;
+}
+
+export type TreeSizeClassKey = 'small' | 'medium' | 'large';
+
+export interface TreeSizeClass {
+  id: string;
+  plant_id: number;
+  size_class: TreeSizeClassKey;
+  label: string;
+  dbh: number;
+  height: number;
+  crown_width: number;
+  crown_base: number;
+  created_at?: string;
+  updated_at?: string;
 }

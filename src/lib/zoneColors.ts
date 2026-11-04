@@ -1,4 +1,6 @@
 export const ZONE_COLORS: Record<string, string> = {
+  '1a': '#F0F0FF',
+  '1b': '#E0E0F0',
   '2a': '#D8D8D8',
   '2b': '#B4B4B4',
   '3a': '#EDCCE8',
@@ -22,6 +24,8 @@ export const ZONE_COLORS: Record<string, string> = {
 };
 
 export const ZONE_TEMP_RANGES: Record<string, { min: number; max: number }> = {
+  '1a': { min: -51.1, max: -48.3 },
+  '1b': { min: -48.3, max: -45.6 },
   '2a': { min: -45.6, max: -42.8 },
   '2b': { min: -42.8, max: -40.0 },
   '3a': { min: -40.0, max: -37.2 },

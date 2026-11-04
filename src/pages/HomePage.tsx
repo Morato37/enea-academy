@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, Mountain, ShoppingCart, Map, FolderSearch, TreePine } from 'lucide-react';
+import { Leaf, Mountain, ShoppingCart, Map, FolderSearch, TreePine, Library } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export const HomePage: React.FC = () => {
+  const { isAdmin } = useAuth();
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -11,7 +13,7 @@ export const HomePage: React.FC = () => {
             <img src="/enea-logo.png" alt="Enea Logo" className="h-16" />
           </div>
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            Enea's Academy
+            Enea Academy
           </h1>
           <p className="text-xl text-gray-700 max-w-2xl mx-auto">
             Your comprehensive resource for landscape architecture. Browse our extensive
@@ -43,7 +45,7 @@ export const HomePage: React.FC = () => {
           </div>
         </Link>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-16">
           <Link
             to="/plants"
             className="bg-white rounded-lg border border-gray-300 hover:border-cyan-500 transition-all p-8 text-center group shadow-sm"
@@ -86,17 +88,31 @@ export const HomePage: React.FC = () => {
             </p>
           </Link>
 
+          {isAdmin && (
+            <Link
+              to="/library"
+              className="bg-white rounded-lg border border-gray-300 hover:border-sky-500 transition-all p-8 text-center group shadow-sm"
+            >
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4 group-hover:bg-sky-500/20 transition-colors">
+                <Library className="w-10 h-10 text-sky-600" />
+              </div>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-2">Library</h2>
+              <p className="text-gray-700">
+                Browse and reserve books from the Enea collection. See which books are available and who has them.
+              </p>
+            </Link>
+          )}
+
           <Link
             to="/tree-benefits"
             className="bg-white rounded-lg border border-gray-300 hover:border-green-600 transition-all p-8 text-center group shadow-sm"
           >
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4 group-hover:bg-green-600/20 transition-colors">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4 group-hover:bg-green-500/20 transition-colors">
               <TreePine className="w-10 h-10 text-green-700" />
             </div>
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">Tree Benefits</h2>
             <p className="text-gray-700">
-              Calculate ecosystem services of trees: carbon storage, air pollution removal,
-              stormwater and their value in CHF, with a growth projection (i-Tree Eco method).
+              Calculate ecosystem services of trees, including carbon storage, air quality, oxygen and runoff.
             </p>
           </Link>
 
@@ -111,14 +127,15 @@ export const HomePage: React.FC = () => {
             </div>
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">Image Search</h2>
             <p className="text-gray-700 mb-3">
-              Durchsuche unsere Projektdatenbank nach Pflanzen, Materialien und Stimmungen.
+              Browse our project database for plants, materials, and moods.
             </p>
             <p className="text-xs text-red-500 font-medium">
-              Login mit denselben Zugangsdaten wie die Academy.
+              Login with the same credentials as the Academy.
             </p>
           </a>
 
         </div>
+
       </div>
     </div>
   );

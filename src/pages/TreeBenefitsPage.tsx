@@ -11,7 +11,7 @@ import { makeT, loadLang, saveLang } from '../lib/treeBenefits/i18n';
 import { DEFAULT_PARAMS, calcAll, totals as calcTotals } from '../lib/treeBenefits/calc';
 import { PRESETS, DEFAULT_PRESET, applyPresetToParams, liveLookup, LiveLookupError } from '../lib/treeBenefits/presets';
 import { parseTreeList, SAMPLE_INPUT } from '../lib/treeBenefits/parse';
-import { loadSizeClasses, saveSizeClasses, expandProjectTrees } from '../lib/treeBenefits/sizeClasses';
+import { loadSizeClasses, saveSizeClasses, expandProjectTrees, fetchSpeciesSizeClasses } from '../lib/treeBenefits/sizeClasses';
 import { loadHandover, saveHandover } from '../lib/treeBenefits/handover';
 import { buildExcelText, copyToClipboard } from '../lib/treeBenefits/columns';
 import { exportTreeBenefitsPdf } from '../lib/treeBenefits/pdf';
@@ -43,6 +43,7 @@ export const TreeBenefitsPage: React.FC = () => {
   const [unit, setUnit] = useState<DbhUnit>('cm');
   const [projectTrees, setProjectTrees] = useState<ProjectTreeInput[]>(handover?.trees ?? []);
   const [sizeClasses, setSizeClasses] = useState<Record<SizeClassKey, SizeClassStandard>>(loadSizeClasses);
+  const [speciesOverrides, setSpeciesOverrides] = useState<Map<string, SizeClassStandard>>(new Map());
 
   const [params, setParams] = useState<SiteParams>(DEFAULT_PARAMS);
   const [presetId, setPresetId] = useState(DEFAULT_PRESET.id);
@@ -86,10 +87,20 @@ export const TreeBenefitsPage: React.FC = () => {
     }
   };
 
+  // Fetch species-specific size class overrides from the database when in project mode
+  useEffect(() => {
+    if (mode !== 'project') return;
+    const ids = projectTrees.map(t => t.plantId).filter((id): id is number => typeof id === 'number' && id > 0);
+    if (ids.length === 0) { setSpeciesOverrides(new Map()); return; }
+    let cancelled = false;
+    fetchSpeciesSizeClasses(ids).then(map => { if (!cancelled) setSpeciesOverrides(map); });
+    return () => { cancelled = true; };
+  }, [mode, projectTrees]);
+
   // input trees depending on the mode
   const inputTrees = useMemo(
-    () => (mode === 'project' ? expandProjectTrees(projectTrees, sizeClasses) : parseTreeList(committedText)),
-    [mode, projectTrees, sizeClasses, committedText]
+    () => (mode === 'project' ? expandProjectTrees(projectTrees, sizeClasses, speciesOverrides) : parseTreeList(committedText)),
+    [mode, projectTrees, sizeClasses, speciesOverrides, committedText]
   );
   const { rows, skipped } = useMemo(() => calcAll(inputTrees, mode === 'project' ? 'cm' : unit, params), [inputTrees, unit, params, mode]);
   const totals = useMemo(() => calcTotals(rows, params), [rows, params]);
@@ -104,11 +115,11 @@ export const TreeBenefitsPage: React.FC = () => {
     await copyToClipboard(buildExcelText(rows, T, lang, params, hasClass));
     showToast(T('tCopied'));
   };
-  const onPdf = async () => {
+  const onPdf = () => {
     if (!rows.length) return showToast(T('tFirst'));
     showToast(T('pdfBusy'));
     try {
-      const r = await exportTreeBenefitsPdf({
+      const r = exportTreeBenefitsPdf({
         rows, skipped, params, site, lang,
         sizeClasses: hasClass ? sizeClasses : undefined,
         projectName: mode === 'project' ? [handover?.projectName, handover?.zoneName].filter(Boolean).join(' — ') || undefined : undefined,
@@ -121,12 +132,12 @@ export const TreeBenefitsPage: React.FC = () => {
     }
   };
 
-  const tabCls = (m: Mode) => `flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors ${mode === m ? 'bg-green-700 text-white' : 'text-gray-600 hover:bg-gray-100'}`;
-  const langCls = (l: Lang) => `rounded-full px-3 py-1 text-xs font-semibold transition-colors ${lang === l ? 'bg-white text-green-800' : 'text-white/80 hover:text-white'}`;
+  const tabCls = (m: Mode) => `flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors ${mode === m ? 'bg-[#2F7041] text-white' : 'text-gray-600 hover:bg-gray-100'}`;
+  const langCls = (l: Lang) => `rounded-full px-3 py-1 text-xs font-semibold transition-colors ${lang === l ? 'bg-white text-[#245A34]' : 'text-white/80 hover:text-white'}`;
 
   return (
     <div className="min-h-screen" lang={lang}>
-      <div className="border-b border-green-800 bg-green-700 p-3 shadow-sm md:p-4">
+      <div className="border-b border-[#1E4F2D] bg-[#2F7041] p-3 shadow-sm md:p-4">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 lg:flex-row lg:items-center">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15"><TreePine className="h-6 w-6 text-white" /></div>
@@ -149,7 +160,7 @@ export const TreeBenefitsPage: React.FC = () => {
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[330px_minmax(0,1fr)]">
           <aside>
             <div className="mb-2.5 flex items-baseline gap-2">
-              <span className="rounded border border-green-300 px-1.5 font-mono text-[11px] leading-[18px] text-green-700">1</span>
+              <span className="rounded border border-[#9FBEA5] px-1.5 font-mono text-[11px] leading-[18px] text-[#245A34]">1</span>
               <h2 className="text-lg font-semibold text-gray-900">{T('s1')}</h2>
             </div>
             <SiteParamsPanel
@@ -162,7 +173,7 @@ export const TreeBenefitsPage: React.FC = () => {
           <main>
             <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
               <div className="flex items-baseline gap-2">
-                <span className="rounded border border-green-300 px-1.5 font-mono text-[11px] leading-[18px] text-green-700">2</span>
+                <span className="rounded border border-[#9FBEA5] px-1.5 font-mono text-[11px] leading-[18px] text-[#245A34]">2</span>
                 <h2 className="text-lg font-semibold text-gray-900">{T('s2')}</h2>
               </div>
               <div className="inline-flex rounded-full border border-gray-300 bg-white p-0.5">
@@ -179,7 +190,7 @@ export const TreeBenefitsPage: React.FC = () => {
                     value={text}
                     onChange={e => setText(e.target.value)}
                     spellCheck={false}
-                    className="min-h-[150px] w-full resize-y rounded border border-gray-300 bg-gray-50 p-2.5 font-mono text-[12.5px] leading-snug focus:border-green-600 focus:outline-none"
+                    className="min-h-[150px] w-full resize-y rounded border border-gray-300 bg-gray-50 p-2.5 font-mono text-[12.5px] leading-snug focus:border-[#E4F0E6]0 focus:outline-none"
                   />
                 </>
               ) : (
@@ -191,21 +202,21 @@ export const TreeBenefitsPage: React.FC = () => {
                   <>
                     <label className="mr-auto flex items-center gap-2 text-xs text-gray-500">
                       <span>{T('dbhUnit')}</span>
-                      <select value={unit} onChange={e => setUnit(e.target.value as DbhUnit)} className="rounded border border-gray-300 bg-gray-50 px-2 py-1.5 text-sm text-gray-800 focus:border-green-600 focus:outline-none">
+                      <select value={unit} onChange={e => setUnit(e.target.value as DbhUnit)} className="rounded border border-gray-300 bg-gray-50 px-2 py-1.5 text-sm text-gray-800 focus:border-[#E4F0E6]0 focus:outline-none">
                         <option value="cm">{T('uCm')}</option>
                         <option value="mm">{T('uMm')}</option>
                         <option value="circ">{T('uCirc')}</option>
                       </select>
                     </label>
-                    <button type="button" onClick={() => setCommittedText(text)} className="flex items-center gap-1.5 rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800">
+                    <button type="button" onClick={() => setCommittedText(text)} className="flex items-center gap-1.5 rounded-lg bg-[#2F7041] px-4 py-2 text-sm font-semibold text-white hover:bg-[#245A34]">
                       <Calculator className="h-4 w-4" /> {T('calc')}
                     </button>
                   </>
                 )}
-                <button type="button" onClick={onCopy} disabled={!rows.length} className="flex items-center gap-1.5 rounded-lg border border-green-700 bg-white px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-50 disabled:opacity-50">
+                <button type="button" onClick={onCopy} disabled={!rows.length} className="flex items-center gap-1.5 rounded-lg border border-[#2F7041] bg-white px-4 py-2 text-sm font-semibold text-[#245A34] hover:bg-[#E4F0E6] disabled:opacity-50">
                   <ClipboardCopy className="h-4 w-4" /> {T('copy')}
                 </button>
-                <button type="button" onClick={onPdf} disabled={!rows.length} className="flex items-center gap-1.5 rounded-lg border border-green-700 bg-white px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-50 disabled:opacity-50">
+                <button type="button" onClick={onPdf} disabled={!rows.length} className="flex items-center gap-1.5 rounded-lg border border-[#2F7041] bg-white px-4 py-2 text-sm font-semibold text-[#245A34] hover:bg-[#E4F0E6] disabled:opacity-50">
                   <FileDown className="h-4 w-4" /> {T('pdf')}
                 </button>
                 <span className="basis-full font-mono text-xs text-gray-500 md:ml-auto md:basis-auto">{status}</span>
@@ -220,7 +231,7 @@ export const TreeBenefitsPage: React.FC = () => {
             )}
 
             <div className="mb-2.5 mt-6 flex items-baseline gap-2">
-              <span className="rounded border border-green-300 px-1.5 font-mono text-[11px] leading-[18px] text-green-700">3</span>
+              <span className="rounded border border-[#9FBEA5] px-1.5 font-mono text-[11px] leading-[18px] text-[#245A34]">3</span>
               <h2 className="text-lg font-semibold text-gray-900">{T('s3')}</h2>
             </div>
             <ResultsTable T={T} lang={lang} rows={rows} skipped={skipped} params={params} hasClass={hasClass} />

@@ -14,7 +14,11 @@ export interface PlantFilterState {
   nativeStatus: string[];
   leafPersistence: string[];
   treeOfTheFuture: boolean;
+  treeOfTheFutureDrought: boolean;
+  treeOfTheFutureFlooding: boolean;
+  treeOfTheFutureSalt: boolean;
   naturalisticPlantingDesign: boolean;
+  gardenStyles: string[];
 }
 
 interface PlantFiltersProps {
@@ -37,6 +41,8 @@ const COLORS = ['white', 'yellow', 'gold', 'orange', 'red', 'pink', 'purple', 'b
 const BIODIVERSITY_OPTIONS = ['butterflies', 'bees', 'honeybees', 'bumblebees', 'hoverflies', 'beetles', 'birds'];
 const NATIVE_STATUS_OPTIONS = ['ch_native'];
 const LEAF_PERSISTENCE_OPTIONS = ['evergreen', 'deciduous'];
+const _GARDEN_STYLES = ['new_japanese', 'alpine', 'residential', 'mediterranean', 'swiss_farmhouse', 'wild'];
+void _GARDEN_STYLES;
 const USAGE_CATEGORIES = [
   'solitary_garden',
   'solitary_park',
@@ -78,6 +84,13 @@ const formatLabel = (value: string): string => {
   if (value === 'ground_cover') return 'Ground Cover';
   if (value === 'culinary_plant') return 'Culinary Plant';
   if (value === 'ch_native') return 'CH Native';
+
+  if (value === 'new_japanese') return 'New Japanese';
+  if (value === 'alpine') return 'Alpine';
+  if (value === 'residential') return 'Residential';
+  if (value === 'mediterranean') return 'Mediterranean';
+  if (value === 'swiss_farmhouse') return 'Swiss Farmhouse';
+  if (value === 'wild') return 'Wild';
 
   return value
     .split('_')
@@ -376,7 +389,20 @@ export const PlantFilters: React.FC<PlantFiltersProps> = ({ filters, onFilterCha
         label="Category"
         options={PLANT_TYPES}
         selectedValues={filters.plantTypes}
-        onChange={(values) => onFilterChange({ ...filters, plantTypes: values })}
+        onChange={(values) => {
+          const next = { ...filters, plantTypes: values };
+          if (!values.includes('tree')) {
+            next.treeOfTheFuture = false;
+            next.treeOfTheFutureDrought = false;
+            next.treeOfTheFutureFlooding = false;
+            next.treeOfTheFutureSalt = false;
+          }
+          if (!values.includes('perennial')) {
+            next.naturalisticPlantingDesign = false;
+            next.layers = [];
+          }
+          onFilterChange(next);
+        }}
       />
 
       {filters.plantTypes.includes('perennial') && (
@@ -385,7 +411,7 @@ export const PlantFilters: React.FC<PlantFiltersProps> = ({ filters, onFilterCha
             <input
               type="checkbox"
               checked={filters.naturalisticPlantingDesign}
-              onChange={(e) => onFilterChange({ ...filters, naturalisticPlantingDesign: e.target.checked })}
+              onChange={(e) => onFilterChange({ ...filters, naturalisticPlantingDesign: e.target.checked, layers: e.target.checked ? filters.layers : [] })}
               className="w-5 h-5 rounded border-gray-300 bg-white text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
             />
             <span className="text-sm font-medium text-gray-900">Matrix Approach</span>
@@ -435,7 +461,13 @@ export const PlantFilters: React.FC<PlantFiltersProps> = ({ filters, onFilterCha
             <input
               type="checkbox"
               checked={filters.treeOfTheFuture}
-              onChange={(e) => onFilterChange({ ...filters, treeOfTheFuture: e.target.checked })}
+              onChange={(e) => onFilterChange({
+                ...filters,
+                treeOfTheFuture: e.target.checked,
+                treeOfTheFutureDrought: e.target.checked ? filters.treeOfTheFutureDrought : false,
+                treeOfTheFutureFlooding: e.target.checked ? filters.treeOfTheFutureFlooding : false,
+                treeOfTheFutureSalt: e.target.checked ? filters.treeOfTheFutureSalt : false,
+              })}
               className="w-5 h-5 rounded border-gray-300 bg-white text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
             />
             <div className="flex items-center gap-2">
@@ -448,6 +480,37 @@ export const PlantFilters: React.FC<PlantFiltersProps> = ({ filters, onFilterCha
               <span className="text-sm font-medium text-gray-900">Tree of the Future</span>
             </div>
           </label>
+          {filters.treeOfTheFuture && (
+            <div className="ml-6 pl-3 border-l-2 border-cyan-200 space-y-1.5">
+              <label className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={filters.treeOfTheFutureDrought}
+                  onChange={(e) => onFilterChange({ ...filters, treeOfTheFutureDrought: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 bg-white text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
+                />
+                <span className="text-sm text-gray-700">Drought tolerant</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={filters.treeOfTheFutureFlooding}
+                  onChange={(e) => onFilterChange({ ...filters, treeOfTheFutureFlooding: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 bg-white text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
+                />
+                <span className="text-sm text-gray-700">Flooding tolerant</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={filters.treeOfTheFutureSalt}
+                  onChange={(e) => onFilterChange({ ...filters, treeOfTheFutureSalt: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 bg-white text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
+                />
+                <span className="text-sm text-gray-700">Salt tolerant</span>
+              </label>
+            </div>
+          )}
         </div>
       )}
 

@@ -105,6 +105,15 @@ export const LocationFilter: React.FC<LocationFilterProps> = ({
     setSuggestions([]);
     setShowSuggestions(false);
     setError(null);
+    setZoneResult(null);
+    setDetectedRegion(null);
+    setSelectedZones([]);
+    setSelectedRegions([]);
+    if (mode === 'zones') {
+      onZoneDetected?.([]);
+    } else {
+      onRegionDetected?.([]);
+    }
   };
 
   const handleAddressSearch = async () => {
@@ -162,19 +171,28 @@ export const LocationFilter: React.FC<LocationFilterProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const ZONE_OPTIONS = ['5a', '5b', '6a', '6b', '7a', '7b', '8a', '8b', '9a', '9b', '10a', '10b'];
+  const ZONE_OPTIONS = ['1a', '1b', '2a', '2b', '3a', '3b', '4a', '4b', '5a', '5b', '6a', '6b', '7a', '7b', '8a', '8b', '9a', '9b', '10a', '10b'];
   const ZONE_LABELS: Record<string, string> = {
-    '5a': '5a (Very Cold)', '5b': '5b', '6a': '6a (Cold)', '6b': '6b',
-    '7a': '7a (Cool)', '7b': '7b', '8a': '8a (Mild)', '8b': '8b',
-    '9a': '9a (Warm)', '9b': '9b', '10a': '10a (Very Warm)', '10b': '10b',
+    '1a': '1a (Extreme)', '1b': '1b',
+    '2a': '2a (Very Frigid)', '2b': '2b',
+    '3a': '3a (Frigid)', '3b': '3b',
+    '4a': '4a (Very Cold)', '4b': '4b',
+    '5a': '5a (Cold)', '5b': '5b',
+    '6a': '6a (Cool)', '6b': '6b',
+    '7a': '7a (Mild)', '7b': '7b',
+    '8a': '8a (Warm)', '8b': '8b',
+    '9a': '9a (Very Warm)', '9b': '9b',
+    '10a': '10a (Tropical)', '10b': '10b',
   };
   const REGION_OPTIONS = [
+    { value: 'subarctic', label: 'Subarctic (Zones 1a-4b)' },
     { value: 'alpine', label: 'Alpine (Zones 5a-6b)' },
     { value: 'central_european', label: 'Central European (Zones 7a-8b)' },
     { value: 'mediterranean', label: 'Mediterranean (Zones 9a-10b)' },
   ];
 
-  const handleManualRegionSelect = (region: string) => {
+  const _handleManualRegionSelect = (region: string) => {
+    void region; void _handleManualRegionSelect;
     setDetectedRegion(region);
     setZoneResult(null);
     if (mode === 'zones') {

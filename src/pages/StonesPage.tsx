@@ -19,6 +19,7 @@ export const StonesPage: React.FC = () => {
   } = useStonesPage();
 
   const [page, setPage] = useState(1);
+  const [pageInput, setPageInput] = useState('');
 
   useEffect(() => {
     setPage(1);
@@ -38,8 +39,16 @@ export const StonesPage: React.FC = () => {
   const pageStones = filteredStones.slice(pageStart, pageStart + PAGE_SIZE);
 
   const goTo = (p: number) => {
-    setPage(p);
+    const targetPage = Math.min(Math.max(p, 1), totalPages);
+    setPage(targetPage);
+    setPageInput('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePageSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const targetPage = Number.parseInt(pageInput, 10);
+    if (!Number.isNaN(targetPage)) goTo(targetPage);
   };
 
   const buildPageNumbers = () => {
@@ -63,7 +72,7 @@ export const StonesPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Enea's Academy - Stone Database</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Enea Academy - Stone Database</h1>
             <p className="text-gray-700">
               Browse our collection of {stones.length} stones
               {filteredStones.length !== stones.length &&
@@ -157,6 +166,20 @@ export const StonesPage: React.FC = () => {
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
+                      <form onSubmit={handlePageSubmit} className="ml-3 flex items-center gap-1.5">
+                        <label htmlFor="stone-page-input" className="text-xs text-gray-500 whitespace-nowrap">Go to page</label>
+                        <input
+                          id="stone-page-input"
+                          type="number"
+                          min={1}
+                          max={totalPages}
+                          value={pageInput}
+                          onChange={(event) => setPageInput(event.target.value)}
+                          placeholder={String(safePage)}
+                          className="w-14 h-9 rounded border border-gray-300 bg-white px-2 text-center text-sm text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                          aria-label="Page number"
+                        />
+                      </form>
                     </div>
                   </div>
                 )}

@@ -3,7 +3,7 @@ import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { TFn } from '../../lib/treeBenefits/i18n';
 import { ProjectHandover, ProjectTreeInput, SizeClassKey, SizeClassStandard } from '../../lib/treeBenefits/types';
-import { SIZE_CLASS_KEYS } from '../../lib/treeBenefits/sizeClasses';
+import { SIZE_CLASS_KEYS, fetchSpeciesSizeClasses } from '../../lib/treeBenefits/sizeClasses';
 import { SizeClassEditor } from './SizeClassEditor';
 
 interface Props {
@@ -30,6 +30,7 @@ export const ProjectTreesInput: React.FC<Props> = ({ T, handover, trees, onChang
   const [hits, setHits] = useState<PlantHit[]>([]);
   const [searching, setSearching] = useState(false);
   const [open, setOpen] = useState(false);
+  const [speciesOverrides, setSpeciesOverrides] = useState<Map<string, SizeClassStandard>>(new Map());
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,6 +38,15 @@ export const ProjectTreesInput: React.FC<Props> = ({ T, handover, trees, onChang
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, []);
+
+  // Fetch species-specific size class overrides from the database
+  useEffect(() => {
+    const ids = trees.map(t => t.plantId).filter((id): id is number => typeof id === 'number' && id > 0);
+    if (ids.length === 0) { setSpeciesOverrides(new Map()); return; }
+    let cancelled = false;
+    fetchSpeciesSizeClasses(ids).then(map => { if (!cancelled) setSpeciesOverrides(map); });
+    return () => { cancelled = true; };
+  }, [trees]);
 
   // species autocomplete from the Academy plant database (trees and palms only)
   useEffect(() => {
@@ -78,6 +88,14 @@ export const ProjectTreesInput: React.FC<Props> = ({ T, handover, trees, onChang
 
   const total = trees.reduce((a, t) => a + (t.quantity || 0), 0);
 
+  const getStd = (t: ProjectTreeInput): SizeClassStandard => {
+    if (t.plantId) {
+      const ov = speciesOverrides.get(`${t.plantId}:${t.sizeClass}`);
+      if (ov) return ov;
+    }
+    return classes[t.sizeClass] || classes.medium;
+  };
+
   return (
     <div className="space-y-4">
       {handover && (handover.projectName || handover.zoneName) && (
@@ -99,7 +117,7 @@ export const ProjectTreesInput: React.FC<Props> = ({ T, handover, trees, onChang
             <span className="text-gray-500">{T('treesTotal', total, trees.length)}</span>
             <span className="mx-1 text-gray-300">·</span>
             {SIZE_CLASS_KEYS.map(k => (
-              <button key={k} type="button" onClick={() => setAll(k)} className="rounded-full border border-gray-300 bg-white px-2.5 py-0.5 text-gray-600 hover:border-green-600 hover:text-green-700">
+              <button key={k} type="button" onClick={() => setAll(k)} className="rounded-full border border-gray-300 bg-white px-2.5 py-0.5 text-gray-600 hover:border-[#E4F0E6]0 hover:text-[#2F7041]">
                 {T(`all${k.charAt(0).toUpperCase()}${k.slice(1)}`)}
               </button>
             ))}
@@ -118,7 +136,8 @@ export const ProjectTreesInput: React.FC<Props> = ({ T, handover, trees, onChang
               </thead>
               <tbody>
                 {trees.map(t => {
-                  const std = classes[t.sizeClass];
+                  const std = getStd(t);
+                  const hasOverride = t.plantId ? speciesOverrides.has(`${t.plantId}:${t.sizeClass}`) : false;
                   return (
                     <tr key={t.key} className="border-t border-gray-100 hover:bg-gray-50">
                       <td className="px-3 py-1.5 font-medium italic text-gray-800">{t.species}</td>
@@ -127,15 +146,20 @@ export const ProjectTreesInput: React.FC<Props> = ({ T, handover, trees, onChang
                         <input
                           type="number" min={0} max={999} step={1} value={t.quantity}
                           onChange={e => update(t.key, { quantity: Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                          className="w-16 rounded border border-gray-300 bg-white px-2 py-1 text-right font-mono text-sm focus:border-green-600 focus:outline-none"
+                          className="w-16 rounded border border-gray-300 bg-white px-2 py-1 text-right font-mono text-sm focus:border-[#E4F0E6]0 focus:outline-none"
                         />
                       </td>
                       <td className="px-3 py-1.5">
-                        <select value={t.sizeClass} onChange={e => update(t.key, { sizeClass: e.target.value as SizeClassKey })} className="rounded border border-gray-300 bg-white px-2 py-1 text-sm focus:border-green-600 focus:outline-none">
+                        <select value={t.sizeClass} onChange={e => update(t.key, { sizeClass: e.target.value as SizeClassKey })} className="rounded border border-gray-300 bg-white px-2 py-1 text-sm focus:border-[#E4F0E6]0 focus:outline-none">
                           {SIZE_CLASS_KEYS.map(k => <option key={k} value={k}>{T(k)} · {classes[k].label}</option>)}
                         </select>
                       </td>
-                      <td className="px-3 py-1.5 text-right font-mono text-xs text-gray-500">{std.dbh} cm / {std.height} m</td>
+                      <td className="px-3 py-1.5 text-right font-mono text-xs">
+                        <span className={hasOverride ? 'text-[#2F7041] font-semibold' : 'text-gray-500'}>
+                          {std.dbh} cm / {std.height} m
+                        </span>
+                        {hasOverride && <span className="ml-1 text-[10px] text-[#2F7041]" title={T('scSpeciesSpecific')}>★</span>}
+                      </td>
                       <td className="px-2 py-1.5 text-right">
                         <button type="button" onClick={() => remove(t.key)} title={T('remove')} className="text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                       </td>
@@ -154,7 +178,7 @@ export const ProjectTreesInput: React.FC<Props> = ({ T, handover, trees, onChang
             <input
               type="text" value={query} onChange={e => { setQuery(e.target.value); setOpen(true); }} onFocus={() => hits.length && setOpen(true)}
               placeholder={T('speciesPh')} autoComplete="off"
-              className="w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-green-600 focus:outline-none"
+              className="w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-[#E4F0E6]0 focus:outline-none"
             />
             {searching && <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-gray-400" />}
             {open && hits.length > 0 && (
@@ -164,7 +188,7 @@ export const ProjectTreesInput: React.FC<Props> = ({ T, handover, trees, onChang
                     <button
                       type="button"
                       onClick={() => add(h.botanical_name, { plantId: h.id, commonName: h.common_name_de || h.common_name_en || undefined, evergreen: h.characteristic_evergreen ? true : h.characteristic_deciduous ? false : undefined })}
-                      className="flex w-full items-baseline justify-between gap-3 px-3 py-1.5 text-left text-sm hover:bg-green-50"
+                      className="flex w-full items-baseline justify-between gap-3 px-3 py-1.5 text-left text-sm hover:bg-[#E4F0E6]"
                     >
                       <span className="italic text-gray-800">{h.botanical_name}</span>
                       <span className="truncate text-xs text-gray-500">{h.common_name_de || h.common_name_en || ''}</span>
@@ -174,7 +198,7 @@ export const ProjectTreesInput: React.FC<Props> = ({ T, handover, trees, onChang
               </ul>
             )}
           </div>
-          <button type="submit" disabled={!query.trim()} className="flex items-center gap-1 rounded border border-green-700 bg-white px-3 py-1.5 text-sm font-semibold text-green-700 hover:bg-green-50 disabled:opacity-50">
+          <button type="submit" disabled={!query.trim()} className="flex items-center gap-1 rounded border border-[#2F7041] bg-white px-3 py-1.5 text-sm font-semibold text-[#2F7041] hover:bg-[#E4F0E6] disabled:opacity-50">
             <Plus className="h-4 w-4" /> {T('addSpecies')}
           </button>
         </form>

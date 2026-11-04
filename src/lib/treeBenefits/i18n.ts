@@ -52,7 +52,6 @@ const de: Dict = {
   dbhUnit: 'Stammmass in der Liste', uCm: 'Durchmesser cm', uMm: 'Durchmesser mm', uCirc: 'Stammumfang cm',
   fUnit: 'Unplausibel: Stamm dicker als 1/8 der Baumhöhe – Einheit prüfen (mm? Umfang?)',
   fUnknown: 'Art unbekannt – Standard Laubbaum', fGenus: 'Gattungswerte', fPalm: 'Palme/Nicht-Baum: Biomasse aus Höhe', fBase: 'Kronenansatz geschätzt', fWidth: 'Kronenbreite geschätzt', fBeer: 'Blattfläche: Beer-Lambert (>15 m)', fDbh: 'DBH > 100 cm: extrapoliert',
-  // input modes & project handover
   modePaste: 'Liste einfügen', modeProject: 'Aus Projekt', modeProjectSub: 'Bäume aus der Projektauswahl mit Grössenklassen',
   projFrom: 'Übernommen aus', projNoTrees: 'Die Projektauswahl enthält keine Bäume oder Palmen. Bäume in „My Selections" hinzufügen und erneut übergeben, oder eine Liste einfügen.',
   projEmpty: 'Noch keine Bäume übergeben. Auf der Seite „My Selections" den Button „Tree Benefits" verwenden.',
@@ -62,12 +61,13 @@ const de: Dict = {
   scLabel: 'Bezeichnung', scDbh: 'DBH cm', scHeight: 'Höhe m', scCrown: 'Kronenbreite m', scBase: 'Kronenansatz m', scReset: 'Zurücksetzen',
   allSmall: 'alle Klein', allMedium: 'alle Mittel', allLarge: 'alle Gross', remove: 'Entfernen', addSpecies: 'Art hinzufügen', speciesPh: 'Botanischer Name …',
   common: 'Deutscher Name', treesTotal: '{0} Bäume in {1} Arten',
+  scSpeciesSpecific: 'Artspezifische Masse aus der Datenbank',
   P: {
     report: 'Baumleistungsbericht', date: 'Berechnet am', method: 'Methodik: i-Tree Eco (vereinfacht, Jahresmittel)', by: 'Enea',
     overview: 'Übersicht', valueSplit: 'Jahreswert nach Leistung', polByType: 'Schadstoffentzug nach Schadstoff (g/Jahr)', bySpecies: 'Leistungen nach Art', perTree: 'Ergebnisse je Baum', params: 'Verwendete Parameter', notes: 'Hinweise und Annahmen',
     trees: 'Bäume', storage: 'Kohlenstoffspeicher', storageU: 'kg C', seq: 'Sequestrierung', seqU: 'kg C/Jahr', pol: 'Schadstoffentzug', polU: 'g/Jahr', run: 'Vermiedener Abfluss', runU: 'm³/Jahr', o2: 'O2-Produktion', o2U: 'kg/Jahr', value: 'Jahreswert', valueU: 'CHF/Jahr', storageValue: 'Speicherwert (einmalig)',
     species: 'Art', count: 'Anzahl', cSeq: 'CO2-Sequestrierung', air: 'Luftschadstoffe', runoff: 'Abfluss',
-    hdr: ['Art', 'ID', 'Typ', 'DBH cm', 'Höhe m', 'Krone m²', 'Blattfl. m²', 'LAI', 'C kg', 'C-Seq. kg/a', 'O2 kg/a', 'CO g/a', 'O3 g/a', 'NO2 g/a', 'SO2 g/a', 'PM2.5 g/a', 'Abfluss m³/a', 'CHF/a', 'Hinweise'],
+    hdr: ['Art', 'ID', 'Typ', 'DBH cm', 'Höhe m', 'LAI', 'C kg', 'C-Seq. kg/a', 'O2 kg/a', 'CO g/a', 'O3 g/a', 'NO2 g/a', 'SO2 g/a', 'PM2.5 g/a', 'Abfluss m³/a', 'CHF/a', 'Hinweise'],
     total: 'Summe', ev: 'immergrün', dec: 'laubabwerfend', page: 'Seite',
     pAir: 'Luftschadstoffe (µg/m³, Jahresmittel)', pClim: 'Klima', pSite: 'Standort', pPrice: 'Bewertung (CHF/t bzw. CHF/m³)',
     precip: 'Niederschlag mm/a', raindays: 'Regentage', ffd: 'Frostfreie Tage', leafon: 'Belaubungstage', landuse: 'Wuchsumfeld', surface: 'Untergrund', runoffP: 'Abfluss CHF/m³',
@@ -114,7 +114,7 @@ const en: Dict = {
   ev: 'evergreen', dec: 'deciduous', sum: 'Total ({0} trees)', none: 'No trees with DBH and height found.',
   nSkip: 'Skipped (no DBH/height): {0}', nUnits: 'Carbon in kg, sequestration and O₂ in kg/yr, pollutants in g/yr. Annual value = sequestration + pollutants + runoff, excluding the one-off storage value.',
   status: '{0} trees calculated · {1}', tCopied: 'Table copied – paste into Excel', tFirst: 'Calculate first',
-  projTitle: 'Projection with growth', projSub: 'DBH increment by growing environment and condition; height and crown follow the stem (urban tree allometry), growth tapers towards the species’ max height. Constant prices, no discounting.',
+  projTitle: 'Projection with growth', projSub: 'DBH increment by growing environment and condition; height and crown follow the stem (urban tree allometry), growth tapers towards the species\u2019 max height. Constant prices, no discounting.',
   yr: 'Year {0}', pDbh: 'DBH', pC: 'C storage', pChf: 'Annual value', pCum: 'cumulative', gProjT: 'Projection year {0}',
   chartCum: 'Cumulative value CHF', chartC: 'Carbon storage kg', chartX: 'Years from today', chartO2: 'O₂ production kg/yr', chartPers: 'People supplied', today: 'Today',
   hzC: 'Carbon storage kg', hzO2: 'O₂ production kg/yr', hzSeq: 'Sequestration kg C/yr', hzRun: 'Avoided runoff m³/yr', hzPol: 'Pollution removal g/yr', hzVal: 'Annual value CHF', hzCum: 'Cumulative CHF', hzPers: 'People (O₂ needs)',
@@ -123,20 +123,21 @@ const en: Dict = {
   fUnit: 'Implausible: stem thicker than 1/8 of tree height – check unit (mm? circumference?)',
   fUnknown: 'Unknown species – default broadleaf', fGenus: 'Genus-level values', fPalm: 'Palm/non-tree: biomass from height', fBase: 'Crown base estimated', fWidth: 'Crown width estimated', fBeer: 'Leaf area: Beer-Lambert (>15 m)', fDbh: 'DBH > 100 cm: extrapolated',
   modePaste: 'Paste list', modeProject: 'From project', modeProjectSub: 'Trees from the project selection with size classes',
-  projFrom: 'Taken from', projNoTrees: 'The project selection contains no trees or palms. Add trees in “My Selections” and hand over again, or paste a list.',
-  projEmpty: 'No trees handed over yet. Use the “Tree Benefits” button on the “My Selections” page.',
+  projFrom: 'Taken from', projNoTrees: 'The project selection contains no trees or palms. Add trees in "My Selections" and hand over again, or paste a list.',
+  projEmpty: 'No trees handed over yet. Use the "Tree Benefits" button on the "My Selections" page.',
   projHint: 'Choose quantity and size class per species. The standard dimensions of the classes can be edited below.',
   qty: 'Quantity', sizeClass: 'Size class', small: 'Small', medium: 'Medium', large: 'Large',
   scTitle: 'Size classes – standard dimensions', scSub: 'Default: nursery planting stock by stem circumference (StU). Values editable, stored in your browser.',
   scLabel: 'Label', scDbh: 'DBH cm', scHeight: 'Height m', scCrown: 'Crown width m', scBase: 'Crown base m', scReset: 'Reset',
   allSmall: 'all Small', allMedium: 'all Medium', allLarge: 'all Large', remove: 'Remove', addSpecies: 'Add species', speciesPh: 'Botanical name …',
   common: 'Common name', treesTotal: '{0} trees in {1} species',
+  scSpeciesSpecific: 'Species-specific dimensions from the database',
   P: {
     report: 'Tree Benefits Report', date: 'Calculated on', method: 'Method: i-Tree Eco (simplified, annual means)', by: 'Enea',
     overview: 'Overview', valueSplit: 'Annual value by service', polByType: 'Pollution removal by pollutant (g/yr)', bySpecies: 'Benefits by species', perTree: 'Results per tree', params: 'Parameters used', notes: 'Notes and assumptions',
     trees: 'Trees', storage: 'Carbon storage', storageU: 'kg C', seq: 'Sequestration', seqU: 'kg C/yr', pol: 'Pollution removal', polU: 'g/yr', run: 'Avoided runoff', runU: 'm³/yr', o2: 'O2 production', o2U: 'kg/yr', value: 'Annual value', valueU: 'CHF/yr', storageValue: 'Storage value (one-off)',
     species: 'Species', count: 'Count', cSeq: 'CO2 sequestration', air: 'Air pollutants', runoff: 'Runoff',
-    hdr: ['Species', 'ID', 'Type', 'DBH cm', 'Height m', 'Crown m²', 'Leaf area m²', 'LAI', 'C kg', 'C seq. kg/yr', 'O2 kg/yr', 'CO g/yr', 'O3 g/yr', 'NO2 g/yr', 'SO2 g/yr', 'PM2.5 g/yr', 'Runoff m³/yr', 'CHF/yr', 'Notes'],
+    hdr: ['Species', 'ID', 'Type', 'DBH cm', 'Height m', 'LAI', 'C kg', 'C seq. kg/yr', 'O2 kg/yr', 'CO g/yr', 'O3 g/yr', 'NO2 g/yr', 'SO2 g/yr', 'PM2.5 g/yr', 'Runoff m³/yr', 'CHF/yr', 'Notes'],
     total: 'Total', ev: 'evergreen', dec: 'deciduous', page: 'Page',
     pAir: 'Air pollutants (µg/m³, annual mean)', pClim: 'Climate', pSite: 'Site', pPrice: 'Valuation (CHF/t or CHF/m³)',
     precip: 'Precipitation mm/yr', raindays: 'Rain days', ffd: 'Frost-free days', leafon: 'Leaf-on days', landuse: 'Growing environment', surface: 'Ground surface', runoffP: 'Runoff CHF/m³',
@@ -150,7 +151,7 @@ const en: Dict = {
 <h4>Avoided runoff</h4><p>Canopy storage per rain event <code>S = 0.2 mm·LAI + 0.1 mm</code> (Wang et al. 2008, i-Tree Hydro). Interception per event = expected value of min(P, S) for exponentially distributed event depth, × 1.8 for within-event evaporation; deciduous trees out of leaf with LAI 0.5. Avoided runoff = interception · crown ground area · surface runoff coefficient (impervious 0.9, mixed 0.5, lawn 0.25).</p>
 <h4>Valuation</h4><p>CO₂ 130 CHF/t (ARE climate cost); NO₂, SO₂, PM₂.₅ after ARE air-pollution damage costs (suburban order of magnitude); O₃ and CO converted from i-Tree Eco ranges; runoff after typical Swiss stormwater fees. All prices editable. The annual value excludes the storage value, which would be carbon storage × 3.667 × CO₂ price as a one-off figure.</p>
 <h4>Size classes</h4><p>Trees taken from a project selection have no measurements. They are calculated via three size classes (small, medium, large) with standard dimensions, preset to nursery planting stock by stem circumference StU 16–18, 25–30 and 40–45 cm (DBH ≈ StU/π). The standard dimensions are editable; for unknown species the evergreen/deciduous flag is taken from the plant database.</p>
-<h4>Projection</h4><p>DBH grows each year by base growth × condition, damped by <code>1 − 0.9·(H/H_max)²</code> towards the species’ maximum height. Height and crown follow the stem by urban tree allometry (McPherson et al. 2016, Urban Tree Database): height ∝ DBH^0.6, crown width ∝ DBH^0.7, crown depth ∝ DBH^0.5. All services are recalculated for every year; “cumulative” is the sum of annual values from today, undiscounted, at constant prices and concentrations. Mortality and pruning are not included.</p>
+<h4>Projection</h4><p>DBH grows each year by base growth × condition, damped by <code>1 − 0.9·(H/H_max)²</code> towards the species\u2019 maximum height. Height and crown follow the stem by urban tree allometry (McPherson et al. 2016, Urban Tree Database): height ∝ DBH^0.6, crown width ∝ DBH^0.7, crown depth ∝ DBH^0.5. All services are recalculated for every year; "cumulative" is the sum of annual values from today, undiscounted, at constant prices and concentrations. Mortality and pruning are not included.</p>
 <h4>Deviation from i-Tree Eco</h4><p>i-Tree runs hourly on weather and monitoring-station data; annual means are used here. Expected deviation for the main services ±20–30 %. Presets: Ostluft/NABEL annual means (rounded), MeteoSwiss norm period 1991–2020 – please check against current values or use the live lookup.</p>`,
 };
 

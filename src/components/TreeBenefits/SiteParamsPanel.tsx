@@ -29,14 +29,14 @@ const NumField: React.FC<{ label: React.ReactNode; unit?: string; value: number;
         min={min}
         max={max}
         onChange={e => onChange(e.target.value === '' ? NaN : parseFloat(e.target.value))}
-        className="w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-right font-mono text-sm focus:border-green-600 focus:outline-none focus:ring-1 focus:ring-green-600"
+        className="w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-right font-mono text-sm focus:border-[#E4F0E6]0 focus:outline-none focus:ring-1 focus:ring-[#E4F0E6]0"
       />
     </label>
   );
 
 const Group: React.FC<{ title: string; defaultOpen?: boolean; children: React.ReactNode }> = ({ title, defaultOpen, children }) => (
   <details open={defaultOpen} className="group border-t border-gray-100 first:border-t-0">
-    <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 hover:text-green-700">
+    <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 hover:text-[#2F7041]">
       {title}
       <span className="font-mono text-sm text-gray-400 group-open:hidden">+</span>
       <span className="hidden font-mono text-sm text-gray-400 group-open:inline">–</span>
@@ -51,15 +51,15 @@ export const SiteParamsPanel: React.FC<Props> = ({ T, params, onParamChange, pre
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-300 bg-white shadow-sm">
-      <div className="grid gap-2 border-b border-gray-200 bg-green-50 px-4 py-3">
-        <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-green-700">
+      <div className="grid gap-2 border-b border-gray-200 bg-[#E4F0E6] px-4 py-3">
+        <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-[#2F7041]">
           <MapPin className="h-3.5 w-3.5" /> {T('gLoc')}
         </div>
         <select
           value={presetId}
           onChange={e => onPreset(e.target.value)}
           aria-label={T('gLoc')}
-          className="w-full rounded border border-green-300 bg-white px-2 py-1.5 text-sm font-medium focus:border-green-600 focus:outline-none"
+          className="w-full rounded border border-[#9FBEA5] bg-white px-2 py-1.5 text-sm font-medium focus:border-[#E4F0E6]0 focus:outline-none"
         >
           {PRESETS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           <option value="custom">{T('custom')}</option>
@@ -74,12 +74,12 @@ export const SiteParamsPanel: React.FC<Props> = ({ T, params, onParamChange, pre
             onChange={e => setQuery(e.target.value)}
             placeholder={T('geoPh')}
             autoComplete="off"
-            className="min-w-0 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-green-600 focus:outline-none"
+            className="min-w-0 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-[#E4F0E6]0 focus:outline-none"
           />
           <button
             type="submit"
             disabled={geoBusy || !query.trim()}
-            className="flex items-center gap-1 rounded bg-green-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-50"
+            className="flex items-center gap-1 rounded bg-[#2F7041] px-3 py-1.5 text-sm font-semibold text-white hover:bg-[#245A34] disabled:opacity-50"
           >
             {geoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             {T('geoBtn')}
@@ -106,13 +106,13 @@ export const SiteParamsPanel: React.FC<Props> = ({ T, params, onParamChange, pre
       <Group title={T('gSite')} defaultOpen>
         <label className="grid grid-cols-[1fr_100px] items-center gap-2 text-sm text-gray-700">
           <span>{T('landuse')}</span>
-          <select value={params.landuse} onChange={e => onParamChange('landuse', parseFloat(e.target.value))} className="w-full rounded border border-gray-300 bg-gray-50 px-1 py-1 text-sm focus:border-green-600 focus:outline-none">
+          <select value={params.landuse} onChange={e => onParamChange('landuse', parseFloat(e.target.value))} className="w-full rounded border border-gray-300 bg-gray-50 px-1 py-1 text-sm focus:border-[#E4F0E6]0 focus:outline-none">
             {LANDUSE_OPTIONS.map(o => <option key={o.key} value={o.value}>{T(o.key)}</option>)}
           </select>
         </label>
         <label className="grid grid-cols-[1fr_100px] items-center gap-2 text-sm text-gray-700">
           <span>{T('surface')}</span>
-          <select value={params.surface} onChange={e => onParamChange('surface', parseFloat(e.target.value))} className="w-full rounded border border-gray-300 bg-gray-50 px-1 py-1 text-sm focus:border-green-600 focus:outline-none">
+          <select value={params.surface} onChange={e => onParamChange('surface', parseFloat(e.target.value))} className="w-full rounded border border-gray-300 bg-gray-50 px-1 py-1 text-sm focus:border-[#E4F0E6]0 focus:outline-none">
             {SURFACE_OPTIONS.map(o => <option key={o.key} value={o.value}>{T(o.key)}</option>)}
           </select>
         </label>

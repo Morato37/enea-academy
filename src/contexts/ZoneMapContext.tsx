@@ -5,6 +5,8 @@ import { PlantUsageCategory } from '../components/ZoneMap/UsageCategorySelector'
 import { PlantCategory } from '../components/ZoneMap/PlantCategorySelector';
 import { LatLngTuple } from 'leaflet';
 import { findNearestPostalCode } from '../lib/reverseGeocode';
+import { detectZoneForLocation } from '../lib/zoneDetectionHelper';
+import { getRegionNameFromZone } from '../lib/coordinateToZone';
 
 type SunExposure = 'sun' | 'shade' | 'halfshade';
 
@@ -22,10 +24,12 @@ interface ZoneMapContextType {
   selectedColors: string[];
   activeTab: 'plants' | 'stones';
   selectionStep: 'usage' | 'category' | 'results';
+  manualZone: string | null;
   handleLocationSelect: (result: PostalCodeResult) => Promise<void>;
   handleCloseResults: () => void;
   handleUsageFilterChange: (categories: PlantUsageCategory[]) => Promise<void>;
   handleMapClick: (lat: number, lng: number) => Promise<void>;
+  handleManualZoneSelect: (zoneCode: string) => void;
   setUsageCategories: React.Dispatch<React.SetStateAction<PlantUsageCategory[]>>;
   setPlantCategories: React.Dispatch<React.SetStateAction<PlantCategory[]>>;
   setSunExposures: React.Dispatch<React.SetStateAction<SunExposure[]>>;
@@ -68,6 +72,7 @@ export const ZoneMapProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'plants' | 'stones'>('plants');
   const [selectionStep, setSelectionStep] = useState<'usage' | 'category' | 'results'>('usage');
+  const [manualZone, setManualZone] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -145,6 +150,7 @@ export const ZoneMapProvider: React.FC<{ children: ReactNode }> = ({ children })
   ]);
 
   const handleLocationSelect = async (result: PostalCodeResult) => {
+    setManualZone(null);
     setSelectedLocation(result);
     setMapCenter([result.latitude, result.longitude]);
     setMapZoom(12);
@@ -167,6 +173,7 @@ export const ZoneMapProvider: React.FC<{ children: ReactNode }> = ({ children })
   const handleCloseResults = () => {
     setShowResults(false);
     setSelectedLocation(null);
+    setManualZone(null);
     setUsageCategories([]);
     setPlantCategories([]);
     setSunExposures([]);
@@ -177,15 +184,46 @@ export const ZoneMapProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const handleUsageFilterChange = async (categories: PlantUsageCategory[]) => {
-    if (!selectedLocation) return;
+    const zoneCode = selectedLocation?.zoneCode || manualZone;
+    if (!zoneCode) return;
 
     setUsageCategories(categories);
     setLoading(true);
 
-    const plantsData = await getPlantsByZone(selectedLocation.zoneCode, categories);
+    const plantsData = await getPlantsByZone(zoneCode, categories);
 
     setPlants(plantsData);
     setLoading(false);
+  };
+
+  const handleManualZoneSelect = async (zoneCode: string) => {
+    if (!zoneCode) {
+      setManualZone(null);
+      setShowResults(false);
+      setPlants([]);
+      setStones([]);
+      return;
+    }
+    setManualZone(zoneCode);
+    setSelectedLocation(null);
+    setLoading(true);
+    setShowResults(true);
+    setUsageCategories([]);
+    setPlantCategories([]);
+    setSunExposures([]);
+    setSelectedColors([]);
+    setActiveTab('plants');
+    setSelectionStep('usage');
+
+    try {
+      const stonesData = await getStonesByRegion(zoneCode);
+      setStones(stonesData);
+      setPlants([]);
+    } catch (error) {
+      console.error('Error loading manual zone data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleMapClick = async (lat: number, lng: number) => {
@@ -196,8 +234,28 @@ export const ZoneMapProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (nearestLocation) {
       await handleLocationSelect(nearestLocation);
     } else {
-      setLoading(false);
-      alert('No postal code area found nearby. Please select a location within Europe or use the search function.');
+      try {
+        const detection = await detectZoneForLocation(lat, lng);
+        const regionName = getRegionNameFromZone(detection.zone, '');
+        const fallbackResult: PostalCodeResult = {
+          id: crypto.randomUUID(),
+          postalCode: '',
+          countryCode: '',
+          cityName: `Zone ${detection.zone}`,
+          latitude: lat,
+          longitude: lng,
+          zoneCode: detection.zone,
+          regionName: regionName || 'Coordinate-based',
+          confidenceScore: detection.confidence,
+          elevation: detection.elevation,
+          dataSource: detection.source,
+        };
+        await handleLocationSelect(fallbackResult);
+      } catch (err) {
+        console.error('Zone detection failed for clicked location:', err);
+        setLoading(false);
+        alert('No postal code area found nearby. Please use the manual zone filter on the left.');
+      }
     }
   };
 
@@ -215,10 +273,12 @@ export const ZoneMapProvider: React.FC<{ children: ReactNode }> = ({ children })
     selectedColors,
     activeTab,
     selectionStep,
+    manualZone,
     handleLocationSelect,
     handleCloseResults,
     handleUsageFilterChange,
     handleMapClick,
+    handleManualZoneSelect,
     setUsageCategories,
     setPlantCategories,
     setSunExposures,

@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, X } from 'lucide-react';
-import { Stone } from '../../lib/supabase';
 
 export interface StoneFilterState {
   search: string;

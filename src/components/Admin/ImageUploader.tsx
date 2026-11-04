@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { convertToPng } from '../../lib/imageConverter';
-import { Upload, X, Check, Trash2 } from 'lucide-react';
+import { Upload, Check, Trash2 } from 'lucide-react';
 
 interface ImageUploaderProps {
   itemId: number;
@@ -21,7 +20,6 @@ interface ImageRecord {
 export const ImageUploader: React.FC<ImageUploaderProps> = ({
   itemId,
   itemName,
-  currentImageUrl,
   type,
   onUploadComplete,
 }) => {
@@ -57,52 +55,71 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     }
   };
 
-  const uploadImage = async (file: File) => {
+  const uploadImage = async (file: File, nextOrder: number, shouldSetPrimary: boolean) => {
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileName = `${type}-${itemId}-${Date.now()}-${crypto.randomUUID()}.${ext}`;
+    const bucket = type === 'plant' ? 'plant-images' : 'stone-images';
+
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file, {
+        contentType: file.type,
+        cacheControl: '31536000',
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(fileName);
+
+    const table = type === 'plant' ? 'plant_images' : 'stone_images';
+    const column = type === 'plant' ? 'plant_id' : 'stone_id';
+
+    const { error: insertError } = await supabase
+      .from(table)
+      .insert({
+        [column]: itemId,
+        image_url: publicUrl,
+        display_order: nextOrder,
+        is_primary: shouldSetPrimary
+      });
+
+    if (insertError) throw insertError;
+
+    if (shouldSetPrimary) {
+      const mainTable = type === 'plant' ? 'plants_flat' : 'stones';
+      await supabase
+        .from(mainTable)
+        .update({ image_url: publicUrl })
+        .eq('id', itemId);
+    }
+  };
+
+  const handleFiles = async (files: File[]) => {
+    setUploading(true);
+    setError(null);
+    setSuccess(false);
+
     try {
-      setUploading(true);
-      setError(null);
-      setSuccess(false);
+      const valid = files.filter(file => {
+        if (file.size > 100 * 1024 * 1024) { setError(`${file.name}: File size must be less than 100MB`); return false; }
+        if (!file.type.startsWith('image/')) { setError(`${file.name}: File must be an image`); return false; }
+        return true;
+      });
 
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${type}-${itemId}-${Date.now()}.${ext}`;
-      const bucket = type === 'plant' ? 'plant-images' : 'stone-images';
+      if (valid.length === 0) return;
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file, {
-          contentType: file.type,
-          cacheControl: '31536000',
-          upsert: false,
-        });
+      await loadImages();
+      const baseCount = images.length;
+      let hadPrimary = images.some(img => img.is_primary);
 
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(fileName);
-
-      const table = type === 'plant' ? 'plant_images' : 'stone_images';
-      const column = type === 'plant' ? 'plant_id' : 'stone_id';
-      const nextOrder = images.length;
-      const isFirstImage = images.length === 0;
-
-      const { error: insertError } = await supabase
-        .from(table)
-        .insert({
-          [column]: itemId,
-          image_url: publicUrl,
-          display_order: nextOrder,
-          is_primary: isFirstImage
-        });
-
-      if (insertError) throw insertError;
-
-      if (isFirstImage) {
-        const mainTable = type === 'plant' ? 'plants_flat' : 'stones';
-        await supabase
-          .from(mainTable)
-          .update({ image_url: publicUrl })
-          .eq('id', itemId);
+      for (let i = 0; i < valid.length; i++) {
+        const nextOrder = baseCount + i;
+        const shouldSetPrimary = !hadPrimary && i === 0;
+        await uploadImage(valid[i], nextOrder, shouldSetPrimary);
+        if (shouldSetPrimary) hadPrimary = true;
       }
 
       setSuccess(true);
@@ -113,6 +130,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload image');
+      await loadImages();
     } finally {
       setUploading(false);
     }
@@ -156,7 +174,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
     try {
       const table = type === 'plant' ? 'plant_images' : 'stone_images';
-      const column = type === 'plant' ? 'plant_id' : 'stone_id';
 
       // Check if this is the primary image
       const deletingPrimary = images.find(img => img.id === imageId)?.is_primary;
@@ -214,18 +231,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    setUploading(true);
-    setError(null);
-
-    const valid = Array.from(files).filter(file => {
-      if (file.size > 100 * 1024 * 1024) { setError(`${file.name}: File size must be less than 100MB`); return false; }
-      if (!file.type.startsWith('image/')) { setError(`${file.name}: File must be an image`); return false; }
-      return true;
-    });
-
-    await Promise.all(valid.map(f => uploadImage(f)));
-
-    setUploading(false);
+    await handleFiles(Array.from(files));
     e.target.value = '';
   };
 
@@ -249,18 +255,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
 
-    setUploading(true);
-    setError(null);
-
-    const valid = files.filter(file => {
-      if (file.size > 100 * 1024 * 1024) { setError(`${file.name}: File size must be less than 100MB`); return false; }
-      if (!file.type.startsWith('image/')) { setError(`${file.name}: File must be an image`); return false; }
-      return true;
-    });
-
-    await Promise.all(valid.map(f => uploadImage(f)));
-
-    setUploading(false);
+    await handleFiles(files);
   };
 
   return (
@@ -353,7 +348,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               <div
                 key={img.id}
                 className="relative group cursor-pointer"
-                onClick={() => !img.is_primary && setPrimaryImage(img.id, img.image_url)}
+                onClick={() => setPrimaryImage(img.id, img.image_url)}
                 title={img.is_primary ? 'Primary image' : 'Click to set as primary'}
               >
                 <img

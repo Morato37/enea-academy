@@ -61,7 +61,9 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         const map = new Map<number, string[]>();
         for (const img of data) {
           const existing = map.get(img.plant_id) || [];
-          existing.push(img.image_url);
+          if (img.image_url && !existing.includes(img.image_url)) {
+            existing.push(img.image_url);
+          }
           map.set(img.plant_id, existing);
         }
         setPlantImagesMap(map);
@@ -227,7 +229,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         ? prev.filter(c => c !== category)
         : [...prev, category];
       if (category === 'perennial' && prev.includes('perennial')) {
-        setMatrixApproach(false);
+        // matrix approach toggle removed from ResultsPanel
       }
       return next;
     });
@@ -291,10 +293,10 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       filtered = filtered.filter(plant => {
         return selectedPlantCategories.some(category => {
           if (category === 'formal_hedge') {
-            return (plant as Record<string, unknown>)['usage_formal_hedge'] === true;
+            return (plant as unknown as Record<string, unknown>)['usage_formal_hedge'] === true;
           }
           if (category === 'wild_hedge') {
-            return (plant as Record<string, unknown>)['usage_wild_hedge'] === true;
+            return (plant as unknown as Record<string, unknown>)['usage_wild_hedge'] === true;
           }
           const key = `category_${category}` as keyof Plant;
           return plant[key] === true;
@@ -649,6 +651,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       {isModalOpen && selectedTile && (
         <TileCombinationModal
           tile={selectedTile}
+          isOpen={isModalOpen}
           onClose={handleModalClose}
           onConfirm={handleCombinationConfirm}
         />

@@ -53,7 +53,7 @@ export const LoginForm: React.FC = () => {
             <img src="/enea-logo.png" alt="Enea Logo" className="h-12" />
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Enea's Academy
+            Enea Academy
           </h1>
           <p className="text-gray-600">
             Sign in to your account

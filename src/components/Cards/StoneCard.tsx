@@ -6,9 +6,11 @@ import { Check, Plus, Eye } from 'lucide-react';
 
 interface StoneCardProps {
   stone: Stone;
+  onTileSelect?: (tile: Stone) => void;
+  isTileMode?: boolean;
 }
 
-export const StoneCard: React.FC<StoneCardProps> = ({ stone }) => {
+export const StoneCard: React.FC<StoneCardProps> = ({ stone, onTileSelect, isTileMode }) => {
   const navigate = useNavigate();
   const { isStoneSelected, addStoneSelection, removeSelection, selections } = useSelections();
   const selected = isStoneSelected(stone.id);
@@ -68,10 +70,11 @@ export const StoneCard: React.FC<StoneCardProps> = ({ stone }) => {
   const defaultImageUrl = 'https://images.pexels.com/photos/417070/pexels-photo-417070.jpeg?auto=compress&cs=tinysrgb&w=600';
   const imageUrl = optimizeImageUrl(stone.image_url, { width: 400, quality: 70 }) || defaultImageUrl;
 
-  const climateZones = getClimateZones();
-  const applications = getApplications();
-  const finishes = getFinishes();
-  const frostResistance = getFrostResistance();
+  const _climateZones = getClimateZones();
+  const _applications = getApplications();
+  const _finishes = getFinishes();
+  const _frostResistance = getFrostResistance();
+  void _climateZones; void _applications; void _finishes; void _frostResistance;
 
 
   return (
@@ -88,22 +91,32 @@ export const StoneCard: React.FC<StoneCardProps> = ({ stone }) => {
             target.src = defaultImageUrl;
           }}
         />
-        <button
-          onClick={handleToggleSelection}
-          className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-            selected
-              ? 'bg-cyan-600 text-white'
-              : 'bg-white/90 text-gray-700 hover:bg-white border border-gray-300'
-          }`}
-          title={selected ? 'Remove from selection' : 'Add to selection'}
-        >
-          {selected ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-        </button>
+        {isTileMode && onTileSelect ? (
+          <button
+            onClick={() => onTileSelect(stone)}
+            className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-colors bg-cyan-600 text-white hover:bg-cyan-700"
+            title="Select cobblestones for this tile"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        ) : (
+          <button
+            onClick={handleToggleSelection}
+            className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+              selected
+                ? 'bg-cyan-600 text-white'
+                : 'bg-white/90 text-gray-700 hover:bg-white border border-gray-300'
+            }`}
+            title={selected ? 'Remove from selection' : 'Add to selection'}
+          >
+            {selected ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+          </button>
+        )}
       </div>
 
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 break-words leading-snug min-w-0">
             {stone.name}
           </h3>
           {stone.stone_category && (

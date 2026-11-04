@@ -1,13 +1,14 @@
-import type { ChartConfiguration, ChartDataset } from './chartLazy';
-import { loadChart, type Chart } from './chartLazy';
+import { Chart, ChartConfiguration, ChartDataset, registerables } from 'chart.js';
 import { horizons, seriesTotal, O2_PER_PERSON } from './calc';
 import { TFn } from './i18n';
 import { Lang, SiteParams, TreeResult } from './types';
 
+Chart.register(...registerables);
+
 /** Brand-neutral chart colours (same on screen and in the PDF). */
 export const HEX = {
-  green: '#2E6B3F', air: '#3F6E9E', water: '#4E8FA8', o2: '#8AA65B',
-  muted: '#66716A', ink: '#1B231E', line: '#DDE2D8', soft: '#E4EFE5', warn: '#8B5A2B',
+  green: '#2F7041', air: '#4779A7', water: '#5797AA', o2: '#A8BE87',
+  muted: '#5E6861', ink: '#173D25', line: '#C9D5CC', soft: '#E4F0E6', warn: '#9A681F',
 };
 
 const FONT = "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif";
@@ -65,8 +66,7 @@ export function oxygenChartConfig(rows: TreeResult[], p: SiteParams, T: TFn, lan
 }
 
 /** Render a chart configuration offscreen and return a JPEG data URL on white (small enough for the PDF). */
-export async function chartToImage(cfg: ChartConfiguration, w: number, h: number): Promise<string> {
-  const Chart = await loadChart();
+export function chartToImage(cfg: ChartConfiguration, w: number, h: number): string {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   c.style.cssText = 'position:fixed;left:-9999px;top:0';

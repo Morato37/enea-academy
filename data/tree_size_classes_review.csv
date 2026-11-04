@@ -1,0 +1,1264 @@
+taxon;form;size_class;label;dbh_cm;height_m;crown_width_m;crown_base_m
+acer platanoides;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+acer platanoides;tree;medium;Etabliert (~25 Jahre);31.5;12.1;7.0;3.0
+acer platanoides;tree;large;Ausgewachsen;70.0;22.0;14.0;4.0
+acer pseudoplatanus;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+acer pseudoplatanus;tree;medium;Etabliert (~25 Jahre);36.0;13.8;7.5;3.0
+acer pseudoplatanus;tree;large;Ausgewachsen;80.0;25.0;15.0;4.0
+acer saccharinum;tree;small;Jungbaum StU 18–20;6.0;5.0;1.8;2.0
+acer saccharinum;tree;medium;Etabliert (~25 Jahre);31.5;12.1;7.0;3.0
+acer saccharinum;tree;large;Ausgewachsen;70.0;22.0;14.0;4.0
+acer rubrum;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+acer rubrum;tree;medium;Etabliert (~25 Jahre);24.8;9.9;5.0;3.0
+acer rubrum;tree;large;Ausgewachsen;55.0;18.0;10.0;3.0
+acer campestre;tree;small;Jungbaum StU 18–20;6.0;3.5;1.5;2.0
+acer campestre;tree;medium;Etabliert (~25 Jahre);20.3;6.6;4.0;2.5
+acer campestre;tree;large;Ausgewachsen;45.0;12.0;8.0;3.0
+acer cappadocicum;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+acer cappadocicum;tree;medium;Etabliert (~25 Jahre);27.0;9.9;6.0;3.0
+acer cappadocicum;tree;large;Ausgewachsen;60.0;18.0;12.0;3.0
+acer x freemanii;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+acer x freemanii;tree;medium;Etabliert (~25 Jahre);24.8;9.9;5.0;3.0
+acer x freemanii;tree;large;Ausgewachsen;55.0;18.0;10.0;3.0
+acer negundo;tree;small;Jungbaum StU 18–20;6.0;4.0;1.8;2.0
+acer negundo;tree;medium;Etabliert (~25 Jahre);22.5;7.7;5.0;2.5
+acer negundo;tree;large;Ausgewachsen;50.0;14.0;10.0;3.0
+acer opalus;tree;small;Jungbaum StU 18–20;6.0;3.5;1.5;2.0
+acer opalus;tree;medium;Etabliert (~25 Jahre);20.3;6.6;4.5;2.5
+acer opalus;tree;large;Ausgewachsen;45.0;12.0;9.0;3.0
+acer monspessulanum;small;small;Jungpflanze StU 12–14;4.5;3.0;1.4;0.8
+acer monspessulanum;small;medium;Etabliert (~25 Jahre);15.8;4.4;3.0;1.5
+acer monspessulanum;small;large;Ausgewachsen;35.0;8.0;6.0;2.0
+acer palmatum;small;small;Jungpflanze StU 12–14;4.5;2.5;1.5;0.8
+acer palmatum;small;medium;Etabliert (~25 Jahre);11.3;3.3;3.0;1.5
+acer palmatum;small;large;Ausgewachsen;25.0;6.0;6.0;2.0
+acer japonicum;small;small;Jungpflanze StU 12–14;4.5;2.5;1.5;0.8
+acer japonicum;small;medium;Etabliert (~25 Jahre);11.3;3.3;3.0;1.5
+acer japonicum;small;large;Ausgewachsen;25.0;6.0;6.0;2.0
+acer shirasawanum;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+acer shirasawanum;small;medium;Etabliert (~25 Jahre);9.0;2.8;2.5;1.5
+acer shirasawanum;small;large;Ausgewachsen;20.0;5.0;5.0;2.0
+acer griseum;small;small;Jungpflanze StU 12–14;4.5;3.0;1.3;0.8
+acer griseum;small;medium;Etabliert (~25 Jahre);13.5;5.0;3.0;1.5
+acer griseum;small;large;Ausgewachsen;30.0;9.0;6.0;2.0
+acer buergerianum;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+acer buergerianum;tree;medium;Etabliert (~25 Jahre);15.8;5.5;3.5;2.5
+acer buergerianum;tree;large;Ausgewachsen;35.0;10.0;7.0;3.0
+acer ginnala;small;small;Jungpflanze StU 12–14;4.5;2.5;1.4;0.8
+acer ginnala;small;medium;Etabliert (~25 Jahre);11.3;3.9;3.0;1.5
+acer ginnala;small;large;Ausgewachsen;25.0;7.0;6.0;2.0
+acer tataricum;small;small;Jungpflanze StU 12–14;4.5;2.5;1.4;0.8
+acer tataricum;small;medium;Etabliert (~25 Jahre);11.3;3.9;3.0;1.5
+acer tataricum;small;large;Ausgewachsen;25.0;7.0;6.0;2.0
+acer;tree;small;Jungbaum StU 18–20;6.0;4.0;1.6;2.0
+acer;tree;medium;Etabliert (~25 Jahre);27.0;9.9;6.0;3.0
+acer;tree;large;Ausgewachsen;60.0;18.0;12.0;3.0
+aesculus hippocastanum;tree;small;Jungbaum StU 18–20;6.0;4.5;2.0;2.0
+aesculus hippocastanum;tree;medium;Etabliert (~25 Jahre);40.5;13.8;9.0;3.0
+aesculus hippocastanum;tree;large;Ausgewachsen;90.0;25.0;18.0;4.0
+aesculus x carnea;tree;small;Jungbaum StU 18–20;6.0;4.0;1.8;2.0
+aesculus x carnea;tree;medium;Etabliert (~25 Jahre);27.0;8.3;6.0;3.0
+aesculus x carnea;tree;large;Ausgewachsen;60.0;15.0;12.0;3.0
+aesculus;tree;small;Jungbaum StU 18–20;6.0;4.0;1.8;2.0
+aesculus;tree;medium;Etabliert (~25 Jahre);31.5;9.9;7.0;3.0
+aesculus;tree;large;Ausgewachsen;70.0;18.0;14.0;3.0
+alnus glutinosa;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+alnus glutinosa;tree;medium;Etabliert (~25 Jahre);27.0;12.1;5.0;3.0
+alnus glutinosa;tree;large;Ausgewachsen;60.0;22.0;10.0;4.0
+alnus x spaethii;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+alnus x spaethii;tree;medium;Etabliert (~25 Jahre);24.8;9.9;5.0;3.0
+alnus x spaethii;tree;large;Ausgewachsen;55.0;18.0;10.0;3.0
+alnus cordata;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+alnus cordata;tree;medium;Etabliert (~25 Jahre);24.8;9.9;4.5;3.0
+alnus cordata;tree;large;Ausgewachsen;55.0;18.0;9.0;3.0
+alnus incana;tree;small;Jungbaum StU 18–20;6.0;4.5;1.5;2.0
+alnus incana;tree;medium;Etabliert (~25 Jahre);20.3;8.3;4.0;3.0
+alnus incana;tree;large;Ausgewachsen;45.0;15.0;8.0;3.0
+alnus;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+alnus;tree;medium;Etabliert (~25 Jahre);24.8;9.9;4.5;3.0
+alnus;tree;large;Ausgewachsen;55.0;18.0;9.0;3.0
+betula pendula;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+betula pendula;tree;medium;Etabliert (~25 Jahre);22.5;11.0;5.0;3.0
+betula pendula;tree;large;Ausgewachsen;50.0;20.0;10.0;4.0
+betula utilis;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+betula utilis;tree;medium;Etabliert (~25 Jahre);18.0;8.3;4.5;3.0
+betula utilis;tree;large;Ausgewachsen;40.0;15.0;9.0;3.0
+betula nigra;tree;small;Jungbaum StU 18–20;6.0;5.0;1.8;2.0
+betula nigra;tree;medium;Etabliert (~25 Jahre);24.8;9.9;6.0;3.0
+betula nigra;tree;large;Ausgewachsen;55.0;18.0;12.0;3.0
+betula papyrifera;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+betula papyrifera;tree;medium;Etabliert (~25 Jahre);22.5;9.9;5.0;3.0
+betula papyrifera;tree;large;Ausgewachsen;50.0;18.0;10.0;3.0
+betula;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+betula;tree;medium;Etabliert (~25 Jahre);22.5;9.9;5.0;3.0
+betula;tree;large;Ausgewachsen;50.0;18.0;10.0;3.0
+carpinus betulus;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+carpinus betulus;tree;medium;Etabliert (~25 Jahre);27.0;9.9;6.0;3.0
+carpinus betulus;tree;large;Ausgewachsen;60.0;18.0;12.0;3.0
+carpinus;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+carpinus;tree;medium;Etabliert (~25 Jahre);24.8;8.8;5.5;3.0
+carpinus;tree;large;Ausgewachsen;55.0;16.0;11.0;3.0
+castanea sativa;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+castanea sativa;tree;medium;Etabliert (~25 Jahre);40.5;12.1;7.5;3.0
+castanea sativa;tree;large;Ausgewachsen;90.0;22.0;15.0;4.0
+castanea;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+castanea;tree;medium;Etabliert (~25 Jahre);40.5;12.1;7.5;3.0
+castanea;tree;large;Ausgewachsen;90.0;22.0;15.0;4.0
+catalpa bignonioides;tree;small;Jungbaum StU 18–20;6.0;3.5;1.8;2.0
+catalpa bignonioides;tree;medium;Etabliert (~25 Jahre);22.5;6.6;5.0;2.5
+catalpa bignonioides;tree;large;Ausgewachsen;50.0;12.0;10.0;3.0
+catalpa;tree;small;Jungbaum StU 18–20;6.0;3.5;1.8;2.0
+catalpa;tree;medium;Etabliert (~25 Jahre);22.5;6.6;5.0;2.5
+catalpa;tree;large;Ausgewachsen;50.0;12.0;10.0;3.0
+celtis australis;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+celtis australis;tree;medium;Etabliert (~25 Jahre);31.5;9.9;7.0;3.0
+celtis australis;tree;large;Ausgewachsen;70.0;18.0;14.0;3.0
+celtis occidentalis;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+celtis occidentalis;tree;medium;Etabliert (~25 Jahre);31.5;9.9;7.0;3.0
+celtis occidentalis;tree;large;Ausgewachsen;70.0;18.0;14.0;3.0
+celtis;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+celtis;tree;medium;Etabliert (~25 Jahre);31.5;9.9;7.0;3.0
+celtis;tree;large;Ausgewachsen;70.0;18.0;14.0;3.0
+cercidiphyllum japonicum;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+cercidiphyllum japonicum;tree;medium;Etabliert (~25 Jahre);22.5;8.3;5.0;3.0
+cercidiphyllum japonicum;tree;large;Ausgewachsen;50.0;15.0;10.0;3.0
+cercidiphyllum;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+cercidiphyllum;tree;medium;Etabliert (~25 Jahre);22.5;8.3;5.0;3.0
+cercidiphyllum;tree;large;Ausgewachsen;50.0;15.0;10.0;3.0
+corylus colurna;tree;small;Jungbaum StU 18–20;6.0;4.5;1.5;2.0
+corylus colurna;tree;medium;Etabliert (~25 Jahre);24.8;9.9;5.0;3.0
+corylus colurna;tree;large;Ausgewachsen;55.0;18.0;10.0;3.0
+corylus avellana;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+corylus avellana;small;medium;Etabliert (~25 Jahre);6.8;3.3;2.5;1.5
+corylus avellana;small;large;Ausgewachsen;15.0;6.0;5.0;2.0
+corylus;small;small;Jungpflanze StU 12–14;4.5;3.0;1.3;0.8
+corylus;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+corylus;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+fagus sylvatica;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+fagus sylvatica;tree;medium;Etabliert (~25 Jahre);40.5;15.4;9.0;3.0
+fagus sylvatica;tree;large;Ausgewachsen;90.0;28.0;18.0;4.0
+fagus;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+fagus;tree;medium;Etabliert (~25 Jahre);40.5;15.4;9.0;3.0
+fagus;tree;large;Ausgewachsen;90.0;28.0;18.0;4.0
+fraxinus excelsior;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+fraxinus excelsior;tree;medium;Etabliert (~25 Jahre);36.0;15.4;8.0;3.0
+fraxinus excelsior;tree;large;Ausgewachsen;80.0;28.0;16.0;4.0
+fraxinus ornus;tree;small;Jungbaum StU 18–20;6.0;3.5;1.6;2.0
+fraxinus ornus;tree;medium;Etabliert (~25 Jahre);18.0;6.6;4.5;2.5
+fraxinus ornus;tree;large;Ausgewachsen;40.0;12.0;9.0;3.0
+fraxinus angustifolia;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+fraxinus angustifolia;tree;medium;Etabliert (~25 Jahre);27.0;11.0;6.0;3.0
+fraxinus angustifolia;tree;large;Ausgewachsen;60.0;20.0;12.0;4.0
+fraxinus pennsylvanica;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+fraxinus pennsylvanica;tree;medium;Etabliert (~25 Jahre);24.8;9.9;6.0;3.0
+fraxinus pennsylvanica;tree;large;Ausgewachsen;55.0;18.0;12.0;3.0
+fraxinus americana;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+fraxinus americana;tree;medium;Etabliert (~25 Jahre);29.3;12.1;7.0;3.0
+fraxinus americana;tree;large;Ausgewachsen;65.0;22.0;14.0;4.0
+fraxinus;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+fraxinus;tree;medium;Etabliert (~25 Jahre);27.0;11.0;6.0;3.0
+fraxinus;tree;large;Ausgewachsen;60.0;20.0;12.0;4.0
+ginkgo biloba;tree;small;Jungbaum StU 18–20;6.0;4.5;1.2;2.0
+ginkgo biloba;tree;medium;Etabliert (~25 Jahre);27.0;12.1;5.0;3.0
+ginkgo biloba;tree;large;Ausgewachsen;60.0;22.0;10.0;4.0
+ginkgo;tree;small;Jungbaum StU 18–20;6.0;4.5;1.2;2.0
+ginkgo;tree;medium;Etabliert (~25 Jahre);27.0;12.1;5.0;3.0
+ginkgo;tree;large;Ausgewachsen;60.0;22.0;10.0;4.0
+gleditsia triacanthos;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+gleditsia triacanthos;tree;medium;Etabliert (~25 Jahre);27.0;9.9;6.0;3.0
+gleditsia triacanthos;tree;large;Ausgewachsen;60.0;18.0;12.0;3.0
+gleditsia;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+gleditsia;tree;medium;Etabliert (~25 Jahre);27.0;9.9;6.0;3.0
+gleditsia;tree;large;Ausgewachsen;60.0;18.0;12.0;3.0
+gymnocladus dioicus;tree;small;Jungbaum StU 18–20;6.0;4.0;1.4;2.0
+gymnocladus dioicus;tree;medium;Etabliert (~25 Jahre);24.8;9.9;5.0;3.0
+gymnocladus dioicus;tree;large;Ausgewachsen;55.0;18.0;10.0;3.0
+gymnocladus;tree;small;Jungbaum StU 18–20;6.0;4.0;1.4;2.0
+gymnocladus;tree;medium;Etabliert (~25 Jahre);24.8;9.9;5.0;3.0
+gymnocladus;tree;large;Ausgewachsen;55.0;18.0;10.0;3.0
+juglans regia;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+juglans regia;tree;medium;Etabliert (~25 Jahre);36.0;11.0;8.0;3.0
+juglans regia;tree;large;Ausgewachsen;80.0;20.0;16.0;4.0
+juglans nigra;tree;small;Jungbaum StU 18–20;6.0;5.0;1.8;2.0
+juglans nigra;tree;medium;Etabliert (~25 Jahre);36.0;13.8;8.0;3.0
+juglans nigra;tree;large;Ausgewachsen;80.0;25.0;16.0;4.0
+juglans;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+juglans;tree;medium;Etabliert (~25 Jahre);33.8;11.0;7.5;3.0
+juglans;tree;large;Ausgewachsen;75.0;20.0;15.0;4.0
+liquidambar styraciflua;tree;small;Jungbaum StU 18–20;6.0;4.5;1.4;2.0
+liquidambar styraciflua;tree;medium;Etabliert (~25 Jahre);24.8;11.0;5.0;3.0
+liquidambar styraciflua;tree;large;Ausgewachsen;55.0;20.0;10.0;4.0
+liquidambar;tree;small;Jungbaum StU 18–20;6.0;4.5;1.4;2.0
+liquidambar;tree;medium;Etabliert (~25 Jahre);24.8;11.0;5.0;3.0
+liquidambar;tree;large;Ausgewachsen;55.0;20.0;10.0;4.0
+liriodendron tulipifera;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+liriodendron tulipifera;tree;medium;Etabliert (~25 Jahre);36.0;15.4;7.0;3.0
+liriodendron tulipifera;tree;large;Ausgewachsen;80.0;28.0;14.0;4.0
+liriodendron;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+liriodendron;tree;medium;Etabliert (~25 Jahre);36.0;15.4;7.0;3.0
+liriodendron;tree;large;Ausgewachsen;80.0;28.0;14.0;4.0
+metasequoia glyptostroboides;conifer;small;Jungbaum 250–300 cm;6.0;5.0;1.4;0.3
+metasequoia glyptostroboides;conifer;medium;Etabliert (~25 Jahre);36.0;16.5;4.0;1.0
+metasequoia glyptostroboides;conifer;large;Ausgewachsen;80.0;30.0;8.0;2.0
+metasequoia;conifer;small;Jungbaum 250–300 cm;6.0;5.0;1.4;0.3
+metasequoia;conifer;medium;Etabliert (~25 Jahre);36.0;16.5;4.0;1.0
+metasequoia;conifer;large;Ausgewachsen;80.0;30.0;8.0;2.0
+morus alba;tree;small;Jungbaum StU 18–20;6.0;3.5;1.8;2.0
+morus alba;tree;medium;Etabliert (~25 Jahre);22.5;6.6;5.0;2.5
+morus alba;tree;large;Ausgewachsen;50.0;12.0;10.0;3.0
+morus nigra;tree;small;Jungbaum StU 18–20;6.0;3.0;1.8;2.0
+morus nigra;tree;medium;Etabliert (~25 Jahre);20.3;5.5;4.5;2.5
+morus nigra;tree;large;Ausgewachsen;45.0;10.0;9.0;3.0
+morus;tree;small;Jungbaum StU 18–20;6.0;3.5;1.8;2.0
+morus;tree;medium;Etabliert (~25 Jahre);22.5;6.6;5.0;2.5
+morus;tree;large;Ausgewachsen;50.0;12.0;10.0;3.0
+nothofagus antarctica;tree;small;Jungbaum StU 18–20;6.0;4.0;1.4;2.0
+nothofagus antarctica;tree;medium;Etabliert (~25 Jahre);15.8;6.6;4.0;2.5
+nothofagus antarctica;tree;large;Ausgewachsen;35.0;12.0;8.0;3.0
+nothofagus;tree;small;Jungbaum StU 18–20;6.0;4.0;1.4;2.0
+nothofagus;tree;medium;Etabliert (~25 Jahre);15.8;6.6;4.0;2.5
+nothofagus;tree;large;Ausgewachsen;35.0;12.0;8.0;3.0
+nyssa sylvatica;tree;small;Jungbaum StU 18–20;6.0;4.0;1.4;2.0
+nyssa sylvatica;tree;medium;Etabliert (~25 Jahre);20.3;8.3;4.0;3.0
+nyssa sylvatica;tree;large;Ausgewachsen;45.0;15.0;8.0;3.0
+nyssa;tree;small;Jungbaum StU 18–20;6.0;4.0;1.4;2.0
+nyssa;tree;medium;Etabliert (~25 Jahre);20.3;8.3;4.0;3.0
+nyssa;tree;large;Ausgewachsen;45.0;15.0;8.0;3.0
+ostrya carpinifolia;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+ostrya carpinifolia;tree;medium;Etabliert (~25 Jahre);22.5;8.3;5.0;3.0
+ostrya carpinifolia;tree;large;Ausgewachsen;50.0;15.0;10.0;3.0
+ostrya;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+ostrya;tree;medium;Etabliert (~25 Jahre);22.5;8.3;5.0;3.0
+ostrya;tree;large;Ausgewachsen;50.0;15.0;10.0;3.0
+parrotia persica;small;small;Jungpflanze StU 12–14;4.5;3.0;1.5;0.8
+parrotia persica;small;medium;Etabliert (~25 Jahre);15.8;5.0;4.0;1.5
+parrotia persica;small;large;Ausgewachsen;35.0;9.0;8.0;2.0
+parrotia;small;small;Jungpflanze StU 12–14;4.5;3.0;1.5;0.8
+parrotia;small;medium;Etabliert (~25 Jahre);15.8;5.0;4.0;1.5
+parrotia;small;large;Ausgewachsen;35.0;9.0;8.0;2.0
+paulownia tomentosa;tree;small;Jungbaum StU 18–20;6.0;4.0;1.8;2.0
+paulownia tomentosa;tree;medium;Etabliert (~25 Jahre);27.0;8.3;6.0;3.0
+paulownia tomentosa;tree;large;Ausgewachsen;60.0;15.0;12.0;3.0
+paulownia;tree;small;Jungbaum StU 18–20;6.0;4.0;1.8;2.0
+paulownia;tree;medium;Etabliert (~25 Jahre);27.0;8.3;6.0;3.0
+paulownia;tree;large;Ausgewachsen;60.0;15.0;12.0;3.0
+platanus x hispanica;tree;small;Jungbaum StU 18–20;6.0;5.0;1.8;2.0
+platanus x hispanica;tree;medium;Etabliert (~25 Jahre);49.5;16.5;11.0;3.0
+platanus x hispanica;tree;large;Ausgewachsen;110.0;30.0;22.0;4.0
+platanus x acerifolia;tree;small;Jungbaum StU 18–20;6.0;5.0;1.8;2.0
+platanus x acerifolia;tree;medium;Etabliert (~25 Jahre);49.5;16.5;11.0;3.0
+platanus x acerifolia;tree;large;Ausgewachsen;110.0;30.0;22.0;4.0
+platanus orientalis;tree;small;Jungbaum StU 18–20;6.0;5.0;1.8;2.0
+platanus orientalis;tree;medium;Etabliert (~25 Jahre);49.5;15.4;11.0;3.0
+platanus orientalis;tree;large;Ausgewachsen;110.0;28.0;22.0;4.0
+platanus;tree;small;Jungbaum StU 18–20;6.0;5.0;1.8;2.0
+platanus;tree;medium;Etabliert (~25 Jahre);49.5;16.5;11.0;3.0
+platanus;tree;large;Ausgewachsen;110.0;30.0;22.0;4.0
+populus nigra;tree;small;Jungbaum StU 18–20;6.0;5.5;1.5;2.0
+populus nigra;tree;medium;Etabliert (~25 Jahre);40.5;15.4;6.0;3.0
+populus nigra;tree;large;Ausgewachsen;90.0;28.0;12.0;4.0
+populus alba;tree;small;Jungbaum StU 18–20;6.0;5.5;1.6;2.0
+populus alba;tree;medium;Etabliert (~25 Jahre);40.5;13.8;7.5;3.0
+populus alba;tree;large;Ausgewachsen;90.0;25.0;15.0;4.0
+populus tremula;tree;small;Jungbaum StU 18–20;6.0;5.0;1.5;2.0
+populus tremula;tree;medium;Etabliert (~25 Jahre);22.5;11.0;5.0;3.0
+populus tremula;tree;large;Ausgewachsen;50.0;20.0;10.0;4.0
+populus x canescens;tree;small;Jungbaum StU 18–20;6.0;5.5;1.6;2.0
+populus x canescens;tree;medium;Etabliert (~25 Jahre);38.3;13.8;7.0;3.0
+populus x canescens;tree;large;Ausgewachsen;85.0;25.0;14.0;4.0
+populus;tree;small;Jungbaum StU 18–20;6.0;5.5;1.5;2.0
+populus;tree;medium;Etabliert (~25 Jahre);38.3;13.8;6.0;3.0
+populus;tree;large;Ausgewachsen;85.0;25.0;12.0;4.0
+quercus robur;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+quercus robur;tree;medium;Etabliert (~25 Jahre);45.0;15.4;10.0;3.0
+quercus robur;tree;large;Ausgewachsen;100.0;28.0;20.0;4.0
+quercus petraea;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+quercus petraea;tree;medium;Etabliert (~25 Jahre);42.8;15.4;9.0;3.0
+quercus petraea;tree;large;Ausgewachsen;95.0;28.0;18.0;4.0
+quercus cerris;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+quercus cerris;tree;medium;Etabliert (~25 Jahre);38.3;13.8;8.0;3.0
+quercus cerris;tree;large;Ausgewachsen;85.0;25.0;16.0;4.0
+quercus frainetto;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+quercus frainetto;tree;medium;Etabliert (~25 Jahre);33.8;12.1;7.0;3.0
+quercus frainetto;tree;large;Ausgewachsen;75.0;22.0;14.0;4.0
+quercus pubescens;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+quercus pubescens;tree;medium;Etabliert (~25 Jahre);27.0;8.3;6.0;3.0
+quercus pubescens;tree;large;Ausgewachsen;60.0;15.0;12.0;3.0
+quercus rubra;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+quercus rubra;tree;medium;Etabliert (~25 Jahre);40.5;13.8;9.0;3.0
+quercus rubra;tree;large;Ausgewachsen;90.0;25.0;18.0;4.0
+quercus palustris;tree;small;Jungbaum StU 18–20;6.0;4.5;1.5;2.0
+quercus palustris;tree;medium;Etabliert (~25 Jahre);31.5;12.1;7.0;3.0
+quercus palustris;tree;large;Ausgewachsen;70.0;22.0;14.0;4.0
+quercus coccinea;tree;small;Jungbaum StU 18–20;6.0;4.5;1.5;2.0
+quercus coccinea;tree;medium;Etabliert (~25 Jahre);31.5;12.1;7.0;3.0
+quercus coccinea;tree;large;Ausgewachsen;70.0;22.0;14.0;4.0
+quercus phellos;tree;small;Jungbaum StU 18–20;6.0;4.5;1.5;2.0
+quercus phellos;tree;medium;Etabliert (~25 Jahre);27.0;9.9;6.0;3.0
+quercus phellos;tree;large;Ausgewachsen;60.0;18.0;12.0;3.0
+quercus ilex;tree;small;Jungbaum StU 18–20;6.0;3.5;1.5;2.0
+quercus ilex;tree;medium;Etabliert (~25 Jahre);27.0;8.3;6.0;3.0
+quercus ilex;tree;large;Ausgewachsen;60.0;15.0;12.0;3.0
+quercus suber;tree;small;Jungbaum StU 18–20;6.0;3.0;1.5;2.0
+quercus suber;tree;medium;Etabliert (~25 Jahre);27.0;6.6;6.0;2.5
+quercus suber;tree;large;Ausgewachsen;60.0;12.0;12.0;3.0
+quercus x hispanica;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+quercus x hispanica;tree;medium;Etabliert (~25 Jahre);31.5;11.0;7.0;3.0
+quercus x hispanica;tree;large;Ausgewachsen;70.0;20.0;14.0;4.0
+quercus;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+quercus;tree;medium;Etabliert (~25 Jahre);36.0;12.1;7.5;3.0
+quercus;tree;large;Ausgewachsen;80.0;22.0;15.0;4.0
+robinia pseudoacacia;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+robinia pseudoacacia;tree;medium;Etabliert (~25 Jahre);27.0;11.0;6.0;3.0
+robinia pseudoacacia;tree;large;Ausgewachsen;60.0;20.0;12.0;4.0
+robinia;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+robinia;tree;medium;Etabliert (~25 Jahre);24.8;9.9;5.5;3.0
+robinia;tree;large;Ausgewachsen;55.0;18.0;11.0;3.0
+salix alba;tree;small;Jungbaum StU 18–20;6.0;5.5;1.6;2.0
+salix alba;tree;medium;Etabliert (~25 Jahre);40.5;12.1;7.5;3.0
+salix alba;tree;large;Ausgewachsen;90.0;22.0;15.0;4.0
+salix x sepulcralis;tree;small;Jungbaum StU 18–20;6.0;5.0;1.8;2.0
+salix x sepulcralis;tree;medium;Etabliert (~25 Jahre);36.0;9.9;7.5;3.0
+salix x sepulcralis;tree;large;Ausgewachsen;80.0;18.0;15.0;3.0
+salix caprea;small;small;Jungpflanze StU 12–14;4.5;3.0;1.5;0.8
+salix caprea;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+salix caprea;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+salix;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+salix;tree;medium;Etabliert (~25 Jahre);27.0;8.3;5.0;3.0
+salix;tree;large;Ausgewachsen;60.0;15.0;10.0;3.0
+sophora japonica;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+sophora japonica;tree;medium;Etabliert (~25 Jahre);31.5;11.0;7.5;3.0
+sophora japonica;tree;large;Ausgewachsen;70.0;20.0;15.0;4.0
+styphnolobium japonicum;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+styphnolobium japonicum;tree;medium;Etabliert (~25 Jahre);31.5;11.0;7.5;3.0
+styphnolobium japonicum;tree;large;Ausgewachsen;70.0;20.0;15.0;4.0
+styphnolobium;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+styphnolobium;tree;medium;Etabliert (~25 Jahre);31.5;11.0;7.5;3.0
+styphnolobium;tree;large;Ausgewachsen;70.0;20.0;15.0;4.0
+tilia cordata;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+tilia cordata;tree;medium;Etabliert (~25 Jahre);36.0;13.8;7.0;3.0
+tilia cordata;tree;large;Ausgewachsen;80.0;25.0;14.0;4.0
+tilia platyphyllos;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+tilia platyphyllos;tree;medium;Etabliert (~25 Jahre);45.0;16.5;9.0;3.0
+tilia platyphyllos;tree;large;Ausgewachsen;100.0;30.0;18.0;4.0
+tilia tomentosa;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+tilia tomentosa;tree;medium;Etabliert (~25 Jahre);36.0;13.8;7.5;3.0
+tilia tomentosa;tree;large;Ausgewachsen;80.0;25.0;15.0;4.0
+tilia x europaea;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+tilia x europaea;tree;medium;Etabliert (~25 Jahre);40.5;15.4;8.0;3.0
+tilia x europaea;tree;large;Ausgewachsen;90.0;28.0;16.0;4.0
+tilia americana;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+tilia americana;tree;medium;Etabliert (~25 Jahre);36.0;13.8;7.0;3.0
+tilia americana;tree;large;Ausgewachsen;80.0;25.0;14.0;4.0
+tilia;tree;small;Jungbaum StU 18–20;6.0;4.5;1.6;2.0
+tilia;tree;medium;Etabliert (~25 Jahre);36.0;13.8;7.5;3.0
+tilia;tree;large;Ausgewachsen;80.0;25.0;15.0;4.0
+ulmus glabra;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+ulmus glabra;tree;medium;Etabliert (~25 Jahre);40.5;15.4;9.0;3.0
+ulmus glabra;tree;large;Ausgewachsen;90.0;28.0;18.0;4.0
+ulmus minor;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+ulmus minor;tree;medium;Etabliert (~25 Jahre);36.0;13.8;7.0;3.0
+ulmus minor;tree;large;Ausgewachsen;80.0;25.0;14.0;4.0
+ulmus laevis;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+ulmus laevis;tree;medium;Etabliert (~25 Jahre);40.5;15.4;9.0;3.0
+ulmus laevis;tree;large;Ausgewachsen;90.0;28.0;18.0;4.0
+ulmus;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+ulmus;tree;medium;Etabliert (~25 Jahre);33.8;12.1;7.0;3.0
+ulmus;tree;large;Ausgewachsen;75.0;22.0;14.0;4.0
+zelkova serrata;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+zelkova serrata;tree;medium;Etabliert (~25 Jahre);31.5;11.0;8.0;3.0
+zelkova serrata;tree;large;Ausgewachsen;70.0;20.0;16.0;4.0
+zelkova carpinifolia;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+zelkova carpinifolia;tree;medium;Etabliert (~25 Jahre);31.5;12.1;7.0;3.0
+zelkova carpinifolia;tree;large;Ausgewachsen;70.0;22.0;14.0;4.0
+zelkova;tree;small;Jungbaum StU 18–20;6.0;4.5;1.8;2.0
+zelkova;tree;medium;Etabliert (~25 Jahre);31.5;11.0;7.5;3.0
+zelkova;tree;large;Ausgewachsen;70.0;20.0;15.0;4.0
+ailanthus altissima;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+ailanthus altissima;tree;medium;Etabliert (~25 Jahre);27.0;11.0;6.0;3.0
+ailanthus altissima;tree;large;Ausgewachsen;60.0;20.0;12.0;4.0
+ailanthus;tree;small;Jungbaum StU 18–20;6.0;5.0;1.6;2.0
+ailanthus;tree;medium;Etabliert (~25 Jahre);27.0;11.0;6.0;3.0
+ailanthus;tree;large;Ausgewachsen;60.0;20.0;12.0;4.0
+carya;tree;small;Jungbaum StU 18–20;6.0;4.5;1.5;2.0
+carya;tree;medium;Etabliert (~25 Jahre);31.5;13.8;7.0;3.0
+carya;tree;large;Ausgewachsen;70.0;25.0;14.0;4.0
+davidia involucrata;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+davidia involucrata;tree;medium;Etabliert (~25 Jahre);20.3;8.3;5.0;3.0
+davidia involucrata;tree;large;Ausgewachsen;45.0;15.0;10.0;3.0
+davidia;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+davidia;tree;medium;Etabliert (~25 Jahre);20.3;8.3;5.0;3.0
+davidia;tree;large;Ausgewachsen;45.0;15.0;10.0;3.0
+eucalyptus;tree;small;Jungbaum StU 18–20;6.0;4.5;1.4;2.0
+eucalyptus;tree;medium;Etabliert (~25 Jahre);27.0;11.0;5.0;3.0
+eucalyptus;tree;large;Ausgewachsen;60.0;20.0;10.0;4.0
+koelreuteria paniculata;tree;small;Jungbaum StU 18–20;6.0;3.5;1.6;2.0
+koelreuteria paniculata;tree;medium;Etabliert (~25 Jahre);18.0;5.5;4.5;2.5
+koelreuteria paniculata;tree;large;Ausgewachsen;40.0;10.0;9.0;3.0
+koelreuteria;tree;small;Jungbaum StU 18–20;6.0;3.5;1.6;2.0
+koelreuteria;tree;medium;Etabliert (~25 Jahre);18.0;5.5;4.5;2.5
+koelreuteria;tree;large;Ausgewachsen;40.0;10.0;9.0;3.0
+albizia julibrissin;small;small;Jungpflanze StU 12–14;4.5;3.0;1.6;0.8
+albizia julibrissin;small;medium;Etabliert (~25 Jahre);13.5;4.4;4.0;1.5
+albizia julibrissin;small;large;Ausgewachsen;30.0;8.0;8.0;2.0
+albizia;small;small;Jungpflanze StU 12–14;4.5;3.0;1.6;0.8
+albizia;small;medium;Etabliert (~25 Jahre);13.5;4.4;4.0;1.5
+albizia;small;large;Ausgewachsen;30.0;8.0;8.0;2.0
+phellodendron amurense;tree;small;Jungbaum StU 18–20;6.0;4.0;1.8;2.0
+phellodendron amurense;tree;medium;Etabliert (~25 Jahre);24.8;7.7;6.0;2.5
+phellodendron amurense;tree;large;Ausgewachsen;55.0;14.0;12.0;3.0
+phellodendron;tree;small;Jungbaum StU 18–20;6.0;4.0;1.8;2.0
+phellodendron;tree;medium;Etabliert (~25 Jahre);24.8;7.7;6.0;2.5
+phellodendron;tree;large;Ausgewachsen;55.0;14.0;12.0;3.0
+tetradium daniellii;tree;small;Jungbaum StU 18–20;6.0;3.5;1.6;2.0
+tetradium daniellii;tree;medium;Etabliert (~25 Jahre);20.3;6.6;5.0;2.5
+tetradium daniellii;tree;large;Ausgewachsen;45.0;12.0;10.0;3.0
+tetradium;tree;small;Jungbaum StU 18–20;6.0;3.5;1.6;2.0
+tetradium;tree;medium;Etabliert (~25 Jahre);20.3;6.6;5.0;2.5
+tetradium;tree;large;Ausgewachsen;45.0;12.0;10.0;3.0
+pterocarya fraxinifolia;tree;small;Jungbaum StU 18–20;6.0;5.0;1.8;2.0
+pterocarya fraxinifolia;tree;medium;Etabliert (~25 Jahre);45.0;13.8;10.0;3.0
+pterocarya fraxinifolia;tree;large;Ausgewachsen;100.0;25.0;20.0;4.0
+pterocarya;tree;small;Jungbaum StU 18–20;6.0;5.0;1.8;2.0
+pterocarya;tree;medium;Etabliert (~25 Jahre);45.0;13.8;10.0;3.0
+pterocarya;tree;large;Ausgewachsen;100.0;25.0;20.0;4.0
+sorbus aria;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+sorbus aria;tree;medium;Etabliert (~25 Jahre);15.8;5.5;3.5;2.5
+sorbus aria;tree;large;Ausgewachsen;35.0;10.0;7.0;3.0
+sorbus aucuparia;tree;small;Jungbaum StU 18–20;6.0;3.5;1.3;2.0
+sorbus aucuparia;tree;medium;Etabliert (~25 Jahre);13.5;5.5;3.0;2.5
+sorbus aucuparia;tree;large;Ausgewachsen;30.0;10.0;6.0;3.0
+sorbus intermedia;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+sorbus intermedia;tree;medium;Etabliert (~25 Jahre);18.0;6.6;4.0;2.5
+sorbus intermedia;tree;large;Ausgewachsen;40.0;12.0;8.0;3.0
+sorbus torminalis;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+sorbus torminalis;tree;medium;Etabliert (~25 Jahre);20.3;8.3;5.0;3.0
+sorbus torminalis;tree;large;Ausgewachsen;45.0;15.0;10.0;3.0
+sorbus domestica;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+sorbus domestica;tree;medium;Etabliert (~25 Jahre);22.5;8.3;5.0;3.0
+sorbus domestica;tree;large;Ausgewachsen;50.0;15.0;10.0;3.0
+sorbus;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+sorbus;tree;medium;Etabliert (~25 Jahre);15.8;5.5;3.5;2.5
+sorbus;tree;large;Ausgewachsen;35.0;10.0;7.0;3.0
+amelanchier lamarckii;small;small;Jungpflanze StU 12–14;4.5;2.5;1.2;0.8
+amelanchier lamarckii;small;medium;Etabliert (~25 Jahre);6.8;3.3;2.5;1.5
+amelanchier lamarckii;small;large;Ausgewachsen;15.0;6.0;5.0;2.0
+amelanchier arborea;small;small;Jungpflanze StU 12–14;4.5;3.0;1.2;0.8
+amelanchier arborea;small;medium;Etabliert (~25 Jahre);9.0;4.4;2.5;1.5
+amelanchier arborea;small;large;Ausgewachsen;20.0;8.0;5.0;2.0
+amelanchier;small;small;Jungpflanze StU 12–14;4.5;2.5;1.2;0.8
+amelanchier;small;medium;Etabliert (~25 Jahre);6.8;3.3;2.5;1.5
+amelanchier;small;large;Ausgewachsen;15.0;6.0;5.0;2.0
+cercis siliquastrum;small;small;Jungpflanze StU 12–14;4.5;2.5;1.4;0.8
+cercis siliquastrum;small;medium;Etabliert (~25 Jahre);11.3;3.9;3.0;1.5
+cercis siliquastrum;small;large;Ausgewachsen;25.0;7.0;6.0;2.0
+cercis canadensis;small;small;Jungpflanze StU 12–14;4.5;2.5;1.4;0.8
+cercis canadensis;small;medium;Etabliert (~25 Jahre);11.3;3.9;3.5;1.5
+cercis canadensis;small;large;Ausgewachsen;25.0;7.0;7.0;2.0
+cercis;small;small;Jungpflanze StU 12–14;4.5;2.5;1.4;0.8
+cercis;small;medium;Etabliert (~25 Jahre);11.3;3.9;3.0;1.5
+cercis;small;large;Ausgewachsen;25.0;7.0;6.0;2.0
+cornus mas;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+cornus mas;small;medium;Etabliert (~25 Jahre);6.8;3.3;2.5;1.5
+cornus mas;small;large;Ausgewachsen;15.0;6.0;5.0;2.0
+cornus kousa;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+cornus kousa;small;medium;Etabliert (~25 Jahre);6.8;3.9;2.5;1.5
+cornus kousa;small;large;Ausgewachsen;15.0;7.0;5.0;2.0
+cornus florida;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+cornus florida;small;medium;Etabliert (~25 Jahre);6.8;3.3;2.5;1.5
+cornus florida;small;large;Ausgewachsen;15.0;6.0;5.0;2.0
+cornus controversa;small;small;Jungpflanze StU 12–14;4.5;3.0;1.5;0.8
+cornus controversa;small;medium;Etabliert (~25 Jahre);15.8;6.6;5.0;1.5
+cornus controversa;small;large;Ausgewachsen;35.0;12.0;10.0;2.0
+cornus;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+cornus;small;medium;Etabliert (~25 Jahre);6.8;3.3;2.5;1.5
+cornus;small;large;Ausgewachsen;15.0;6.0;5.0;2.0
+crataegus laevigata;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+crataegus laevigata;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+crataegus laevigata;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+crataegus monogyna;small;small;Jungpflanze StU 12–14;4.5;3.0;1.3;0.8
+crataegus monogyna;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+crataegus monogyna;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+crataegus x lavallei;small;small;Jungpflanze StU 12–14;4.5;3.0;1.4;0.8
+crataegus x lavallei;small;medium;Etabliert (~25 Jahre);11.3;3.9;3.0;1.5
+crataegus x lavallei;small;large;Ausgewachsen;25.0;7.0;6.0;2.0
+crataegus;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+crataegus;small;medium;Etabliert (~25 Jahre);9.0;3.9;2.5;1.5
+crataegus;small;large;Ausgewachsen;20.0;7.0;5.0;2.0
+cydonia oblonga;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+cydonia oblonga;small;medium;Etabliert (~25 Jahre);6.8;2.8;2.0;1.5
+cydonia oblonga;small;large;Ausgewachsen;15.0;5.0;4.0;2.0
+cydonia;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+cydonia;small;medium;Etabliert (~25 Jahre);6.8;2.8;2.0;1.5
+cydonia;small;large;Ausgewachsen;15.0;5.0;4.0;2.0
+diospyros kaki;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+diospyros kaki;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+diospyros kaki;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+diospyros;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+diospyros;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+diospyros;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+elaeagnus angustifolia;small;small;Jungpflanze StU 12–14;4.5;2.5;1.4;0.8
+elaeagnus angustifolia;small;medium;Etabliert (~25 Jahre);11.3;3.9;3.0;1.5
+elaeagnus angustifolia;small;large;Ausgewachsen;25.0;7.0;6.0;2.0
+elaeagnus;small;small;Jungpflanze StU 12–14;4.5;2.0;1.4;0.8
+elaeagnus;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+elaeagnus;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+ficus carica;small;small;Jungpflanze StU 12–14;4.5;2.0;1.4;0.8
+ficus carica;small;medium;Etabliert (~25 Jahre);11.3;3.3;3.0;1.5
+ficus carica;small;large;Ausgewachsen;25.0;6.0;6.0;2.0
+ficus;small;small;Jungpflanze StU 12–14;4.5;2.0;1.4;0.8
+ficus;small;medium;Etabliert (~25 Jahre);11.3;3.3;3.0;1.5
+ficus;small;large;Ausgewachsen;25.0;6.0;6.0;2.0
+halesia;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+halesia;small;medium;Etabliert (~25 Jahre);9.0;3.9;3.0;1.5
+halesia;small;large;Ausgewachsen;20.0;7.0;6.0;2.0
+hamamelis;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+hamamelis;small;medium;Etabliert (~25 Jahre);4.5;2.2;2.0;1.5
+hamamelis;small;large;Ausgewachsen;10.0;4.0;4.0;2.0
+heptacodium miconioides;small;small;Jungpflanze StU 12–14;4.5;2.0;1.1;0.8
+heptacodium miconioides;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+heptacodium miconioides;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+heptacodium;small;small;Jungpflanze StU 12–14;4.5;2.0;1.1;0.8
+heptacodium;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+heptacodium;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+hippophae rhamnoides;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+hippophae rhamnoides;small;medium;Etabliert (~25 Jahre);4.5;2.2;2.0;1.5
+hippophae rhamnoides;small;large;Ausgewachsen;10.0;4.0;4.0;2.0
+hippophae;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+hippophae;small;medium;Etabliert (~25 Jahre);4.5;2.2;2.0;1.5
+hippophae;small;large;Ausgewachsen;10.0;4.0;4.0;2.0
+lagerstroemia indica;small;small;Jungpflanze StU 12–14;4.5;2.0;1.1;0.8
+lagerstroemia indica;small;medium;Etabliert (~25 Jahre);6.8;2.8;2.0;1.5
+lagerstroemia indica;small;large;Ausgewachsen;15.0;5.0;4.0;2.0
+lagerstroemia;small;small;Jungpflanze StU 12–14;4.5;2.0;1.1;0.8
+lagerstroemia;small;medium;Etabliert (~25 Jahre);6.8;2.8;2.0;1.5
+lagerstroemia;small;large;Ausgewachsen;15.0;5.0;4.0;2.0
+laburnum;small;small;Jungpflanze StU 12–14;4.5;2.5;1.2;0.8
+laburnum;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+laburnum;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+magnolia kobus;small;small;Jungpflanze StU 12–14;4.5;3.0;1.4;0.8
+magnolia kobus;small;medium;Etabliert (~25 Jahre);13.5;5.5;4.0;1.5
+magnolia kobus;small;large;Ausgewachsen;30.0;10.0;8.0;2.0
+magnolia x soulangeana;small;small;Jungpflanze StU 12–14;4.5;2.0;1.4;0.8
+magnolia x soulangeana;small;medium;Etabliert (~25 Jahre);9.0;3.3;3.0;1.5
+magnolia x soulangeana;small;large;Ausgewachsen;20.0;6.0;6.0;2.0
+magnolia stellata;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+magnolia stellata;small;medium;Etabliert (~25 Jahre);4.5;2.0;1.5;1.5
+magnolia stellata;small;large;Ausgewachsen;10.0;3.0;3.0;2.0
+magnolia liliiflora;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+magnolia liliiflora;small;medium;Etabliert (~25 Jahre);4.5;2.0;1.5;1.5
+magnolia liliiflora;small;large;Ausgewachsen;10.0;3.0;3.0;2.0
+magnolia grandiflora;tree;small;Jungbaum StU 18–20;6.0;3.0;1.4;2.0
+magnolia grandiflora;tree;medium;Etabliert (~25 Jahre);18.0;6.6;4.0;2.5
+magnolia grandiflora;tree;large;Ausgewachsen;40.0;12.0;8.0;3.0
+magnolia;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+magnolia;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+magnolia;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+malus domestica;small;small;Jungpflanze StU 12–14;4.5;2.5;1.4;0.8
+malus domestica;small;medium;Etabliert (~25 Jahre);11.3;3.3;3.0;1.5
+malus domestica;small;large;Ausgewachsen;25.0;6.0;6.0;2.0
+malus sylvestris;small;small;Jungpflanze StU 12–14;4.5;2.5;1.4;0.8
+malus sylvestris;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+malus sylvestris;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+malus toringo;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+malus toringo;small;medium;Etabliert (~25 Jahre);5.4;2.5;2.0;1.5
+malus toringo;small;large;Ausgewachsen;12.0;4.0;4.0;2.0
+malus;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+malus;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+malus;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+melia azedarach;tree;small;Jungbaum StU 18–20;6.0;3.5;1.6;2.0
+melia azedarach;tree;medium;Etabliert (~25 Jahre);18.0;5.5;4.0;2.5
+melia azedarach;tree;large;Ausgewachsen;40.0;10.0;8.0;3.0
+melia;tree;small;Jungbaum StU 18–20;6.0;3.5;1.6;2.0
+melia;tree;medium;Etabliert (~25 Jahre);18.0;5.5;4.0;2.5
+melia;tree;large;Ausgewachsen;40.0;10.0;8.0;3.0
+mespilus germanica;small;small;Jungpflanze StU 12–14;4.5;2.0;1.3;0.8
+mespilus germanica;small;medium;Etabliert (~25 Jahre);6.8;2.8;2.5;1.5
+mespilus germanica;small;large;Ausgewachsen;15.0;5.0;5.0;2.0
+mespilus;small;small;Jungpflanze StU 12–14;4.5;2.0;1.3;0.8
+mespilus;small;medium;Etabliert (~25 Jahre);6.8;2.8;2.5;1.5
+mespilus;small;large;Ausgewachsen;15.0;5.0;5.0;2.0
+prunus avium;tree;small;Jungbaum StU 18–20;6.0;4.5;1.5;2.0
+prunus avium;tree;medium;Etabliert (~25 Jahre);22.5;9.9;5.0;3.0
+prunus avium;tree;large;Ausgewachsen;50.0;18.0;10.0;3.0
+prunus padus;tree;small;Jungbaum StU 18–20;6.0;4.0;1.5;2.0
+prunus padus;tree;medium;Etabliert (~25 Jahre);15.8;6.6;4.0;2.5
+prunus padus;tree;large;Ausgewachsen;35.0;12.0;8.0;3.0
+prunus serrulata;small;small;Jungpflanze StU 12–14;4.5;3.0;1.5;0.8
+prunus serrulata;small;medium;Etabliert (~25 Jahre);13.5;4.4;3.5;1.5
+prunus serrulata;small;large;Ausgewachsen;30.0;8.0;7.0;2.0
+prunus x subhirtella;small;small;Jungpflanze StU 12–14;4.5;2.5;1.4;0.8
+prunus x subhirtella;small;medium;Etabliert (~25 Jahre);9.0;3.3;3.0;1.5
+prunus x subhirtella;small;large;Ausgewachsen;20.0;6.0;6.0;2.0
+prunus x yedoensis;small;small;Jungpflanze StU 12–14;4.5;3.0;1.5;0.8
+prunus x yedoensis;small;medium;Etabliert (~25 Jahre);13.5;4.4;4.0;1.5
+prunus x yedoensis;small;large;Ausgewachsen;30.0;8.0;8.0;2.0
+prunus sargentii;small;small;Jungpflanze StU 12–14;4.5;3.5;1.5;0.8
+prunus sargentii;small;medium;Etabliert (~25 Jahre);15.8;5.5;4.0;1.5
+prunus sargentii;small;large;Ausgewachsen;35.0;10.0;8.0;2.0
+prunus cerasifera;small;small;Jungpflanze StU 12–14;4.5;2.5;1.4;0.8
+prunus cerasifera;small;medium;Etabliert (~25 Jahre);11.3;3.9;3.0;1.5
+prunus cerasifera;small;large;Ausgewachsen;25.0;7.0;6.0;2.0
+prunus domestica;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+prunus domestica;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+prunus domestica;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+prunus persica;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+prunus persica;small;medium;Etabliert (~25 Jahre);6.8;2.8;2.0;1.5
+prunus persica;small;large;Ausgewachsen;15.0;5.0;4.0;2.0
+prunus dulcis;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+prunus dulcis;small;medium;Etabliert (~25 Jahre);11.3;3.9;3.0;1.5
+prunus dulcis;small;large;Ausgewachsen;25.0;7.0;6.0;2.0
+prunus armeniaca;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+prunus armeniaca;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+prunus armeniaca;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+prunus mahaleb;small;small;Jungpflanze StU 12–14;4.5;3.0;1.4;0.8
+prunus mahaleb;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+prunus mahaleb;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+prunus spinosa;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+prunus spinosa;small;medium;Etabliert (~25 Jahre);4.5;2.2;1.5;1.5
+prunus spinosa;small;large;Ausgewachsen;10.0;4.0;3.0;2.0
+prunus laurocerasus;small;small;Jungpflanze StU 12–14;4.5;1.5;1.0;0.8
+prunus laurocerasus;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+prunus laurocerasus;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+prunus lusitanica;small;small;Jungpflanze StU 12–14;4.5;1.5;1.0;0.8
+prunus lusitanica;small;medium;Etabliert (~25 Jahre);6.8;3.3;2.0;1.5
+prunus lusitanica;small;large;Ausgewachsen;15.0;6.0;4.0;2.0
+prunus;small;small;Jungpflanze StU 12–14;4.5;3.0;1.4;0.8
+prunus;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+prunus;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+punica granatum;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+punica granatum;small;medium;Etabliert (~25 Jahre);4.5;2.2;1.5;1.5
+punica granatum;small;large;Ausgewachsen;10.0;4.0;3.0;2.0
+punica;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+punica;small;medium;Etabliert (~25 Jahre);4.5;2.2;1.5;1.5
+punica;small;large;Ausgewachsen;10.0;4.0;3.0;2.0
+pyrus communis;tree;small;Jungbaum StU 18–20;6.0;3.5;1.3;2.0
+pyrus communis;tree;medium;Etabliert (~25 Jahre);18.0;6.6;3.5;2.5
+pyrus communis;tree;large;Ausgewachsen;40.0;12.0;7.0;3.0
+pyrus calleryana;tree;small;Jungbaum StU 18–20;6.0;3.5;1.2;2.0
+pyrus calleryana;tree;medium;Etabliert (~25 Jahre);15.8;5.5;3.0;2.5
+pyrus calleryana;tree;large;Ausgewachsen;35.0;10.0;6.0;3.0
+pyrus salicifolia;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+pyrus salicifolia;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+pyrus salicifolia;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+pyrus pyraster;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+pyrus pyraster;tree;medium;Etabliert (~25 Jahre);18.0;6.6;4.0;2.5
+pyrus pyraster;tree;large;Ausgewachsen;40.0;12.0;8.0;3.0
+pyrus;tree;small;Jungbaum StU 18–20;6.0;3.5;1.3;2.0
+pyrus;tree;medium;Etabliert (~25 Jahre);15.8;5.5;3.0;2.5
+pyrus;tree;large;Ausgewachsen;35.0;10.0;6.0;3.0
+rhus typhina;small;small;Jungpflanze StU 12–14;4.5;2.0;1.3;0.8
+rhus typhina;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.5;1.5
+rhus typhina;small;large;Ausgewachsen;12.0;5.0;5.0;2.0
+rhus;small;small;Jungpflanze StU 12–14;4.5;2.0;1.3;0.8
+rhus;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.5;1.5
+rhus;small;large;Ausgewachsen;12.0;5.0;5.0;2.0
+sambucus nigra;small;small;Jungpflanze StU 12–14;4.5;1.5;1.2;0.8
+sambucus nigra;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+sambucus nigra;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+sambucus;small;small;Jungpflanze StU 12–14;4.5;1.5;1.2;0.8
+sambucus;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+sambucus;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+staphylea;small;small;Jungpflanze StU 12–14;4.0;1.5;1.1;0.8
+staphylea;small;medium;Etabliert (~25 Jahre);4.5;2.8;2.0;1.5
+staphylea;small;large;Ausgewachsen;10.0;5.0;4.0;2.0
+syringa vulgaris;small;small;Jungpflanze StU 12–14;4.5;1.5;1.1;0.8
+syringa vulgaris;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+syringa vulgaris;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+syringa reticulata;small;small;Jungpflanze StU 12–14;4.5;2.5;1.2;0.8
+syringa reticulata;small;medium;Etabliert (~25 Jahre);9.0;4.4;2.5;1.5
+syringa reticulata;small;large;Ausgewachsen;20.0;8.0;5.0;2.0
+syringa;small;small;Jungpflanze StU 12–14;4.5;1.5;1.1;0.8
+syringa;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+syringa;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+tamarix;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+tamarix;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+tamarix;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+vitex agnus-castus;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+vitex agnus-castus;small;medium;Etabliert (~25 Jahre);4.5;2.2;1.5;1.5
+vitex agnus-castus;small;large;Ausgewachsen;10.0;4.0;3.0;2.0
+vitex;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+vitex;small;medium;Etabliert (~25 Jahre);4.5;2.2;1.5;1.5
+vitex;small;large;Ausgewachsen;10.0;4.0;3.0;2.0
+zanthoxylum;small;small;Jungpflanze StU 12–14;4.5;1.5;1.1;0.8
+zanthoxylum;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+zanthoxylum;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+arbutus unedo;small;small;Jungpflanze StU 12–14;4.5;1.5;1.0;0.8
+arbutus unedo;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+arbutus unedo;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+arbutus;small;small;Jungpflanze StU 12–14;4.5;1.5;1.0;0.8
+arbutus;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+arbutus;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+arctostaphylos;small;small;Jungpflanze StU 12–14;4.0;1.0;0.8;0.8
+arctostaphylos;small;medium;Etabliert (~25 Jahre);4.5;1.7;1.5;1.5
+arctostaphylos;small;large;Ausgewachsen;10.0;3.0;3.0;2.0
+eriobotrya japonica;small;small;Jungpflanze StU 12–14;4.5;1.5;1.2;0.8
+eriobotrya japonica;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+eriobotrya japonica;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+eriobotrya;small;small;Jungpflanze StU 12–14;4.5;1.5;1.2;0.8
+eriobotrya;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+eriobotrya;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+laurus nobilis;small;small;Jungpflanze StU 12–14;4.5;1.5;0.9;0.8
+laurus nobilis;small;medium;Etabliert (~25 Jahre);9.0;4.4;2.5;1.5
+laurus nobilis;small;large;Ausgewachsen;20.0;8.0;5.0;2.0
+laurus;small;small;Jungpflanze StU 12–14;4.5;1.5;0.9;0.8
+laurus;small;medium;Etabliert (~25 Jahre);9.0;4.4;2.5;1.5
+laurus;small;large;Ausgewachsen;20.0;8.0;5.0;2.0
+ligustrum lucidum;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+ligustrum lucidum;small;medium;Etabliert (~25 Jahre);9.0;4.4;3.0;1.5
+ligustrum lucidum;small;large;Ausgewachsen;20.0;8.0;6.0;2.0
+ligustrum;small;small;Jungpflanze StU 12–14;4.5;1.5;1.0;0.8
+ligustrum;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+ligustrum;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+olea europaea;small;small;Jungpflanze StU 12–14;4.5;2.0;1.4;0.8
+olea europaea;small;medium;Etabliert (~25 Jahre);18.0;4.4;3.5;1.5
+olea europaea;small;large;Ausgewachsen;40.0;8.0;7.0;2.0
+olea;small;small;Jungpflanze StU 12–14;4.5;2.0;1.4;0.8
+olea;small;medium;Etabliert (~25 Jahre);18.0;4.4;3.5;1.5
+olea;small;large;Ausgewachsen;40.0;8.0;7.0;2.0
+photinia;small;small;Jungpflanze StU 12–14;4.5;1.5;1.0;0.8
+photinia;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+photinia;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+ilex aquifolium;small;small;Jungpflanze StU 12–14;4.5;1.5;0.9;0.8
+ilex aquifolium;small;medium;Etabliert (~25 Jahre);9.0;4.4;2.5;1.5
+ilex aquifolium;small;large;Ausgewachsen;20.0;8.0;5.0;2.0
+ilex;small;small;Jungpflanze StU 12–14;4.5;1.5;0.9;0.8
+ilex;small;medium;Etabliert (~25 Jahre);9.0;3.9;2.5;1.5
+ilex;small;large;Ausgewachsen;20.0;7.0;5.0;2.0
+citrus;small;small;Jungpflanze StU 12–14;4.5;1.5;1.0;0.8
+citrus;small;medium;Etabliert (~25 Jahre);5.4;2.2;1.5;1.5
+citrus;small;large;Ausgewachsen;12.0;4.0;3.0;2.0
+ceratonia siliqua;tree;small;Jungbaum StU 18–20;6.0;2.5;1.4;2.0
+ceratonia siliqua;tree;medium;Etabliert (~25 Jahre);18.0;5.5;4.5;2.5
+ceratonia siliqua;tree;large;Ausgewachsen;40.0;10.0;9.0;3.0
+ceratonia;tree;small;Jungbaum StU 18–20;6.0;2.5;1.4;2.0
+ceratonia;tree;medium;Etabliert (~25 Jahre);18.0;5.5;4.5;2.5
+ceratonia;tree;large;Ausgewachsen;40.0;10.0;9.0;3.0
+cinnamomum camphora;tree;small;Jungbaum StU 18–20;6.0;3.5;1.5;2.0
+cinnamomum camphora;tree;medium;Etabliert (~25 Jahre);31.5;9.9;7.0;3.0
+cinnamomum camphora;tree;large;Ausgewachsen;70.0;18.0;14.0;3.0
+cinnamomum;tree;small;Jungbaum StU 18–20;6.0;3.5;1.5;2.0
+cinnamomum;tree;medium;Etabliert (~25 Jahre);31.5;9.9;7.0;3.0
+cinnamomum;tree;large;Ausgewachsen;70.0;18.0;14.0;3.0
+jacaranda;tree;small;Jungbaum StU 18–20;6.0;3.5;1.5;2.0
+jacaranda;tree;medium;Etabliert (~25 Jahre);20.3;6.6;5.0;2.5
+jacaranda;tree;large;Ausgewachsen;45.0;12.0;10.0;3.0
+tipuana tipu;tree;small;Jungbaum StU 18–20;6.0;4.0;1.8;2.0
+tipuana tipu;tree;medium;Etabliert (~25 Jahre);31.5;9.9;7.5;3.0
+tipuana tipu;tree;large;Ausgewachsen;70.0;18.0;15.0;3.0
+tipuana;tree;small;Jungbaum StU 18–20;6.0;4.0;1.8;2.0
+tipuana;tree;medium;Etabliert (~25 Jahre);31.5;9.9;7.5;3.0
+tipuana;tree;large;Ausgewachsen;70.0;18.0;15.0;3.0
+chorisia speciosa;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+chorisia speciosa;tree;medium;Etabliert (~25 Jahre);36.0;8.3;5.0;3.0
+chorisia speciosa;tree;large;Ausgewachsen;80.0;15.0;10.0;3.0
+chorisia;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+chorisia;tree;medium;Etabliert (~25 Jahre);36.0;8.3;5.0;3.0
+chorisia;tree;large;Ausgewachsen;80.0;15.0;10.0;3.0
+abies alba;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.5;0.3
+abies alba;conifer;medium;Etabliert (~25 Jahre);36.0;19.3;5.0;1.0
+abies alba;conifer;large;Ausgewachsen;80.0;35.0;10.0;2.0
+abies nordmanniana;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.5;0.3
+abies nordmanniana;conifer;medium;Etabliert (~25 Jahre);31.5;16.5;5.0;1.0
+abies nordmanniana;conifer;large;Ausgewachsen;70.0;30.0;10.0;2.0
+abies koreana;conifer;small;Jungbaum 250–300 cm;6.0;2.0;1.2;0.3
+abies koreana;conifer;medium;Etabliert (~25 Jahre);13.5;5.5;2.5;1.0
+abies koreana;conifer;large;Ausgewachsen;30.0;10.0;5.0;1.0
+abies;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.4;0.3
+abies;conifer;medium;Etabliert (~25 Jahre);27.0;13.8;4.5;1.0
+abies;conifer;large;Ausgewachsen;60.0;25.0;9.0;2.0
+cedrus atlantica;conifer;small;Jungbaum 250–300 cm;6.0;3.5;1.6;0.3
+cedrus atlantica;conifer;medium;Etabliert (~25 Jahre);40.5;16.5;7.5;1.0
+cedrus atlantica;conifer;large;Ausgewachsen;90.0;30.0;15.0;2.0
+cedrus deodara;conifer;small;Jungbaum 250–300 cm;6.0;3.5;1.6;0.3
+cedrus deodara;conifer;medium;Etabliert (~25 Jahre);36.0;16.5;6.0;1.0
+cedrus deodara;conifer;large;Ausgewachsen;80.0;30.0;12.0;2.0
+cedrus libani;conifer;small;Jungbaum 250–300 cm;6.0;3.5;1.6;0.3
+cedrus libani;conifer;medium;Etabliert (~25 Jahre);45.0;15.4;9.0;1.0
+cedrus libani;conifer;large;Ausgewachsen;100.0;28.0;18.0;2.0
+cedrus;conifer;small;Jungbaum 250–300 cm;6.0;3.5;1.6;0.3
+cedrus;conifer;medium;Etabliert (~25 Jahre);40.5;16.5;7.5;1.0
+cedrus;conifer;large;Ausgewachsen;90.0;30.0;15.0;2.0
+chamaecyparis;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.0;0.3
+chamaecyparis;conifer;medium;Etabliert (~25 Jahre);18.0;8.3;2.5;1.0
+chamaecyparis;conifer;large;Ausgewachsen;40.0;15.0;5.0;1.0
+cupressus sempervirens;conifer;small;Jungbaum 250–300 cm;6.0;3.0;0.7;0.3
+cupressus sempervirens;conifer;medium;Etabliert (~25 Jahre);18.0;11.0;1.5;1.0
+cupressus sempervirens;conifer;large;Ausgewachsen;40.0;20.0;3.0;2.0
+cupressus;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.0;0.3
+cupressus;conifer;medium;Etabliert (~25 Jahre);22.5;11.0;3.0;1.0
+cupressus;conifer;large;Ausgewachsen;50.0;20.0;6.0;2.0
+juniperus;conifer;small;Jungbaum 250–300 cm;6.0;2.0;0.8;0.3
+juniperus;conifer;medium;Etabliert (~25 Jahre);11.3;5.5;2.0;1.0
+juniperus;conifer;large;Ausgewachsen;25.0;10.0;4.0;1.0
+larix decidua;conifer;small;Jungbaum 250–300 cm;6.0;4.0;1.4;0.3
+larix decidua;conifer;medium;Etabliert (~25 Jahre);31.5;16.5;4.0;1.0
+larix decidua;conifer;large;Ausgewachsen;70.0;30.0;8.0;2.0
+larix kaempferi;conifer;small;Jungbaum 250–300 cm;6.0;4.0;1.4;0.3
+larix kaempferi;conifer;medium;Etabliert (~25 Jahre);29.3;15.4;4.0;1.0
+larix kaempferi;conifer;large;Ausgewachsen;65.0;28.0;8.0;2.0
+larix;conifer;small;Jungbaum 250–300 cm;6.0;4.0;1.4;0.3
+larix;conifer;medium;Etabliert (~25 Jahre);31.5;16.5;4.0;1.0
+larix;conifer;large;Ausgewachsen;70.0;30.0;8.0;2.0
+picea abies;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.4;0.3
+picea abies;conifer;medium;Etabliert (~25 Jahre);31.5;19.3;4.0;1.0
+picea abies;conifer;large;Ausgewachsen;70.0;35.0;8.0;2.0
+picea omorika;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.0;0.3
+picea omorika;conifer;medium;Etabliert (~25 Jahre);22.5;13.8;2.0;1.0
+picea omorika;conifer;large;Ausgewachsen;50.0;25.0;4.0;2.0
+picea pungens;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.2;0.3
+picea pungens;conifer;medium;Etabliert (~25 Jahre);22.5;11.0;3.0;1.0
+picea pungens;conifer;large;Ausgewachsen;50.0;20.0;6.0;2.0
+picea orientalis;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.3;0.3
+picea orientalis;conifer;medium;Etabliert (~25 Jahre);27.0;16.5;3.5;1.0
+picea orientalis;conifer;large;Ausgewachsen;60.0;30.0;7.0;2.0
+picea;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.3;0.3
+picea;conifer;medium;Etabliert (~25 Jahre);27.0;15.4;3.5;1.0
+picea;conifer;large;Ausgewachsen;60.0;28.0;7.0;2.0
+pinus sylvestris;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.4;0.3
+pinus sylvestris;conifer;medium;Etabliert (~25 Jahre);27.0;13.8;5.0;1.0
+pinus sylvestris;conifer;large;Ausgewachsen;60.0;25.0;10.0;2.0
+pinus nigra;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.5;0.3
+pinus nigra;conifer;medium;Etabliert (~25 Jahre);31.5;13.8;6.0;1.0
+pinus nigra;conifer;large;Ausgewachsen;70.0;25.0;12.0;2.0
+pinus strobus;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.4;0.3
+pinus strobus;conifer;medium;Etabliert (~25 Jahre);31.5;16.5;5.0;1.0
+pinus strobus;conifer;large;Ausgewachsen;70.0;30.0;10.0;2.0
+pinus cembra;conifer;small;Jungbaum 250–300 cm;6.0;2.0;1.0;0.3
+pinus cembra;conifer;medium;Etabliert (~25 Jahre);22.5;11.0;3.0;1.0
+pinus cembra;conifer;large;Ausgewachsen;50.0;20.0;6.0;2.0
+pinus mugo;small;small;Jungpflanze StU 12–14;4.5;1.0;0.8;0.8
+pinus mugo;small;medium;Etabliert (~25 Jahre);6.8;2.2;2.0;1.5
+pinus mugo;small;large;Ausgewachsen;15.0;4.0;4.0;2.0
+pinus pinea;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.4;0.3
+pinus pinea;conifer;medium;Etabliert (~25 Jahre);31.5;9.9;7.0;1.0
+pinus pinea;conifer;large;Ausgewachsen;70.0;18.0;14.0;1.0
+pinus wallichiana;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.4;0.3
+pinus wallichiana;conifer;medium;Etabliert (~25 Jahre);27.0;13.8;5.0;1.0
+pinus wallichiana;conifer;large;Ausgewachsen;60.0;25.0;10.0;2.0
+pinus heldreichii;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.2;0.3
+pinus heldreichii;conifer;medium;Etabliert (~25 Jahre);22.5;9.9;3.5;1.0
+pinus heldreichii;conifer;large;Ausgewachsen;50.0;18.0;7.0;1.0
+pinus thunbergii;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.2;0.3
+pinus thunbergii;conifer;medium;Etabliert (~25 Jahre);22.5;8.3;4.0;1.0
+pinus thunbergii;conifer;large;Ausgewachsen;50.0;15.0;8.0;1.0
+pinus parviflora;conifer;small;Jungbaum 250–300 cm;6.0;2.0;1.2;0.3
+pinus parviflora;conifer;medium;Etabliert (~25 Jahre);18.0;6.6;3.5;1.0
+pinus parviflora;conifer;large;Ausgewachsen;40.0;12.0;7.0;1.0
+pinus;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.4;0.3
+pinus;conifer;medium;Etabliert (~25 Jahre);27.0;12.1;5.0;1.0
+pinus;conifer;large;Ausgewachsen;60.0;22.0;10.0;2.0
+pseudotsuga menziesii;conifer;small;Jungbaum 250–300 cm;6.0;3.5;1.4;0.3
+pseudotsuga menziesii;conifer;medium;Etabliert (~25 Jahre);40.5;22.0;5.0;1.0
+pseudotsuga menziesii;conifer;large;Ausgewachsen;90.0;40.0;10.0;2.0
+pseudotsuga;conifer;small;Jungbaum 250–300 cm;6.0;3.5;1.4;0.3
+pseudotsuga;conifer;medium;Etabliert (~25 Jahre);40.5;22.0;5.0;1.0
+pseudotsuga;conifer;large;Ausgewachsen;90.0;40.0;10.0;2.0
+sequoiadendron giganteum;conifer;small;Jungbaum 250–300 cm;6.0;3.5;1.6;0.3
+sequoiadendron giganteum;conifer;medium;Etabliert (~25 Jahre);67.5;22.0;6.0;1.0
+sequoiadendron giganteum;conifer;large;Ausgewachsen;150.0;40.0;12.0;2.0
+sequoiadendron;conifer;small;Jungbaum 250–300 cm;6.0;3.5;1.6;0.3
+sequoiadendron;conifer;medium;Etabliert (~25 Jahre);67.5;22.0;6.0;1.0
+sequoiadendron;conifer;large;Ausgewachsen;150.0;40.0;12.0;2.0
+sequoia sempervirens;conifer;small;Jungbaum 250–300 cm;6.0;3.5;1.4;0.3
+sequoia sempervirens;conifer;medium;Etabliert (~25 Jahre);54.0;19.3;5.0;1.0
+sequoia sempervirens;conifer;large;Ausgewachsen;120.0;35.0;10.0;2.0
+sequoia;conifer;small;Jungbaum 250–300 cm;6.0;3.5;1.4;0.3
+sequoia;conifer;medium;Etabliert (~25 Jahre);54.0;19.3;5.0;1.0
+sequoia;conifer;large;Ausgewachsen;120.0;35.0;10.0;2.0
+taxodium distichum;conifer;small;Jungbaum 250–300 cm;6.0;4.0;1.4;0.3
+taxodium distichum;conifer;medium;Etabliert (~25 Jahre);40.5;16.5;4.5;1.0
+taxodium distichum;conifer;large;Ausgewachsen;90.0;30.0;9.0;2.0
+taxodium;conifer;small;Jungbaum 250–300 cm;6.0;4.0;1.4;0.3
+taxodium;conifer;medium;Etabliert (~25 Jahre);40.5;16.5;4.5;1.0
+taxodium;conifer;large;Ausgewachsen;90.0;30.0;9.0;2.0
+taxus baccata;conifer;small;Jungbaum 250–300 cm;6.0;2.0;1.0;0.3
+taxus baccata;conifer;medium;Etabliert (~25 Jahre);18.0;6.6;4.0;1.0
+taxus baccata;conifer;large;Ausgewachsen;40.0;12.0;8.0;1.0
+taxus;conifer;small;Jungbaum 250–300 cm;6.0;2.0;1.0;0.3
+taxus;conifer;medium;Etabliert (~25 Jahre);18.0;6.6;4.0;1.0
+taxus;conifer;large;Ausgewachsen;40.0;12.0;8.0;1.0
+thuja occidentalis;conifer;small;Jungbaum 250–300 cm;6.0;2.5;0.9;0.3
+thuja occidentalis;conifer;medium;Etabliert (~25 Jahre);15.8;6.6;2.0;1.0
+thuja occidentalis;conifer;large;Ausgewachsen;35.0;12.0;4.0;1.0
+thuja plicata;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.2;0.3
+thuja plicata;conifer;medium;Etabliert (~25 Jahre);31.5;13.8;4.0;1.0
+thuja plicata;conifer;large;Ausgewachsen;70.0;25.0;8.0;2.0
+thuja;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.0;0.3
+thuja;conifer;medium;Etabliert (~25 Jahre);18.0;8.3;2.5;1.0
+thuja;conifer;large;Ausgewachsen;40.0;15.0;5.0;1.0
+tsuga canadensis;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.4;0.3
+tsuga canadensis;conifer;medium;Etabliert (~25 Jahre);31.5;13.8;5.0;1.0
+tsuga canadensis;conifer;large;Ausgewachsen;70.0;25.0;10.0;2.0
+tsuga;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.4;0.3
+tsuga;conifer;medium;Etabliert (~25 Jahre);31.5;13.8;5.0;1.0
+tsuga;conifer;large;Ausgewachsen;70.0;25.0;10.0;2.0
+araucaria araucana;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.5;0.3
+araucaria araucana;conifer;medium;Etabliert (~25 Jahre);27.0;11.0;4.0;1.0
+araucaria araucana;conifer;large;Ausgewachsen;60.0;20.0;8.0;2.0
+araucaria;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.5;0.3
+araucaria;conifer;medium;Etabliert (~25 Jahre);27.0;11.0;4.0;1.0
+araucaria;conifer;large;Ausgewachsen;60.0;20.0;8.0;2.0
+cryptomeria japonica;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.3;0.3
+cryptomeria japonica;conifer;medium;Etabliert (~25 Jahre);31.5;13.8;4.0;1.0
+cryptomeria japonica;conifer;large;Ausgewachsen;70.0;25.0;8.0;2.0
+cryptomeria;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.3;0.3
+cryptomeria;conifer;medium;Etabliert (~25 Jahre);31.5;13.8;4.0;1.0
+cryptomeria;conifer;large;Ausgewachsen;70.0;25.0;8.0;2.0
+sciadopitys;conifer;small;Jungbaum 250–300 cm;6.0;2.0;1.0;0.3
+sciadopitys;conifer;medium;Etabliert (~25 Jahre);18.0;8.3;2.5;1.0
+sciadopitys;conifer;large;Ausgewachsen;40.0;15.0;5.0;1.0
+cunninghamia;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.3;0.3
+cunninghamia;conifer;medium;Etabliert (~25 Jahre);27.0;11.0;4.0;1.0
+cunninghamia;conifer;large;Ausgewachsen;60.0;20.0;8.0;2.0
+calocedrus;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.0;0.3
+calocedrus;conifer;medium;Etabliert (~25 Jahre);27.0;11.0;2.5;1.0
+calocedrus;conifer;large;Ausgewachsen;60.0;20.0;5.0;2.0
+podocarpus;conifer;small;Jungbaum 250–300 cm;6.0;2.0;1.0;0.3
+podocarpus;conifer;medium;Etabliert (~25 Jahre);13.5;5.5;2.5;1.0
+podocarpus;conifer;large;Ausgewachsen;30.0;10.0;5.0;1.0
+trachycarpus fortunei;palm;small;Jungpalme (Pflanzung);15.0;2.0;1.5;0.5
+trachycarpus fortunei;palm;medium;Etabliert (~25 Jahre);21.3;4.4;2.0;2.2
+trachycarpus fortunei;palm;large;Ausgewachsen;25.0;8.0;2.5;5.0
+trachycarpus;palm;small;Jungpalme (Pflanzung);15.0;2.0;1.5;0.5
+trachycarpus;palm;medium;Etabliert (~25 Jahre);21.3;4.4;2.0;2.2
+trachycarpus;palm;large;Ausgewachsen;25.0;8.0;2.5;5.0
+chamaerops humilis;palm;small;Jungpalme (Pflanzung);12.0;1.2;1.2;0.5
+chamaerops humilis;palm;medium;Etabliert (~25 Jahre);17.0;1.7;2.0;0.9
+chamaerops humilis;palm;large;Ausgewachsen;20.0;3.0;2.5;1.8
+chamaerops;palm;small;Jungpalme (Pflanzung);12.0;1.2;1.2;0.5
+chamaerops;palm;medium;Etabliert (~25 Jahre);17.0;1.7;2.0;0.9
+chamaerops;palm;large;Ausgewachsen;20.0;3.0;2.5;1.8
+phoenix canariensis;palm;small;Jungpalme (Pflanzung);42.0;2.5;3.0;0.5
+phoenix canariensis;palm;medium;Etabliert (~25 Jahre);59.5;6.6;6.4;3.3
+phoenix canariensis;palm;large;Ausgewachsen;70.0;12.0;8.0;9.0
+phoenix dactylifera;palm;small;Jungpalme (Pflanzung);27.0;2.5;2.5;0.5
+phoenix dactylifera;palm;medium;Etabliert (~25 Jahre);38.3;8.3;4.8;4.2
+phoenix dactylifera;palm;large;Ausgewachsen;45.0;15.0;6.0;12.0
+phoenix;palm;small;Jungpalme (Pflanzung);36.0;2.5;3.0;0.5
+phoenix;palm;medium;Etabliert (~25 Jahre);51.0;6.6;5.6;3.3
+phoenix;palm;large;Ausgewachsen;60.0;12.0;7.0;9.0
+washingtonia robusta;palm;small;Jungpalme (Pflanzung);21.0;3.0;2.0;0.5
+washingtonia robusta;palm;medium;Etabliert (~25 Jahre);29.8;9.9;3.2;5.0
+washingtonia robusta;palm;large;Ausgewachsen;35.0;18.0;4.0;15.0
+washingtonia filifera;palm;small;Jungpalme (Pflanzung);36.0;3.0;2.5;0.5
+washingtonia filifera;palm;medium;Etabliert (~25 Jahre);51.0;8.3;4.0;4.2
+washingtonia filifera;palm;large;Ausgewachsen;60.0;15.0;5.0;12.0
+washingtonia;palm;small;Jungpalme (Pflanzung);27.0;3.0;2.0;0.5
+washingtonia;palm;medium;Etabliert (~25 Jahre);38.3;8.3;3.2;4.2
+washingtonia;palm;large;Ausgewachsen;45.0;15.0;4.0;12.0
+butia capitata;palm;small;Jungpalme (Pflanzung);24.0;1.8;2.0;0.5
+butia capitata;palm;medium;Etabliert (~25 Jahre);34.0;2.8;3.2;1.4
+butia capitata;palm;large;Ausgewachsen;40.0;5.0;4.0;3.0
+butia;palm;small;Jungpalme (Pflanzung);24.0;1.8;2.0;0.5
+butia;palm;medium;Etabliert (~25 Jahre);34.0;2.8;3.2;1.4
+butia;palm;large;Ausgewachsen;40.0;5.0;4.0;3.0
+jubaea chilensis;palm;small;Jungpalme (Pflanzung);54.0;2.0;2.5;0.5
+jubaea chilensis;palm;medium;Etabliert (~25 Jahre);76.5;8.3;4.8;4.2
+jubaea chilensis;palm;large;Ausgewachsen;90.0;15.0;6.0;12.0
+jubaea;palm;small;Jungpalme (Pflanzung);54.0;2.0;2.5;0.5
+jubaea;palm;medium;Etabliert (~25 Jahre);76.5;8.3;4.8;4.2
+jubaea;palm;large;Ausgewachsen;90.0;15.0;6.0;12.0
+brahea armata;palm;small;Jungpalme (Pflanzung);24.0;1.8;2.0;0.5
+brahea armata;palm;medium;Etabliert (~25 Jahre);34.0;4.4;3.2;2.2
+brahea armata;palm;large;Ausgewachsen;40.0;8.0;4.0;5.0
+brahea;palm;small;Jungpalme (Pflanzung);24.0;1.8;2.0;0.5
+brahea;palm;medium;Etabliert (~25 Jahre);34.0;4.4;3.2;2.2
+brahea;palm;large;Ausgewachsen;40.0;8.0;4.0;5.0
+dypsis;palm;small;Jungpalme (Pflanzung);9.0;1.8;1.5;0.5
+dypsis;palm;medium;Etabliert (~25 Jahre);12.8;3.3;2.4;1.7
+dypsis;palm;large;Ausgewachsen;15.0;6.0;3.0;3.6
+sabal;palm;small;Jungpalme (Pflanzung);24.0;1.8;2.0;0.5
+sabal;palm;medium;Etabliert (~25 Jahre);34.0;4.4;3.2;2.2
+sabal;palm;large;Ausgewachsen;40.0;8.0;4.0;5.0
+rhapidophyllum;palm;small;Jungpalme (Pflanzung);9.0;1.0;1.2;0.5
+rhapidophyllum;palm;medium;Etabliert (~25 Jahre);12.8;1.5;1.6;0.8
+rhapidophyllum;palm;large;Ausgewachsen;15.0;2.0;2.0;1.2
+nannorrhops;palm;small;Jungpalme (Pflanzung);12.0;1.2;1.5;0.5
+nannorrhops;palm;medium;Etabliert (~25 Jahre);17.0;1.7;2.4;0.9
+nannorrhops;palm;large;Ausgewachsen;20.0;3.0;3.0;1.8
+cycas revoluta;palm;small;Jungpalme (Pflanzung);15.0;0.8;1.2;0.5
+cycas revoluta;palm;medium;Etabliert (~25 Jahre);21.3;1.3;1.6;0.7
+cycas revoluta;palm;large;Ausgewachsen;25.0;2.0;2.0;1.2
+cycas;palm;small;Jungpalme (Pflanzung);15.0;0.8;1.2;0.5
+cycas;palm;medium;Etabliert (~25 Jahre);21.3;1.3;1.6;0.7
+cycas;palm;large;Ausgewachsen;25.0;2.0;2.0;1.2
+yucca;palm;small;Jungpalme (Pflanzung);9.0;1.0;1.0;0.5
+yucca;palm;medium;Etabliert (~25 Jahre);12.8;1.7;1.6;0.9
+yucca;palm;large;Ausgewachsen;15.0;3.0;2.0;1.8
+cordyline;palm;small;Jungpalme (Pflanzung);9.0;1.2;1.0;0.5
+cordyline;palm;medium;Etabliert (~25 Jahre);12.8;2.2;1.6;1.1
+cordyline;palm;large;Ausgewachsen;15.0;4.0;2.0;2.4
+strelitzia nicolai;palm;small;Jungpalme (Pflanzung);9.0;1.5;1.2;0.5
+strelitzia nicolai;palm;medium;Etabliert (~25 Jahre);12.8;3.3;2.4;1.7
+strelitzia nicolai;palm;large;Ausgewachsen;15.0;6.0;3.0;3.6
+strelitzia;palm;small;Jungpalme (Pflanzung);9.0;1.5;1.2;0.5
+strelitzia;palm;medium;Etabliert (~25 Jahre);12.8;3.3;2.4;1.7
+strelitzia;palm;large;Ausgewachsen;15.0;6.0;3.0;3.6
+dicksonia antarctica;palm;small;Jungpalme (Pflanzung);18.0;1.0;1.8;0.5
+dicksonia antarctica;palm;medium;Etabliert (~25 Jahre);25.5;2.2;2.4;1.1
+dicksonia antarctica;palm;large;Ausgewachsen;30.0;4.0;3.0;2.4
+dicksonia;palm;small;Jungpalme (Pflanzung);18.0;1.0;1.8;0.5
+dicksonia;palm;medium;Etabliert (~25 Jahre);25.5;2.2;2.4;1.1
+dicksonia;palm;large;Ausgewachsen;30.0;4.0;3.0;2.4
+musa;palm;small;Jungpalme (Pflanzung);12.0;1.5;1.5;0.5
+musa;palm;medium;Etabliert (~25 Jahre);17.0;2.2;2.4;1.1
+musa;palm;large;Ausgewachsen;20.0;4.0;3.0;2.4
+ensete;palm;small;Jungpalme (Pflanzung);15.0;1.5;1.5;0.5
+ensete;palm;medium;Etabliert (~25 Jahre);21.3;2.2;2.4;1.1
+ensete;palm;large;Ausgewachsen;25.0;4.0;3.0;2.4
+osmanthus;small;small;Jungpflanze StU 12–14;4.0;1.2;0.9;0.8
+osmanthus;small;medium;Etabliert (~25 Jahre);4.5;2.2;1.5;1.5
+osmanthus;small;large;Ausgewachsen;10.0;4.0;3.0;2.0
+camellia;small;small;Jungpflanze StU 12–14;4.0;1.2;0.9;0.8
+camellia;small;medium;Etabliert (~25 Jahre);4.5;2.2;1.5;1.5
+camellia;small;large;Ausgewachsen;10.0;4.0;3.0;2.0
+rhododendron;small;small;Jungpflanze StU 12–14;4.0;1.0;0.9;0.8
+rhododendron;small;medium;Etabliert (~25 Jahre);4.5;2.2;2.0;1.5
+rhododendron;small;large;Ausgewachsen;10.0;4.0;4.0;2.0
+pittosporum;small;small;Jungpflanze StU 12–14;4.5;1.2;0.9;0.8
+pittosporum;small;medium;Etabliert (~25 Jahre);5.4;2.8;1.5;1.5
+pittosporum;small;large;Ausgewachsen;12.0;5.0;3.0;2.0
+nerium oleander;small;small;Jungpflanze StU 12–14;3.2;1.2;0.9;0.8
+nerium oleander;small;medium;Etabliert (~25 Jahre);3.6;2.2;1.5;1.5
+nerium oleander;small;large;Ausgewachsen;8.0;4.0;3.0;2.0
+nerium;small;small;Jungpflanze StU 12–14;3.2;1.2;0.9;0.8
+nerium;small;medium;Etabliert (~25 Jahre);3.6;2.2;1.5;1.5
+nerium;small;large;Ausgewachsen;8.0;4.0;3.0;2.0
+myrtus;small;small;Jungpflanze StU 12–14;3.2;1.0;0.8;0.8
+myrtus;small;medium;Etabliert (~25 Jahre);3.6;1.7;1.0;1.5
+myrtus;small;large;Ausgewachsen;8.0;3.0;2.0;2.0
+viburnum;small;small;Jungpflanze StU 12–14;3.2;1.2;0.9;0.8
+viburnum;small;medium;Etabliert (~25 Jahre);3.6;2.2;1.5;1.5
+viburnum;small;large;Ausgewachsen;8.0;4.0;3.0;2.0
+buxus;small;small;Jungpflanze StU 12–14;4.0;1.0;0.8;0.8
+buxus;small;medium;Etabliert (~25 Jahre);4.5;2.2;1.5;1.5
+buxus;small;large;Ausgewachsen;10.0;4.0;3.0;2.0
+aucuba;small;small;Jungpflanze StU 12–14;2.0;1.0;0.8;0.8
+aucuba;small;medium;Etabliert (~25 Jahre);2.3;1.7;1.5;1.5
+aucuba;small;large;Ausgewachsen;5.0;3.0;3.0;2.0
+euonymus europaeus;small;small;Jungpflanze StU 12–14;4.5;1.5;1.1;0.8
+euonymus europaeus;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.0;1.5
+euonymus europaeus;small;large;Ausgewachsen;12.0;5.0;4.0;2.0
+euonymus;small;small;Jungpflanze StU 12–14;4.0;1.2;1.0;0.8
+euonymus;small;medium;Etabliert (~25 Jahre);4.5;2.2;1.5;1.5
+euonymus;small;large;Ausgewachsen;10.0;4.0;3.0;2.0
+cotinus coggygria;small;small;Jungpflanze StU 12–14;4.5;1.5;1.2;0.8
+cotinus coggygria;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.5;1.5
+cotinus coggygria;small;large;Ausgewachsen;12.0;5.0;5.0;2.0
+cotinus;small;small;Jungpflanze StU 12–14;4.5;1.5;1.2;0.8
+cotinus;small;medium;Etabliert (~25 Jahre);5.4;2.8;2.5;1.5
+cotinus;small;large;Ausgewachsen;12.0;5.0;5.0;2.0
+cotoneaster;small;small;Jungpflanze StU 12–14;4.0;1.5;1.1;0.8
+cotoneaster;small;medium;Etabliert (~25 Jahre);4.5;2.8;2.0;1.5
+cotoneaster;small;large;Ausgewachsen;10.0;5.0;4.0;2.0
+rhamnus;small;small;Jungpflanze StU 12–14;4.0;1.5;1.1;0.8
+rhamnus;small;medium;Etabliert (~25 Jahre);4.5;2.8;2.0;1.5
+rhamnus;small;large;Ausgewachsen;10.0;5.0;4.0;2.0
+frangula;small;small;Jungpflanze StU 12–14;3.2;1.5;1.0;0.8
+frangula;small;medium;Etabliert (~25 Jahre);3.6;2.2;1.5;1.5
+frangula;small;large;Ausgewachsen;8.0;4.0;3.0;2.0
+caragana;small;small;Jungpflanze StU 12–14;4.0;1.5;1.1;0.8
+caragana;small;medium;Etabliert (~25 Jahre);4.5;2.8;2.0;1.5
+caragana;small;large;Ausgewachsen;10.0;5.0;4.0;2.0
+xanthoceras sorbifolium;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+xanthoceras sorbifolium;small;medium;Etabliert (~25 Jahre);6.8;3.3;2.0;1.5
+xanthoceras sorbifolium;small;large;Ausgewachsen;15.0;6.0;4.0;2.0
+xanthoceras;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+xanthoceras;small;medium;Etabliert (~25 Jahre);6.8;3.3;2.0;1.5
+xanthoceras;small;large;Ausgewachsen;15.0;6.0;4.0;2.0
+chionanthus;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+chionanthus;small;medium;Etabliert (~25 Jahre);6.8;3.3;2.5;1.5
+chionanthus;small;large;Ausgewachsen;15.0;6.0;5.0;2.0
+ptelea;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+ptelea;small;medium;Etabliert (~25 Jahre);6.8;3.3;2.5;1.5
+ptelea;small;large;Ausgewachsen;15.0;6.0;5.0;2.0
+aralia elata;small;small;Jungpflanze StU 12–14;4.5;2.0;1.1;0.8
+aralia elata;small;medium;Etabliert (~25 Jahre);5.4;3.3;2.0;1.5
+aralia elata;small;large;Ausgewachsen;12.0;6.0;4.0;2.0
+aralia;small;small;Jungpflanze StU 12–14;4.5;2.0;1.1;0.8
+aralia;small;medium;Etabliert (~25 Jahre);5.4;3.3;2.0;1.5
+aralia;small;large;Ausgewachsen;12.0;6.0;4.0;2.0
+asimina;small;small;Jungpflanze StU 12–14;4.5;2.0;1.1;0.8
+asimina;small;medium;Etabliert (~25 Jahre);5.4;3.3;2.0;1.5
+asimina;small;large;Ausgewachsen;12.0;6.0;4.0;2.0
+poncirus;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+poncirus;small;medium;Etabliert (~25 Jahre);4.5;2.2;1.5;1.5
+poncirus;small;large;Ausgewachsen;10.0;4.0;3.0;2.0
+ziziphus;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+ziziphus;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+ziziphus;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+clerodendrum;small;small;Jungpflanze StU 12–14;4.0;1.5;1.1;0.8
+clerodendrum;small;medium;Etabliert (~25 Jahre);4.5;2.8;2.0;1.5
+clerodendrum;small;large;Ausgewachsen;10.0;5.0;4.0;2.0
+styrax japonicus;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+styrax japonicus;small;medium;Etabliert (~25 Jahre);9.0;3.9;3.0;1.5
+styrax japonicus;small;large;Ausgewachsen;20.0;7.0;6.0;2.0
+styrax;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+styrax;small;medium;Etabliert (~25 Jahre);9.0;3.9;3.0;1.5
+styrax;small;large;Ausgewachsen;20.0;7.0;6.0;2.0
+stewartia;small;small;Jungpflanze StU 12–14;4.5;2.5;1.2;0.8
+stewartia;small;medium;Etabliert (~25 Jahre);9.0;4.4;2.5;1.5
+stewartia;small;large;Ausgewachsen;20.0;8.0;5.0;2.0
+oxydendrum;small;small;Jungpflanze StU 12–14;4.5;3.0;1.3;0.8
+oxydendrum;small;medium;Etabliert (~25 Jahre);13.5;5.5;3.0;1.5
+oxydendrum;small;large;Ausgewachsen;30.0;10.0;6.0;2.0
+trochodendron;small;small;Jungpflanze StU 12–14;4.5;2.0;1.2;0.8
+trochodendron;small;medium;Etabliert (~25 Jahre);9.0;4.4;2.5;1.5
+trochodendron;small;large;Ausgewachsen;20.0;8.0;5.0;2.0
+pistacia;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+pistacia;small;medium;Etabliert (~25 Jahre);13.5;4.4;3.0;1.5
+pistacia;small;large;Ausgewachsen;30.0;8.0;6.0;2.0
+callistemon;small;small;Jungpflanze StU 12–14;4.0;1.5;1.0;0.8
+callistemon;small;medium;Etabliert (~25 Jahre);4.5;2.8;1.5;1.5
+callistemon;small;large;Ausgewachsen;10.0;5.0;3.0;2.0
+acacia dealbata;tree;small;Jungbaum StU 18–20;6.0;3.0;1.5;2.0
+acacia dealbata;tree;medium;Etabliert (~25 Jahre);15.8;5.5;4.0;2.5
+acacia dealbata;tree;large;Ausgewachsen;35.0;10.0;8.0;3.0
+acacia;tree;small;Jungbaum StU 18–20;6.0;3.0;1.5;2.0
+acacia;tree;medium;Etabliert (~25 Jahre);15.8;5.5;4.0;2.5
+acacia;tree;large;Ausgewachsen;35.0;10.0;8.0;3.0
+grevillea;small;small;Jungpflanze StU 12–14;4.5;2.5;1.2;0.8
+grevillea;small;medium;Etabliert (~25 Jahre);9.0;4.4;2.5;1.5
+grevillea;small;large;Ausgewachsen;20.0;8.0;5.0;2.0
+melaleuca;small;small;Jungpflanze StU 12–14;4.5;2.5;1.2;0.8
+melaleuca;small;medium;Etabliert (~25 Jahre);9.0;4.4;2.5;1.5
+melaleuca;small;large;Ausgewachsen;20.0;8.0;5.0;2.0
+schinus;tree;small;Jungbaum StU 18–20;6.0;3.0;1.5;2.0
+schinus;tree;medium;Etabliert (~25 Jahre);18.0;5.5;4.0;2.5
+schinus;tree;large;Ausgewachsen;40.0;10.0;8.0;3.0
+brachychiton;tree;small;Jungbaum StU 18–20;6.0;3.0;1.4;2.0
+brachychiton;tree;medium;Etabliert (~25 Jahre);22.5;6.6;4.0;2.5
+brachychiton;tree;large;Ausgewachsen;50.0;12.0;8.0;3.0
+erythrina;tree;small;Jungbaum StU 18–20;6.0;3.0;1.6;2.0
+erythrina;tree;medium;Etabliert (~25 Jahre);22.5;5.5;5.0;2.5
+erythrina;tree;large;Ausgewachsen;50.0;10.0;10.0;3.0
+bauhinia;small;small;Jungpflanze StU 12–14;4.5;2.5;1.4;0.8
+bauhinia;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+bauhinia;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+parkinsonia;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+parkinsonia;small;medium;Etabliert (~25 Jahre);11.3;4.4;3.0;1.5
+parkinsonia;small;large;Ausgewachsen;25.0;8.0;6.0;2.0
+maackia amurensis;tree;small;Jungbaum StU 18–20;6.0;3.0;1.4;2.0
+maackia amurensis;tree;medium;Etabliert (~25 Jahre);15.8;5.5;4.0;2.5
+maackia amurensis;tree;large;Ausgewachsen;35.0;10.0;8.0;3.0
+maackia;tree;small;Jungbaum StU 18–20;6.0;3.0;1.4;2.0
+maackia;tree;medium;Etabliert (~25 Jahre);15.8;5.5;4.0;2.5
+maackia;tree;large;Ausgewachsen;35.0;10.0;8.0;3.0
+cladrastis kentukea;tree;small;Jungbaum StU 18–20;6.0;3.5;1.5;2.0
+cladrastis kentukea;tree;medium;Etabliert (~25 Jahre);18.0;6.6;5.0;2.5
+cladrastis kentukea;tree;large;Ausgewachsen;40.0;12.0;10.0;3.0
+cladrastis;tree;small;Jungbaum StU 18–20;6.0;3.5;1.5;2.0
+cladrastis;tree;medium;Etabliert (~25 Jahre);18.0;6.6;5.0;2.5
+cladrastis;tree;large;Ausgewachsen;40.0;12.0;10.0;3.0
+broussonetia;tree;small;Jungbaum StU 18–20;6.0;3.0;1.5;2.0
+broussonetia;tree;medium;Etabliert (~25 Jahre);15.8;5.5;4.0;2.5
+broussonetia;tree;large;Ausgewachsen;35.0;10.0;8.0;3.0
+kalopanax;tree;small;Jungbaum StU 18–20;6.0;3.5;1.5;2.0
+kalopanax;tree;medium;Etabliert (~25 Jahre);22.5;8.3;5.0;3.0
+kalopanax;tree;large;Ausgewachsen;50.0;15.0;10.0;3.0
+toona sinensis;tree;small;Jungbaum StU 18–20;6.0;4.0;1.4;2.0
+toona sinensis;tree;medium;Etabliert (~25 Jahre);20.3;8.3;4.0;3.0
+toona sinensis;tree;large;Ausgewachsen;45.0;15.0;8.0;3.0
+toona;tree;small;Jungbaum StU 18–20;6.0;4.0;1.4;2.0
+toona;tree;medium;Etabliert (~25 Jahre);20.3;8.3;4.0;3.0
+toona;tree;large;Ausgewachsen;45.0;15.0;8.0;3.0
+firmiana;tree;small;Jungbaum StU 18–20;6.0;3.5;1.5;2.0
+firmiana;tree;medium;Etabliert (~25 Jahre);18.0;6.6;4.0;2.5
+firmiana;tree;large;Ausgewachsen;40.0;12.0;8.0;3.0
+idesia;tree;small;Jungbaum StU 18–20;6.0;3.5;1.5;2.0
+idesia;tree;medium;Etabliert (~25 Jahre);15.8;6.6;4.0;2.5
+idesia;tree;large;Ausgewachsen;35.0;12.0;8.0;3.0
+sassafras;tree;small;Jungbaum StU 18–20;6.0;3.5;1.3;2.0
+sassafras;tree;medium;Etabliert (~25 Jahre);18.0;8.3;4.0;3.0
+sassafras;tree;large;Ausgewachsen;40.0;15.0;8.0;3.0
+eucommia;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+eucommia;tree;medium;Etabliert (~25 Jahre);18.0;6.6;4.0;2.5
+eucommia;tree;large;Ausgewachsen;40.0;12.0;8.0;3.0
+aria edulis;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+aria edulis;tree;medium;Etabliert (~25 Jahre);15.8;5.5;3.5;2.5
+aria edulis;tree;large;Ausgewachsen;35.0;10.0;7.0;3.0
+aria;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+aria;tree;medium;Etabliert (~25 Jahre);15.8;5.5;3.5;2.5
+aria;tree;large;Ausgewachsen;35.0;10.0;7.0;3.0
+torminalis;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+torminalis;tree;medium;Etabliert (~25 Jahre);20.3;8.3;5.0;3.0
+torminalis;tree;large;Ausgewachsen;45.0;15.0;10.0;3.0
+cormus domestica;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+cormus domestica;tree;medium;Etabliert (~25 Jahre);22.5;8.3;5.0;3.0
+cormus domestica;tree;large;Ausgewachsen;50.0;15.0;10.0;3.0
+cormus;tree;small;Jungbaum StU 18–20;6.0;3.5;1.4;2.0
+cormus;tree;medium;Etabliert (~25 Jahre);22.5;8.3;5.0;3.0
+cormus;tree;large;Ausgewachsen;50.0;15.0;10.0;3.0
+euodia;tree;small;Jungbaum StU 18–20;6.0;3.5;1.6;2.0
+euodia;tree;medium;Etabliert (~25 Jahre);20.3;6.6;5.0;2.5
+euodia;tree;large;Ausgewachsen;45.0;12.0;10.0;3.0
+halesia carolina;small;small;Jungpflanze StU 12–14;4.5;2.5;1.3;0.8
+halesia carolina;small;medium;Etabliert (~25 Jahre);9.0;3.9;3.0;1.5
+halesia carolina;small;large;Ausgewachsen;20.0;7.0;6.0;2.0
+laburnum x watereri;small;small;Jungpflanze StU 12–14;4.5;2.5;1.2;0.8
+laburnum x watereri;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+laburnum x watereri;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+laburnum anagyroides;small;small;Jungpflanze StU 12–14;4.5;2.5;1.2;0.8
+laburnum anagyroides;small;medium;Etabliert (~25 Jahre);9.0;3.3;2.5;1.5
+laburnum anagyroides;small;large;Ausgewachsen;20.0;6.0;5.0;2.0
+cupressocyparis;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.0;0.3
+cupressocyparis;conifer;medium;Etabliert (~25 Jahre);22.5;11.0;2.5;1.0
+cupressocyparis;conifer;large;Ausgewachsen;50.0;20.0;5.0;2.0
+cuprocyparis;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.0;0.3
+cuprocyparis;conifer;medium;Etabliert (~25 Jahre);22.5;11.0;2.5;1.0
+cuprocyparis;conifer;large;Ausgewachsen;50.0;20.0;5.0;2.0
+cupressocyparis leylandii;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.0;0.3
+cupressocyparis leylandii;conifer;medium;Etabliert (~25 Jahre);22.5;11.0;2.5;1.0
+cupressocyparis leylandii;conifer;large;Ausgewachsen;50.0;20.0;5.0;2.0
+cuprocyparis leylandii;conifer;small;Jungbaum 250–300 cm;6.0;3.0;1.0;0.3
+cuprocyparis leylandii;conifer;medium;Etabliert (~25 Jahre);22.5;11.0;2.5;1.0
+cuprocyparis leylandii;conifer;large;Ausgewachsen;50.0;20.0;5.0;2.0
+thujopsis;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.0;0.3
+thujopsis;conifer;medium;Etabliert (~25 Jahre);15.8;6.6;2.5;1.0
+thujopsis;conifer;large;Ausgewachsen;35.0;12.0;5.0;1.0
+platycladus;conifer;small;Jungbaum 250–300 cm;6.0;2.5;0.9;0.3
+platycladus;conifer;medium;Etabliert (~25 Jahre);13.5;5.5;2.0;1.0
+platycladus;conifer;large;Ausgewachsen;30.0;10.0;4.0;1.0
+cephalotaxus;conifer;small;Jungbaum 250–300 cm;6.0;1.5;1.0;0.3
+cephalotaxus;conifer;medium;Etabliert (~25 Jahre);6.8;3.3;2.0;1.0
+cephalotaxus;conifer;large;Ausgewachsen;15.0;6.0;4.0;1.0
+torreya;conifer;small;Jungbaum 250–300 cm;6.0;2.0;1.1;0.3
+torreya;conifer;medium;Etabliert (~25 Jahre);13.5;5.5;3.0;1.0
+torreya;conifer;large;Ausgewachsen;30.0;10.0;6.0;1.0
+wollemia;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.0;0.3
+wollemia;conifer;medium;Etabliert (~25 Jahre);18.0;8.3;2.0;1.0
+wollemia;conifer;large;Ausgewachsen;40.0;15.0;4.0;1.0
+ginkgo biloba fastigiata;tree;small;Jungbaum StU 18–20;6.0;4.5;0.9;2.0
+ginkgo biloba fastigiata;tree;medium;Etabliert (~25 Jahre);20.3;8.3;2.0;3.0
+ginkgo biloba fastigiata;tree;large;Ausgewachsen;45.0;15.0;4.0;3.0
+livistona;palm;small;Jungpalme (Pflanzung);18.0;2.0;2.0;0.5
+livistona;palm;medium;Etabliert (~25 Jahre);25.5;5.5;3.2;2.8
+livistona;palm;large;Ausgewachsen;30.0;10.0;4.0;7.0
+rhapis;palm;small;Jungpalme (Pflanzung);3.0;1.2;1.0;0.5
+rhapis;palm;medium;Etabliert (~25 Jahre);4.3;1.7;1.6;0.9
+rhapis;palm;large;Ausgewachsen;5.0;3.0;2.0;1.8
+syagrus;palm;small;Jungpalme (Pflanzung);21.0;2.5;2.5;0.5
+syagrus;palm;medium;Etabliert (~25 Jahre);29.8;6.6;4.0;3.3
+syagrus;palm;large;Ausgewachsen;35.0;12.0;5.0;9.0
+arecastrum;palm;small;Jungpalme (Pflanzung);21.0;2.5;2.5;0.5
+arecastrum;palm;medium;Etabliert (~25 Jahre);29.8;6.6;4.0;3.3
+arecastrum;palm;large;Ausgewachsen;35.0;12.0;5.0;9.0
+howea;palm;small;Jungpalme (Pflanzung);7.2;1.5;1.5;0.5
+howea;palm;medium;Etabliert (~25 Jahre);10.2;3.3;2.4;1.7
+howea;palm;large;Ausgewachsen;12.0;6.0;3.0;3.6
+archontophoenix;palm;small;Jungpalme (Pflanzung);12.0;2.5;2.0;0.5
+archontophoenix;palm;medium;Etabliert (~25 Jahre);17.0;6.6;3.2;3.3
+archontophoenix;palm;large;Ausgewachsen;20.0;12.0;4.0;9.0
+bismarckia;palm;small;Jungpalme (Pflanzung);27.0;2.0;2.5;0.5
+bismarckia;palm;medium;Etabliert (~25 Jahre);38.3;5.5;4.8;2.8
+bismarckia;palm;large;Ausgewachsen;45.0;10.0;6.0;7.0
+tree_deciduous;tree;small;Jungbaum StU 18–20;6.0;4.0;1.6;2.0
+tree_deciduous;tree;medium;Etabliert (~25 Jahre);27.0;9.9;6.0;3.0
+tree_deciduous;tree;large;Ausgewachsen;60.0;18.0;12.0;3.0
+tree_evergreen;conifer;small;Jungbaum 250–300 cm;6.0;2.5;1.2;0.3
+tree_evergreen;conifer;medium;Etabliert (~25 Jahre);18.0;6.6;3.0;1.0
+tree_evergreen;conifer;large;Ausgewachsen;40.0;12.0;6.0;1.0
+palm;palm;small;Jungpalme (Pflanzung);15.0;1.5;1.5;0.5
+palm;palm;medium;Etabliert (~25 Jahre);21.3;3.3;2.4;1.7
+palm;palm;large;Ausgewachsen;25.0;6.0;3.0;3.6

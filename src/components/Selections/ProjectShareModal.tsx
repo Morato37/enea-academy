@@ -9,19 +9,6 @@ interface ProjectShareModalProps {
   onClose: () => void;
 }
 
-const PermissionBadge: React.FC<{ permission: 'view' | 'edit' }> = ({ permission }) => (
-  <span
-    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-      permission === 'edit'
-        ? 'bg-cyan-50 text-cyan-700'
-        : 'bg-gray-100 text-gray-600'
-    }`}
-  >
-    {permission === 'edit' ? <Edit3 className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-    {permission === 'edit' ? 'Edit' : 'View'}
-  </span>
-);
-
 export const ProjectShareModal: React.FC<ProjectShareModalProps> = ({
   projectId,
   projectName,

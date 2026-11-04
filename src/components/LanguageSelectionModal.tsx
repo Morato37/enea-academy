@@ -30,7 +30,7 @@ export const LanguageSelectionModal: React.FC<LanguageSelectionModalProps> = ({
         </div>
 
         <div className="p-6">
-          <p className="text-gray-600 mb-6">Bitte wählen Sie eine Sprache für den PDF-Export:</p>
+          <p className="text-gray-600 mb-6">Choose a language for the PDF export:</p>
 
           <div className="space-y-3">
             <button
@@ -38,8 +38,8 @@ export const LanguageSelectionModal: React.FC<LanguageSelectionModalProps> = ({
               className="w-full px-6 py-4 bg-white border-2 border-gray-300 text-gray-900 rounded-lg hover:border-green-600 hover:bg-green-50 transition-all text-left flex items-center justify-between group"
             >
               <div>
-                <div className="font-semibold text-lg">Deutsch</div>
-                <div className="text-sm text-gray-600">PDF in deutscher Sprache</div>
+                <div className="font-semibold text-lg">German</div>
+                <div className="text-sm text-gray-600">PDF in German</div>
               </div>
               <span className="text-2xl">🇩🇪</span>
             </button>

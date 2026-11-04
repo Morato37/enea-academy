@@ -1,14 +1,51 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingCart, LogOut, Settings, Map, Info, Ticket, TreePine } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ShoppingCart, LogOut, Settings, Map, Info, Ticket, TreePine, Flower, Library, ChevronDown, Leaf } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSelections } from '../../contexts/SelectionsContext';
 
 export const Header: React.FC = () => {
   const { user, isAdmin, signOut } = useAuth();
   const { selections } = useSelections();
+  const location = useLocation();
+  const [plantsMenuOpen, setPlantsMenuOpen] = useState(false);
+  const [mobilePlantsOpen, setMobilePlantsOpen] = useState(false);
+  const plantsMenuRef = useRef<HTMLDivElement>(null);
+  const mobilePlantsMenuRef = useRef<HTMLDivElement>(null);
 
   const selectionCount = selections.length;
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const insideDesktopMenu = plantsMenuRef.current?.contains(target);
+      const insideMobileMenu = mobilePlantsMenuRef.current?.contains(target);
+      if (!insideDesktopMenu && !insideMobileMenu) {
+        setPlantsMenuOpen(false);
+        setMobilePlantsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const isPlantsActive =
+    location.pathname === '/plants' ||
+    location.pathname.startsWith('/plant/') ||
+    location.pathname === '/bluehkalender' ||
+    location.pathname.startsWith('/bluehkalender') ||
+    location.pathname === '/tree-benefits';
+
+  const navLinkClass = (isActive: boolean) =>
+    `text-sm font-medium transition-colors flex items-center ${
+      isActive ? 'text-cyan-600' : 'text-gray-600 hover:text-cyan-600'
+    }`;
+
+  const mobileLinkClass = (isActive: boolean) =>
+    `text-gray-600 hover:text-cyan-600 font-medium transition-colors ${
+      isActive ? 'text-cyan-600' : ''
+    }`;
 
   return (
     <header className="bg-white border-b border-gray-200 shadow-sm">
@@ -18,60 +55,105 @@ export const Header: React.FC = () => {
             <img src="/enea-logo.png" alt="Enea Logo" className="h-8" />
             <div className="flex flex-col">
               <span className="text-xl font-bold text-gray-700 leading-none">
-                Enea's Academy
+                Enea Academy
               </span>
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center space-x-8">
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center space-x-7">
             <Link
               to="/zone-map"
-              className="text-gray-600 hover:text-cyan-600 font-medium transition-colors flex items-center"
+              className={navLinkClass(location.pathname === '/zone-map')}
             >
-              <Map className="w-4 h-4 mr-1" />
+              <Map className="w-4 h-4 mr-1.5" />
               Zone Map
             </Link>
-            <Link
-              to="/plants"
-              className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
-            >
-              Plants
-            </Link>
+
+            {/* Plants group with dropdown */}
+            <div ref={plantsMenuRef} className="relative">
+              <button
+                className={navLinkClass(isPlantsActive)}
+                onClick={() => setPlantsMenuOpen(!plantsMenuOpen)}
+              >
+                <Leaf className="w-4 h-4 mr-1.5" />
+                Plants
+                <ChevronDown className={`w-3.5 h-3.5 ml-1 transition-transform ${plantsMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {plantsMenuOpen && (
+                <div className="absolute left-1/2 top-full z-50 w-56 -translate-x-1/2 pt-3">
+                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white py-2 shadow-xl ring-1 ring-black/5">
+                    <Link
+                      to="/plants"
+                      className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-cyan-50 hover:text-cyan-600 transition-colors"
+                      onClick={() => setPlantsMenuOpen(false)}
+                    >
+                      <Leaf className="w-4 h-4 mr-3 text-gray-400" />
+                      Plant Catalog
+                    </Link>
+                    {user && (
+                      <Link
+                        to="/bluehkalender"
+                        className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-cyan-50 hover:text-cyan-600 transition-colors"
+                        onClick={() => setPlantsMenuOpen(false)}
+                      >
+                        <Flower className="w-4 h-4 mr-3 text-gray-400" />
+                        Bloom Calendar
+                      </Link>
+                    )}
+                    <Link
+                      to="/tree-benefits"
+                      className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-cyan-50 hover:text-cyan-600 transition-colors"
+                      onClick={() => setPlantsMenuOpen(false)}
+                    >
+                      <TreePine className="w-4 h-4 mr-3 text-gray-400" />
+                      Tree Benefits
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Link
               to="/stones"
-              className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
+              className={navLinkClass(location.pathname === '/stones' || location.pathname.startsWith('/stone/'))}
             >
               Stones
             </Link>
+
             {isAdmin && (
               <Link
-                to="/tree-benefits"
-                className="text-gray-600 hover:text-cyan-600 font-medium transition-colors flex items-center"
+                to="/library"
+                className={navLinkClass(location.pathname === '/library')}
               >
-                <TreePine className="w-4 h-4 mr-1" />
-                Tree Benefits
+                <Library className="w-4 h-4 mr-1.5" />
+                Library
               </Link>
             )}
+
             <Link
               to="/additional-information"
-              className="text-gray-600 hover:text-cyan-600 font-medium transition-colors flex items-center"
+              className={navLinkClass(location.pathname === '/additional-information')}
             >
-              <Info className="w-4 h-4 mr-1" />
+              <Info className="w-4 h-4 mr-1.5" />
               Info
             </Link>
+
             <Link
               to="/tickets"
-              className="text-gray-600 hover:text-cyan-600 font-medium transition-colors flex items-center"
+              className={navLinkClass(location.pathname === '/tickets')}
             >
-              <Ticket className="w-4 h-4 mr-1" />
+              <Ticket className="w-4 h-4 mr-1.5" />
               Support
             </Link>
+
             {isAdmin && (
               <Link
                 to="/admin"
-                className="text-gray-600 hover:text-cyan-600 font-medium transition-colors flex items-center"
+                className={navLinkClass(location.pathname === '/admin')}
               >
-                <Settings className="w-4 h-4 mr-1" />
+                <Settings className="w-4 h-4 mr-1.5" />
                 Admin
               </Link>
             )}
@@ -103,49 +185,88 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        <nav className="md:hidden flex items-center space-x-6 pb-3">
+        {/* Mobile nav */}
+        <nav className="md:hidden flex items-center space-x-5 pb-3 overflow-x-auto">
           <Link
             to="/zone-map"
-            className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
+            className={mobileLinkClass(location.pathname === '/zone-map')}
           >
             Map
           </Link>
-          <Link
-            to="/plants"
-            className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
-          >
-            Plants
-          </Link>
+
+          {/* Plants group - expandable on mobile */}
+          <div ref={mobilePlantsMenuRef} className="relative shrink-0">
+            <button
+              onClick={() => setMobilePlantsOpen(!mobilePlantsOpen)}
+              className={mobileLinkClass(isPlantsActive)}
+            >
+              Plants
+              <ChevronDown className={`ml-1 inline h-3.5 w-3.5 transition-transform ${mobilePlantsOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {mobilePlantsOpen && (
+              <div className="absolute left-0 top-full z-50 w-52 pt-3">
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white py-2 shadow-xl ring-1 ring-black/5">
+                  <Link
+                    to="/plants"
+                    onClick={() => setMobilePlantsOpen(false)}
+                    className="flex items-center px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-cyan-50 hover:text-cyan-700"
+                  >
+                    <Leaf className="mr-3 h-4 w-4 text-gray-400" />
+                    Plant Catalog
+                  </Link>
+                  {user && (
+                    <Link
+                      to="/bluehkalender"
+                      onClick={() => setMobilePlantsOpen(false)}
+                      className="flex items-center px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-cyan-50 hover:text-cyan-700"
+                    >
+                      <Flower className="mr-3 h-4 w-4 text-gray-400" />
+                      Bloom Calendar
+                    </Link>
+                  )}
+                  <Link
+                    to="/tree-benefits"
+                    onClick={() => setMobilePlantsOpen(false)}
+                    className="flex items-center px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-cyan-50 hover:text-cyan-700"
+                  >
+                    <TreePine className="mr-3 h-4 w-4 text-gray-400" />
+                    Tree Benefits
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
           <Link
             to="/stones"
-            className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
+            className={mobileLinkClass(location.pathname === '/stones' || location.pathname.startsWith('/stone/'))}
           >
             Stones
           </Link>
           {isAdmin && (
             <Link
-              to="/tree-benefits"
-              className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
+              to="/library"
+              className={mobileLinkClass(location.pathname === '/library')}
             >
-              Trees
+              Library
             </Link>
           )}
           <Link
             to="/additional-information"
-            className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
+            className={mobileLinkClass(location.pathname === '/additional-information')}
           >
             Info
           </Link>
           <Link
             to="/tickets"
-            className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
+            className={mobileLinkClass(location.pathname === '/tickets')}
           >
             Support
           </Link>
           {isAdmin && (
             <Link
               to="/admin"
-              className="text-gray-600 hover:text-cyan-600 font-medium transition-colors"
+              className={mobileLinkClass(location.pathname === '/admin')}
             >
               Admin
             </Link>

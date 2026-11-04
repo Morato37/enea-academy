@@ -182,7 +182,8 @@ class NominatimService {
           'de', 'at', 'ch', 'it', 'fr', 'es', 'pt', 'nl', 'be', 'lu',
           'gb', 'ie', 'dk', 'se', 'no', 'fi', 'is', 'pl', 'cz', 'sk',
           'hu', 'ro', 'bg', 'gr', 'hr', 'si', 'rs', 'ba', 'me', 'mk',
-          'al', 'ee', 'lv', 'lt', 'ua', 'by', 'md', 'tr', 'cy', 'mt'
+          'al', 'ee', 'lv', 'lt', 'ua', 'by', 'md', 'tr', 'cy', 'mt',
+          'ru', 'kz', 'ge', 'am', 'az'
         ];
 
         params.append('countrycodes', europeanCountries.join(','));
@@ -219,7 +220,7 @@ class NominatimService {
         return null;
       }
 
-      if (latitude < 35 || latitude > 71 || longitude < -10 || longitude > 50) {
+      if (latitude < 35 || latitude > 78 || longitude < -10 || longitude > 180) {
         return null;
       }
 

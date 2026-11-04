@@ -98,7 +98,7 @@ export const DEF_HARD: SpeciesInfo = { S: 0.85, ev: 0, grp: 'misc', dflt: 1 };
 
 /** Normalise a botanical name: drop cultivar quotes, rank markers, vernacular tails. */
 export function normName(name: string): { g: string; spKey: string; alt: string | null } {
-  const n = (name || '').toLowerCase().replace(/['‘’"][^'‘’"]*['‘’"]?/g, ' ').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+  const n = (name || '').toLowerCase().replace(/[''�""][^''�""]*[''�""]?/g, ' ').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
   const toks = n.split(' ').filter(t => t && !/^(l\.|ssp\.?|subsp\.?|var\.?|f\.|cv\.?|espalier|bonsai|-bonsai|hochstamm|halbstamm)$/.test(t));
   const g = toks[0] || '';
   const hyb = toks[1] === 'x' || toks[1] === '×';

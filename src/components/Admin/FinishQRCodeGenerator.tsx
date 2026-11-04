@@ -32,7 +32,7 @@ export const FinishQRCodeGenerator: React.FC<FinishQRCodeGeneratorProps> = ({ st
     return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(stoneUrl)}`;
   };
 
-  const handleDownload = async (finishKey: string, finishLabel: string) => {
+  const handleDownload = async (finishKey: string, _finishLabel: string) => {
     try {
       const qrUrl = getQRCodeUrl(finishKey);
       const response = await fetch(qrUrl);

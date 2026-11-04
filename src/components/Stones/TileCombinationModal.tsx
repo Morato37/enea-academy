@@ -15,7 +15,7 @@ export const TileCombinationModal: React.FC<TileCombinationModalProps> = ({
   onClose,
   onConfirm,
 }) => {
-  const [combinations, setCombinations] = useState<StoneCombination[]>([]);
+  const [, setCombinations] = useState<StoneCombination[]>([]);
   const [availableCobblestones, setAvailableCobblestones] = useState<Stone[]>([]);
   const [selectedCobblestones, setSelectedCobblestones] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);

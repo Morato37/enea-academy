@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { convertToPng } from '../../lib/imageConverter';
 import { Upload, CheckCircle, XCircle, Download, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import JSZip from 'jszip';
 
@@ -175,42 +174,80 @@ export const BulkImageUploader: React.FC = () => {
 
       const { data: plants, error: plantsError } = await supabase
         .from('plants_flat')
-        .select('id, botanical_name, image_url')
-        .is('image_url', null);
+        .select('id, image_url');
 
       if (plantsError) throw plantsError;
 
-      let updateCount = 0;
+      const { data: imageRecords, error: imageRecordsError } = await supabase
+        .from('plant_images')
+        .select('id, plant_id, image_url, display_order, is_primary');
 
-      for (const plant of plants || []) {
-        const matchingFiles = files?.filter(file => {
-          const fileName = file.name.toLowerCase();
-          const plantIdStr = plant.id.toString();
-          return fileName.startsWith(plantIdStr + '_') ||
-                 fileName.startsWith('plant-' + plantIdStr + '-');
-        });
+      if (imageRecordsError) throw imageRecordsError;
 
-        if (matchingFiles && matchingFiles.length > 0) {
-          const primaryFile = matchingFiles[0];
-          const { data: { publicUrl } } = supabase.storage
-            .from('plant-images')
-            .getPublicUrl(primaryFile.name);
+      const storageFiles = new Set((files || []).map(file => file.name));
+      const publicUrlFor = (fileName: string): string => supabase.storage
+        .from('plant-images')
+        .getPublicUrl(fileName).data.publicUrl;
+      const fileNameFromUrl = (url: string): string => decodeURIComponent(url.split('/').pop() || '');
+      let repairedCount = 0;
+      let insertedCount = 0;
 
-          const { error: updateError } = await supabase
-            .from('plants_flat')
-            .update({ image_url: publicUrl })
-            .eq('id', plant.id);
+      for (const record of imageRecords || []) {
+        const currentFileName = fileNameFromUrl(record.image_url);
+        const migratedFileName = currentFileName.replace('_migrated', '');
 
-          if (!updateError) {
-            updateCount++;
-          }
+        if (currentFileName.includes('_migrated') && storageFiles.has(migratedFileName)) {
+          const { error: repairError } = await supabase
+            .from('plant_images')
+            .update({ image_url: publicUrlFor(migratedFileName) })
+            .eq('id', record.id);
+
+          if (repairError) throw repairError;
+          repairedCount++;
         }
       }
 
-      alert(`Successfully synced ${updateCount} images from storage!`);
+      for (const plant of plants || []) {
+        const plantId = plant.id.toString();
+        const matchingFiles = (files || []).filter(file =>
+          file.name.startsWith(`${plantId}_`) || file.name.startsWith(`plant-${plantId}-`)
+        );
+        if (matchingFiles.length === 0) continue;
+
+        const recordsForPlant = (imageRecords || []).filter(record => record.plant_id === plant.id);
+        const existingUrls = new Set(recordsForPlant.map(record => record.image_url));
+        const missingRecords = matchingFiles
+          .map((file, index) => ({
+            plant_id: plant.id,
+            image_url: publicUrlFor(file.name),
+            display_order: recordsForPlant.length + index,
+            is_primary: recordsForPlant.length === 0 && index === 0
+          }))
+          .filter(record => !existingUrls.has(record.image_url));
+
+        if (missingRecords.length > 0) {
+          const { error: insertError } = await supabase
+            .from('plant_images')
+            .insert(missingRecords);
+          if (insertError) throw insertError;
+          insertedCount += missingRecords.length;
+        }
+
+        const currentImageFile = plant.image_url ? fileNameFromUrl(plant.image_url) : '';
+        if (!plant.image_url || !storageFiles.has(currentImageFile)) {
+          const { error: plantUpdateError } = await supabase
+            .from('plants_flat')
+            .update({ image_url: publicUrlFor(matchingFiles[0].name) })
+            .eq('id', plant.id);
+          if (plantUpdateError) throw plantUpdateError;
+          repairedCount++;
+        }
+      }
+
+      alert(`Image repair finished: ${repairedCount} links repaired and ${insertedCount} missing image records restored.`);
     } catch (err) {
       console.error('Error syncing images:', err);
-      alert('Failed to sync images. Check console for details.');
+      alert('Failed to repair images. Check console for details.');
     } finally {
       setSyncing(false);
     }
@@ -271,10 +308,10 @@ export const BulkImageUploader: React.FC = () => {
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-green-600 text-white hover:bg-green-700'
           }`}
-          title="Sync uploaded images with database"
+          title="Repair image links from storage"
         >
           <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Syncing...' : 'Sync Storage'}
+          {syncing ? 'Repairing...' : 'Repair Image Links'}
         </button>
       </div>
 

@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { calculateEnhancedZone, formatMicroclimateFactors } from './microclimate';
 import { detectHardinessZones } from './zoneDetection';
 
 export interface ZoneDetectionHelperResult {
@@ -42,14 +41,17 @@ async function detectZoneFromCity(
       const distance = (lat: number, lon: number) =>
         Math.sqrt(Math.pow(lat - latitude, 2) + Math.pow(lon - longitude, 2));
 
-      const { data: nearestCity } = await supabase
+      const { data: nearbyCities } = await supabase
         .from('city_hardiness_zones')
         .select('*')
-        .order('latitude')
-        .limit(50);
+        .gte('latitude', latitude - 0.5)
+        .lte('latitude', latitude + 0.5)
+        .gte('longitude', longitude - 0.5)
+        .lte('longitude', longitude + 0.5)
+        .limit(10);
 
-      if (nearestCity && nearestCity.length > 0) {
-        const closest = nearestCity.reduce((prev, curr) => {
+      if (nearbyCities && nearbyCities.length > 0) {
+        const closest = nearbyCities.reduce((prev, curr) => {
           const prevDist = distance(Number(prev.latitude), Number(prev.longitude));
           const currDist = distance(Number(curr.latitude), Number(curr.longitude));
           return currDist < prevDist ? curr : prev;
@@ -85,65 +87,42 @@ export async function detectZoneForLocation(
   latitude: number,
   longitude: number,
   cityName?: string,
-  elevation?: number
+  elevation?: number,
+  skipElevationFetch: boolean = false
 ): Promise<ZoneDetectionHelperResult> {
-  const actualElevation = elevation !== undefined ? elevation : await fetchElevation(latitude, longitude);
+  const actualElevation = elevation !== undefined
+    ? elevation
+    : skipElevationFetch
+      ? undefined
+      : await fetchElevation(latitude, longitude);
 
-  let cityResult = null;
-  if (cityName) {
-    cityResult = await detectZoneFromCity(cityName, latitude, longitude);
-  }
+  const cityPromise = cityName
+    ? detectZoneFromCity(cityName, latitude, longitude)
+    : Promise.resolve(null);
+
+  const zonePromise = detectHardinessZones(latitude, longitude, actualElevation);
+
+  const [cityResult, zoneResult] = await Promise.all([cityPromise, zonePromise]);
 
   let finalZone: string;
   let finalConfidence: number;
   let finalSource: string;
-  let microclimateInfo: string | undefined;
 
   if (cityResult) {
-    const enhanced = await calculateEnhancedZone(
-      cityResult.zone,
-      latitude,
-      longitude,
-      cityName
-    );
-
-    finalZone = enhanced.adjustedZone;
-    finalConfidence = Math.max(cityResult.confidence, enhanced.confidence);
-    finalSource = enhanced.adjustments.some(a => a.factor === 'admin_override')
-      ? 'admin_verified'
-      : enhanced.adjustments.some(a => a.factor === 'climate_data')
-      ? 'climate_data'
-      : cityResult.source;
-    microclimateInfo = formatMicroclimateFactors(enhanced.adjustments);
+    finalZone = cityResult.zone;
+    finalConfidence = cityResult.confidence;
+    finalSource = cityResult.source;
   } else {
-    const zoneResult = await detectHardinessZones(
-      latitude,
-      longitude,
-      actualElevation
-    );
-
-    const enhanced = await calculateEnhancedZone(
-      zoneResult.zones[0],
-      latitude,
-      longitude,
-      cityName
-    );
-
-    finalZone = enhanced.adjustedZone;
-    finalConfidence = Math.max(zoneResult.confidence, enhanced.confidence);
-    finalSource = enhanced.adjustments.some(a => a.factor === 'admin_override')
-      ? 'admin_verified'
-      : enhanced.adjustments.some(a => a.factor === 'climate_data')
-      ? 'climate_data'
-      : zoneResult.source;
-    microclimateInfo = formatMicroclimateFactors(enhanced.adjustments);
+    finalZone = zoneResult.zones[0];
+    finalConfidence = zoneResult.confidence;
+    finalSource = zoneResult.source;
   }
 
   return {
     zone: finalZone,
     confidence: finalConfidence,
     source: finalSource,
-    microclimateInfo,
+    microclimateInfo: undefined,
     elevation: actualElevation,
   };
 }

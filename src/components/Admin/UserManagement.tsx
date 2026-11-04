@@ -157,7 +157,7 @@ export const UserManagement: React.FC = () => {
     }
   };
 
-  const handleRegenerateOTP = async (userId: string, userEmail: string, fullName: string) => {
+  const handleRegenerateOTP = async (userId: string, userEmail: string, _fullName: string) => {
     if (!confirm(`Generate a new OTP for ${userEmail}?`)) {
       return;
     }

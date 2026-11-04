@@ -65,7 +65,7 @@ export function totalValues(rows: TreeResult[], T: TFn, lang: Lang, p: SiteParam
 /** Tab separated text for pasting into Excel: header with year prefixes, one row per tree, total row. */
 export function buildExcelText(rows: TreeResult[], T: TFn, lang: Lang, p: SiteParams, hasClass: boolean): string {
   const C = columns(T, lang, p, hasClass);
-  const de = (v: string) => v.replace(/’|'/g, '');
+  const de = (v: string) => v.replace(/'|'/g, '');
   let curG = '';
   const head = C.map(c => {
     if (c.gRaw) curG = c.gRaw; else if (c.g || c.t) curG = '';

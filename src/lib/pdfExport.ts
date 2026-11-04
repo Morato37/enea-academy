@@ -100,8 +100,14 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
   const pageHeight = doc.internal.pageSize.getHeight();
   let yPosition = 20;
 
+  const seenPlantIds = new Set<number | string>();
   const plantSelections = selections
     .filter(s => s.plant_id)
+    .filter(s => {
+      if (seenPlantIds.has(s.plant_id!)) return false;
+      seenPlantIds.add(s.plant_id!);
+      return true;
+    })
     .sort((a, b) => (a.plant?.botanical_name || '').localeCompare(b.plant?.botanical_name || ''));
   const tileCombinations = selections.filter(s => s.is_tile_combination && s.stone_id && !s.parent_selection_id);
   const regularStoneSelections = selections.filter(s => s.stone_id && !s.is_tile_combination);
@@ -124,12 +130,12 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
   yPosition += 15;
   doc.setFontSize(24);
   doc.setTextColor(COLORS.cyan.r, COLORS.cyan.g, COLORS.cyan.b);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('', 'bold');
   doc.text('Enea\'s Academy', pageWidth / 2, yPosition, { align: 'center' });
 
   yPosition += 8;
   doc.setFontSize(9);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('', 'normal');
   doc.setTextColor(COLORS.darkGray.r, COLORS.darkGray.g, COLORS.darkGray.b);
   const today = new Date();
   doc.text(`Generated: ${today.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}`, pageWidth / 2, yPosition, { align: 'center' });
@@ -143,10 +149,10 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
   doc.rect(15, yPosition, pageWidth - 30, 16, 'F');
   doc.setFontSize(9);
   doc.setTextColor(COLORS.darkGray.r, COLORS.darkGray.g, COLORS.darkGray.b);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('', 'bold');
   const summaryLabel = language === 'de' ? 'Selection Summary' : 'Selection Summary';
   doc.text(summaryLabel, 20, yPosition + 6);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('', 'normal');
   doc.setFontSize(8);
   const plantsLabel = language === 'de' ? 'Plants' : 'Plants';
   const stonesLabel = language === 'de' ? 'Stones' : 'Stones';
@@ -158,10 +164,10 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
     doc.rect(15, yPosition, pageWidth - 30, 10, 'F');
     doc.setFontSize(14);
     doc.setTextColor(255, 255, 255);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('', 'bold');
     const plantsTitleLabel = language === 'de' ? 'Plants' : 'Plants';
     doc.text(`${plantsTitleLabel} (${plantSelections.length})`, 20, yPosition + 7);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('', 'normal');
     yPosition += 18;
 
     for (const selection of plantSelections) {
@@ -173,12 +179,13 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
         yPosition = 20;
       }
 
-      const startY = yPosition;
+      const _startY = yPosition;
+      void _startY;
 
       doc.setFontSize(11);
-      doc.setFont(undefined, 'bold');
+      doc.setFont('', 'bold');
       doc.setTextColor(COLORS.darkGray.r, COLORS.darkGray.g, COLORS.darkGray.b);
-      doc.text(plant.botanical_name, 25, yPosition);
+      doc.text(plant.botanical_name || '', 25, yPosition);
       yPosition += 5;
 
       const commonName = language === 'de'
@@ -186,9 +193,9 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
         : (plant.common_name_en || plant.common_name_de || '');
       if (commonName) {
         doc.setFontSize(9);
-        doc.setFont(undefined, 'normal');
+        doc.setFont('', 'normal');
         doc.setTextColor(COLORS.darkGray.r, COLORS.darkGray.g, COLORS.darkGray.b);
-        doc.text(commonName, 25, yPosition);
+        doc.text(commonName || '', 25, yPosition);
         yPosition += 5;
       } else {
         yPosition += 1;
@@ -235,17 +242,17 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
       const textStartX = imageAdded ? 85 : 25;
       let textY = yPosition + 3;
 
-      doc.setFont(undefined, 'normal');
+      doc.setFont('', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(COLORS.gray.r, COLORS.gray.g, COLORS.gray.b);
 
       if (plant.common_name_en) {
-        doc.text(`English: ${plant.common_name_en}`, textStartX, textY);
+        doc.text(`English: ${plant.common_name_en || ''}`, textStartX, textY);
         textY += 4;
       }
 
       if (plant.common_name_de) {
-        doc.text(`German: ${plant.common_name_de}`, textStartX, textY);
+        doc.text(`German: ${plant.common_name_de || ''}`, textStartX, textY);
         textY += 4;
       }
 
@@ -281,7 +288,7 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
       if (plant.category_ground_cover) plantTypes.push('Ground Cover');
       if (plant.category_culinary_plant) plantTypes.push('Culinary Plant');
       if (plantTypes.length > 0) {
-        doc.text(`Category: ${plantTypes.join(', ')}`, textStartX, textY);
+        doc.text(`Category: ${plantTypes.join(', ') || ''}`, textStartX, textY);
         textY += 4;
       }
 
@@ -299,7 +306,7 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
       if (plant.zone_10a) zones.push('10a');
       if (plant.zone_10b) zones.push('10b');
       if (zones.length > 0) {
-        doc.text(`Zones: ${zones.join(', ')}`, textStartX, textY);
+        doc.text(`Zones: ${zones.join(', ') || ''}`, textStartX, textY);
         textY += 4;
       }
 
@@ -308,7 +315,7 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
       if (plant.exposure_shade) exposure.push('Shade');
       if (plant.exposure_halfshade) exposure.push('Half Shade');
       if (exposure.length > 0) {
-        doc.text(`Exposure: ${exposure.join(', ')}`, textStartX, textY);
+        doc.text(`Exposure: ${exposure.join(', ') || ''}`, textStartX, textY);
         textY += 4;
       }
 
@@ -339,13 +346,41 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
       if (plant.characteristic_evergreen) characteristics.push('Evergreen');
       if (plant.characteristic_deciduous) characteristics.push('Deciduous');
       if (characteristics.length > 0) {
-        doc.text(`Characteristics: ${characteristics.join(', ')}`, textStartX, textY);
+        doc.text(`Characteristics: ${characteristics.join(', ') || ''}`, textStartX, textY);
         textY += 4;
       }
 
-      const traitsChange = plant.traits_change_with_location === 'true' ? 'Yes' : 'No';
-      doc.text(`Traits change with location: ${traitsChange}`, textStartX, textY);
-      textY += 4;
+      const pollinators = [];
+      if (plant.characteristic_butterflies) pollinators.push('Butterflies');
+      if (plant.characteristic_bees) pollinators.push('Bees');
+      if (plant.characteristic_honeybees) pollinators.push('Honeybees');
+      if (plant.characteristic_bumblebees) pollinators.push('Bumblebees');
+      if (plant.characteristic_hoverflies) pollinators.push('Hoverflies');
+      if (plant.characteristic_beetles) pollinators.push('Beetles');
+      if (pollinators.length > 0) {
+        const pollinatorText = `Pollinators: ${pollinators.join(', ')}`;
+        const maxWidth = pageWidth - textStartX - 10;
+        const lines = doc.splitTextToSize(pollinatorText, maxWidth);
+        doc.text(lines, textStartX, textY);
+        textY += lines.length * 4;
+      }
+
+      if (plant.tree_of_the_future) {
+        try {
+          const iconData = await loadImageAsDataURL(`${window.location.origin}/trees_of_the_future.png`);
+          doc.addImage(iconData, 'PNG', textStartX, textY - 0.5, 5, 5);
+          doc.setFontSize(8);
+          doc.setFont('', 'normal');
+          doc.setTextColor(COLORS.gray.r, COLORS.gray.g, COLORS.gray.b);
+          doc.text('Tree of the Future', textStartX + 6.5, textY + 3);
+        } catch {
+          doc.setFontSize(8);
+          doc.setFont('', 'normal');
+          doc.setTextColor(COLORS.gray.r, COLORS.gray.g, COLORS.gray.b);
+          doc.text('Tree of the Future', textStartX, textY + 3);
+        }
+        textY += 7;
+      }
 
       textY += 2;
 
@@ -359,10 +394,10 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
       if (hasColorData) {
         yPosition += 5;
         doc.setFontSize(7);
-        doc.setFont(undefined, 'bold');
+        doc.setFont('', 'bold');
         doc.setTextColor(COLORS.gray.r, COLORS.gray.g, COLORS.gray.b);
         doc.text('Seasonal Colors:', 25, yPosition);
-        doc.setFont(undefined, 'normal');
+        doc.setFont('', 'normal');
         yPosition += 4;
 
         const boxSize = 7;
@@ -424,9 +459,9 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
     doc.rect(15, yPosition, pageWidth - 30, 10, 'F');
     doc.setFontSize(14);
     doc.setTextColor(255, 255, 255);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('', 'bold');
     doc.text(`Stones (${allStones.length})`, 20, yPosition + 7);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('', 'normal');
     yPosition += 18;
 
     for (const selection of allStones) {
@@ -441,7 +476,7 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
       const startY = yPosition;
 
       doc.setFontSize(11);
-      doc.setFont(undefined, 'bold');
+      doc.setFont('', 'bold');
       doc.setTextColor(COLORS.darkGray.r, COLORS.darkGray.g, COLORS.darkGray.b);
       doc.text(stone.name, 25, yPosition);
       yPosition += 6;
@@ -486,7 +521,7 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
       const textStartX = imageAdded ? 85 : 25;
       let textY = yPosition + 3;
 
-      doc.setFont(undefined, 'normal');
+      doc.setFont('', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(COLORS.gray.r, COLORS.gray.g, COLORS.gray.b);
 
@@ -579,10 +614,10 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
 
           yPosition += 6;
           doc.setFontSize(10);
-          doc.setFont(undefined, 'bold');
+          doc.setFont('', 'bold');
           doc.setTextColor(COLORS.gray.r, COLORS.gray.g, COLORS.gray.b);
           doc.text('Finish / Surface Details:', 30, yPosition);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('', 'normal');
           yPosition += 6;
 
           for (const finish of stoneFinishes) {
@@ -610,12 +645,12 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
             let finishTextY = yPosition + 3;
 
             doc.setFontSize(10);
-            doc.setFont(undefined, 'bold');
+            doc.setFont('', 'bold');
             doc.setTextColor(COLORS.darkGray.r, COLORS.darkGray.g, COLORS.darkGray.b);
             const finishLabel = finish.finish_type.charAt(0).toUpperCase() + finish.finish_type.slice(1);
             doc.text(finishLabel, finishTextX, finishTextY);
             finishTextY += 5;
-            doc.setFont(undefined, 'normal');
+            doc.setFont('', 'normal');
             doc.setFontSize(8);
             doc.setTextColor(COLORS.gray.r, COLORS.gray.g, COLORS.gray.b);
 
@@ -653,10 +688,10 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
 
           yPosition += 6;
           doc.setFontSize(10);
-          doc.setFont(undefined, 'bold');
+          doc.setFont('', 'bold');
           doc.setTextColor(COLORS.gray.r, COLORS.gray.g, COLORS.gray.b);
           doc.text('Cobblestones:', 30, yPosition);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('', 'normal');
           yPosition += 6;
 
           for (const cobblestone of cobblestones) {
@@ -710,11 +745,11 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
             let cobblestoneTextY = yPosition + 3;
 
             doc.setFontSize(10);
-            doc.setFont(undefined, 'bold');
+            doc.setFont('', 'bold');
             doc.setTextColor(COLORS.darkGray.r, COLORS.darkGray.g, COLORS.darkGray.b);
             doc.text(cobblestoneStone.name, cobblestoneTextX, cobblestoneTextY);
             cobblestoneTextY += 5;
-            doc.setFont(undefined, 'normal');
+            doc.setFont('', 'normal');
             doc.setFontSize(8);
             doc.setTextColor(COLORS.gray.r, COLORS.gray.g, COLORS.gray.b);
 
@@ -733,34 +768,34 @@ export const generatePDF = async (selections: UserSelection[], language: 'de' | 
               cobblestoneTextY += 3.5;
             }
 
-            if (cobblestoneStone.producer) {
-              doc.text(`Producer: ${cobblestoneStone.producer}`, cobblestoneTextX, cobblestoneTextY);
+            if ((cobblestoneStone as any).producer) {
+              doc.text(`Producer: ${(cobblestoneStone as any).producer}`, cobblestoneTextX, cobblestoneTextY);
               cobblestoneTextY += 3.5;
             }
 
-            if (cobblestoneStone.region_of_use) {
-              const regions = `Regions: ${cobblestoneStone.region_of_use}`;
+            if ((cobblestoneStone as any).region_of_use) {
+              const regions = `Regions: ${(cobblestoneStone as any).region_of_use}`;
               const splitRegions = doc.splitTextToSize(regions, pageWidth - cobblestoneTextX - 20);
               doc.text(splitRegions, cobblestoneTextX, cobblestoneTextY);
               cobblestoneTextY += splitRegions.length * 3.5;
             }
 
-            if (cobblestoneStone.application) {
-              const apps = `Applications: ${cobblestoneStone.application}`;
+            if ((cobblestoneStone as any).application) {
+              const apps = `Applications: ${(cobblestoneStone as any).application}`;
               const splitApps = doc.splitTextToSize(apps, pageWidth - cobblestoneTextX - 20);
               doc.text(splitApps, cobblestoneTextX, cobblestoneTextY);
               cobblestoneTextY += splitApps.length * 3.5;
             }
 
-            if (cobblestoneStone.surface_finish) {
-              const finishes = `Finishes: ${cobblestoneStone.surface_finish}`;
+            if ((cobblestoneStone as any).surface_finish) {
+              const finishes = `Finishes: ${(cobblestoneStone as any).surface_finish}`;
               const splitFinishes = doc.splitTextToSize(finishes, pageWidth - cobblestoneTextX - 20);
               doc.text(splitFinishes, cobblestoneTextX, cobblestoneTextY);
               cobblestoneTextY += splitFinishes.length * 3.5;
             }
 
-            if (cobblestoneStone.features) {
-              const features = `Features: ${cobblestoneStone.features}`;
+            if ((cobblestoneStone as any).features) {
+              const features = `Features: ${(cobblestoneStone as any).features}`;
               const splitFeatures = doc.splitTextToSize(features, pageWidth - cobblestoneTextX - 20);
               doc.text(splitFeatures, cobblestoneTextX, cobblestoneTextY);
               cobblestoneTextY += splitFeatures.length * 3.5;

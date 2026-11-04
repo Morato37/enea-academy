@@ -4,6 +4,7 @@ import {
   ProjectShare, ProjectShareWithUser, SharedProjectEntry, UserSearchResult,
 } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { setShrubSalesDetails, setTreeSalesDetails, ShrubSalesDetails, TreeSalesDetails } from '../lib/plantCategories';
 
 interface SelectionsContextType {
   selections: UserSelection[];
@@ -19,12 +20,15 @@ interface SelectionsContextType {
   removeSelection: (selectionId: string) => Promise<void>;
   removeCombination: (parentSelectionId: string) => Promise<void>;
   updateSelectionQuantity: (selectionId: string, quantity: number) => Promise<void>;
+  updateShrubSalesDetails: (selectionId: string, details: ShrubSalesDetails) => Promise<void>;
+  updateTreeSalesDetails: (selectionId: string, details: TreeSalesDetails) => Promise<void>;
+  updatePruningForm: (selectionId: string, form: string | null) => Promise<void>;
   clearAllSelections: () => Promise<void>;
   isPlantSelected: (plantId: number) => boolean;
   isStoneSelected: (stoneId: number) => boolean;
   refreshSelections: () => Promise<void>;
-  createProject: (name: string, description?: string) => Promise<Project | null>;
-  updateProject: (projectId: string, name: string, description?: string) => Promise<void>;
+  createProject: (name: string, description?: string, folderUrl?: string) => Promise<Project | null>;
+  updateProject: (projectId: string, name: string, description?: string, folderUrl?: string) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
   setCurrentProject: (project: Project | null) => void;
   saveCurrentSelectionsToProject: (projectId: string) => Promise<void>;
@@ -37,6 +41,7 @@ interface SelectionsContextType {
   moveSelectionToZone: (selectionId: string, zoneId: string | null) => Promise<void>;
   duplicateSelectionToZone: (selectionId: string, targetZoneId: string) => Promise<void>;
   refreshZones: () => Promise<void>;
+  reorderZones: (zoneId: string, targetIndex: number) => Promise<void>;
   // Share management
   getProjectShares: (projectId: string) => Promise<ProjectShareWithUser[]>;
   addProjectShare: (projectId: string, userId: string, permission: 'view' | 'edit') => Promise<void>;
@@ -196,7 +201,7 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     fetchZones(currentProject?.id);
   }, [user, currentProject?.id]);
 
-  const addPlantSelection = async (plantId: number, quantity: number = 1) => {
+  const addPlantSelection = async (plantId: number, quantity: number = 1, pruningForm?: string | null) => {
     if (!user) return;
     if (currentProject && currentProject.user_id !== user.id) {
       const entry = sharedProjects.find(e => e.project.id === currentProject.id);
@@ -213,6 +218,7 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           plant_id: plantId,
           quantity,
           project_id: currentProject?.id || null,
+          ...(pruningForm ? { pruning_form: pruningForm } : {}),
         });
         if (error) throw error;
         await fetchSelections(currentProject?.id);
@@ -288,6 +294,7 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const removeSelection = async (selectionId: string) => {
+    if (currentProject && currentProject.user_id !== user?.id && !sharedProjects.some(entry => entry.project.id === currentProject.id && entry.share.permission === 'edit')) return;
     try {
       const { error } = await supabase.from('user_selections').delete().eq('id', selectionId);
       if (error) throw error;
@@ -298,6 +305,7 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const removeCombination = async (parentSelectionId: string) => {
+    if (currentProject && currentProject.user_id !== user?.id && !sharedProjects.some(entry => entry.project.id === currentProject.id && entry.share.permission === 'edit')) return;
     try {
       const { error } = await supabase.from('user_selections').delete().eq('id', parentSelectionId);
       if (error) throw error;
@@ -308,17 +316,60 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updateSelectionQuantity = async (selectionId: string, quantity: number) => {
+    const prevSelections = selections;
+    setSelections(prev => prev.map(s => s.id === selectionId ? { ...s, quantity } : s));
     try {
       const { error } = await supabase.from('user_selections').update({ quantity }).eq('id', selectionId);
       if (error) throw error;
-      await fetchSelections(currentProject?.id);
     } catch (error) {
       console.error('Error updating selection quantity:', error);
+      setSelections(prevSelections);
+    }
+  };
+
+  const updateShrubSalesDetails = async (selectionId: string, details: ShrubSalesDetails) => {
+    const selection = selections.find(item => item.id === selectionId);
+    if (!selection) return;
+    const notes = setShrubSalesDetails(selection.notes, details);
+    setSelections(prev => prev.map(item => item.id === selectionId ? { ...item, notes: notes || undefined } : item));
+    try {
+      const { error } = await supabase.from('user_selections').update({ notes }).eq('id', selectionId);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating shrub sales details:', error);
+      await fetchSelections(currentProject?.id);
+    }
+  };
+
+  const updateTreeSalesDetails = async (selectionId: string, details: TreeSalesDetails) => {
+    const selection = selections.find(item => item.id === selectionId);
+    if (!selection) return;
+    const notes = setTreeSalesDetails(selection.notes, { heightCm: undefined });
+    const tree_height_cm = details.heightCm ?? null;
+    setSelections(prev => prev.map(item => item.id === selectionId ? { ...item, notes: notes || undefined, tree_height_cm } : item));
+    try {
+      const { error } = await supabase.from('user_selections').update({ notes, tree_height_cm }).eq('id', selectionId);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating tree sales details:', error);
+      await fetchSelections(currentProject?.id);
+    }
+  };
+
+  const updatePruningForm = async (selectionId: string, form: string | null) => {
+    const prevSelections = selections;
+    setSelections(prev => prev.map(item => item.id === selectionId ? { ...item, pruning_form: form } : item));
+    try {
+      const { error } = await supabase.from('user_selections').update({ pruning_form: form }).eq('id', selectionId);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating pruning form:', error);
+      setSelections(prevSelections);
     }
   };
 
   const clearAllSelections = async () => {
-    if (!user) return;
+    if (!user || (currentProject && currentProject.user_id !== user.id && !sharedProjects.some(entry => entry.project.id === currentProject.id && entry.share.permission === 'edit'))) return;
     try {
       if (currentProject) {
         // Project owner clears all; collaborator clears only own rows (RLS enforces this)
@@ -341,12 +392,12 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  const createProject = async (name: string, description?: string): Promise<Project | null> => {
+  const createProject = async (name: string, description?: string, folderUrl?: string): Promise<Project | null> => {
     if (!user) return null;
     try {
       const { data, error } = await supabase
         .from('projects')
-        .insert({ user_id: user.id, name, description: description || null })
+        .insert({ user_id: user.id, name, description: description || null, folder_url: folderUrl || null })
         .select()
         .single();
       if (error) throw error;
@@ -358,11 +409,11 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  const updateProject = async (projectId: string, name: string, description?: string) => {
+  const updateProject = async (projectId: string, name: string, description?: string, folderUrl?: string) => {
     try {
       const { error } = await supabase
         .from('projects')
-        .update({ name, description: description || null })
+        .update({ name, description: description || null, folder_url: folderUrl || null })
         .eq('id', projectId);
       if (error) throw error;
       await fetchProjects();
@@ -376,6 +427,7 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const deleteProject = async (projectId: string) => {
+    if (!user || !projects.some(project => project.id === projectId && project.user_id === user.id)) return;
     try {
       const { error } = await supabase.from('projects').delete().eq('id', projectId);
       if (error) throw error;
@@ -433,6 +485,33 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const refreshProjects = async () => { await fetchProjects(); };
   const refreshZones = async () => { await fetchZones(currentProject?.id); };
 
+  const reorderZones = async (zoneId: string, targetIndex: number) => {
+    if (currentProject && currentProject.user_id !== user?.id) {
+      const entry = sharedProjects.find(e => e.project.id === currentProject.id);
+      if (!entry || entry.share.permission !== 'edit') return;
+    }
+
+    const orderedZones = [...zones].sort((a, b) => a.display_order - b.display_order);
+    const sourceIndex = orderedZones.findIndex(zone => zone.id === zoneId);
+    if (sourceIndex < 0 || targetIndex < 0 || targetIndex >= orderedZones.length || sourceIndex === targetIndex) return;
+
+    const [movedZone] = orderedZones.splice(sourceIndex, 1);
+    orderedZones.splice(targetIndex, 0, movedZone);
+
+    try {
+      const results = await Promise.all(
+        orderedZones.map((zone, index) =>
+          supabase.from('project_zones').update({ display_order: index, updated_at: new Date().toISOString() }).eq('id', zone.id)
+        )
+      );
+      const failed = results.find(result => result.error);
+      if (failed?.error) throw failed.error;
+      setZones(orderedZones.map((zone, index) => ({ ...zone, display_order: index })));
+    } catch (error) {
+      console.error('Error reordering zones:', error);
+    }
+  };
+
   // Zone CRUD
   const createZone = async (name: string): Promise<ProjectZone | null> => {
     if (!user) return null;
@@ -471,6 +550,7 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const deleteZone = async (zoneId: string) => {
+    if (currentProject && currentProject.user_id !== user?.id && !sharedProjects.some(entry => entry.project.id === currentProject.id && entry.share.permission === 'edit')) return;
     try {
       await supabase.from('user_selections').update({ zone_id: null }).eq('zone_id', zoneId);
       const { error } = await supabase.from('project_zones').delete().eq('id', zoneId);
@@ -507,8 +587,11 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         plant_id: source.plant_id ?? null,
         stone_id: source.stone_id ?? null,
         quantity: source.quantity,
+        notes: source.notes ?? null,
         project_id: source.project_id ?? null,
         zone_id: targetZoneId,
+        pruning_form: source.pruning_form ?? null,
+        tree_height_cm: source.tree_height_cm ?? null,
       });
       if (error) throw error;
       await fetchSelections(currentProject?.id);
@@ -592,6 +675,9 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     removeSelection,
     removeCombination,
     updateSelectionQuantity,
+    updateShrubSalesDetails,
+    updateTreeSalesDetails,
+    updatePruningForm,
     clearAllSelections,
     isPlantSelected,
     isStoneSelected,
@@ -609,6 +695,7 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     moveSelectionToZone,
     duplicateSelectionToZone,
     refreshZones,
+    reorderZones,
     getProjectShares,
     addProjectShare,
     removeProjectShare,

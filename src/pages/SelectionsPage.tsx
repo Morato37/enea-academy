@@ -1,21 +1,30 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { useSelections } from '../contexts/SelectionsContext';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Trash2, Download, Loader2, Plus, Minus, Save,
   CreditCard as Edit2, RefreshCw, Image, Calendar,
   MapPin, X, Check, ChevronDown, ChevronRight,
-  GripVertical, Layers, Share2, Users, Eye, Lock, TreePine
+  GripVertical, Layers, Share2, Users, Eye, Lock, Calculator,
+  TreePine, Link
 } from 'lucide-react';
 import { generatePDF } from '../lib/pdfExport';
 import { generateMoodboardPDF } from '../lib/moodboardExport';
 import { generateBloomingCalendarPDF } from '../lib/bloomingCalendarExport';
 import { generatePlantSelectionPDF } from '../lib/plantSelectionExport';
+import { generateCalculationPDF } from '../lib/calculationExport';
 import { LanguageSelectionModal } from '../components/LanguageSelectionModal';
 import { ProjectShareModal } from '../components/Selections/ProjectShareModal';
+import { ProjectPlanUploader, ProjectPlanUploaderHandle } from '../components/Selections/ProjectPlanUploader';
 import { UserSelection, ProjectZone } from '../lib/supabase';
 import { buildHandover, countTreeSelections, TREE_BENEFITS_PATH } from '../lib/treeBenefits/handover';
+import {
+  groupSelectionsByCategory,
+  loadZoneAreas, saveZoneAreas, setZoneAreaForCategory,
+  ZoneAreaMap, PlantCategoryKey, getShrubSalesDetails, getTreeSalesDetails, ShrubSalesDetails, TreeSalesDetails,
+} from '../lib/plantCategories';
+import { PruningFormPicker, PruningFormBadge } from '../components/PruningForm';
 
 // ── Drag state shared via refs ──────────────────────────────────────────────
 interface DragState {
@@ -50,6 +59,10 @@ interface SelectionCardProps {
   zones: ProjectZone[];
   onRemove: () => void;
   onQuantityChange: (delta: number) => void;
+  onSetQuantity?: (quantity: number) => void;
+  onShrubSalesChange?: (details: ShrubSalesDetails) => void;
+  onTreeSalesChange?: (details: TreeSalesDetails) => void;
+  onPruningFormChange?: (form: string | null) => void;
   onMoveToZone: (zoneId: string | null) => void;
   onDuplicateToZone: (zoneId: string) => void;
   dragRef: React.MutableRefObject<DragState | null>;
@@ -58,19 +71,35 @@ interface SelectionCardProps {
   onDragEnd: () => void;
   zoneColorMap: Map<string, string>;
   readOnly?: boolean;
+  canDelete?: boolean;
 }
 
 const SelectionCard: React.FC<SelectionCardProps> = ({
-  selection, zones, onRemove, onQuantityChange, onMoveToZone, onDuplicateToZone,
-  dragRef, onDragStart, onDragEnd, zoneColorMap, readOnly = false,
+  selection, zones, onRemove, onQuantityChange, onSetQuantity, onShrubSalesChange, onTreeSalesChange, onPruningFormChange, onMoveToZone, onDuplicateToZone,
+  dragRef, onDragStart, onDragEnd, zoneColorMap, readOnly = false, canDelete = true,
 }) => {
   const [showZoneMenu, setShowZoneMenu] = useState(false);
+  const [showPruningFormMenu, setShowPruningFormMenu] = useState(false);
+  const [qtyInput, setQtyInput] = useState(String(selection.quantity));
+
+  useEffect(() => {
+    setQtyInput(String(selection.quantity));
+  }, [selection.quantity]);
   const item = selection.plant || selection.stone;
   const title = selection.plant
     ? (selection.plant.botanical_name || selection.plant.common_name_en)
     : selection.stone?.name;
-  const subtitle = selection.plant?.common_name_en || selection.stone?.morphology;
+  const subtitle = selection.plant
+    ? [selection.plant.common_name_de, selection.plant.common_name_en].filter(Boolean).join(' · ')
+    : selection.stone?.morphology;
   const currentZone = zones.find(z => z.id === selection.zone_id);
+  const isShrub = !!selection.plant?.category_shrub;
+  const isTree = !!selection.plant?.category_tree;
+  const shrubDetails = getShrubSalesDetails(selection.notes);
+  const savedTreeDetails = getTreeSalesDetails(selection.notes);
+  const treeDetails = savedTreeDetails.heightCm !== undefined
+    ? savedTreeDetails
+    : { heightCm: selection.tree_height_cm ?? undefined };
 
   const handleDragStart = (e: React.DragEvent) => {
     if (readOnly) return;
@@ -86,18 +115,18 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
       draggable={!readOnly}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
-      className={`bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-all group select-none ${
+      className={`bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-all group select-none relative ${showZoneMenu || showPruningFormMenu ? 'z-[100]' : 'z-0'} ${
         readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2 flex-1 min-w-0">
-          {!readOnly && (
-            <GripVertical className="w-4 h-4 text-gray-300 mt-0.5 shrink-0 group-hover:text-gray-400 transition-colors" />
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-gray-900 text-sm truncate">{title}</span>
+      <div className="flex items-start gap-2">
+        {!readOnly && (
+          <GripVertical className="w-4 h-4 text-gray-300 mt-0.5 shrink-0 group-hover:text-gray-400 transition-colors" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <span className="font-medium text-gray-900 text-sm break-words">{title}</span>
               {currentZone && (
                 <ZoneBadge
                   color={zoneColorMap.get(currentZone.id) || '#2563eb'}
@@ -105,14 +134,7 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
                 />
               )}
             </div>
-            {subtitle && (
-              <p className="text-xs text-gray-500 italic mt-0.5 truncate">{subtitle}</p>
-            )}
-          </div>
-        </div>
-
-        {!readOnly && (
-          <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
             {/* Zone assignment */}
             <div className="relative">
               <button
@@ -123,7 +145,7 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
                 <MapPin className="w-4 h-4" />
               </button>
               {showZoneMenu && (
-                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px] py-1">
+                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] min-w-[180px] py-1">
                   <p className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Move to</p>
                   <button
                     onClick={() => { onMoveToZone(null); setShowZoneMenu(false); }}
@@ -151,7 +173,7 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
                     <>
                       <div className="my-1 border-t border-gray-100" />
                       <p className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Copy to</p>
-                      {zones.filter(z => z.id !== selection.zone_id).map((zone, idx) => (
+                      {zones.filter(z => z.id !== selection.zone_id).map((zone) => (
                         <button
                           key={zone.id}
                           onClick={() => { onDuplicateToZone(zone.id); setShowZoneMenu(false); }}
@@ -168,8 +190,8 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
               )}
             </div>
 
-            {/* Quantity */}
-            {!selection.is_tile_combination && (
+            {/* Quantity — hidden for perennials, shown for stones and other plant types */}
+            {!selection.is_tile_combination && !(selection.plant_id && selection.plant?.category_perennial) && (
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => onQuantityChange(-1)}
@@ -177,7 +199,30 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
                 >
                   <Minus className="w-3 h-3" />
                 </button>
-                <span className="text-sm font-medium text-gray-700 w-6 text-center">{selection.quantity}</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={qtyInput}
+                  onChange={(e) => setQtyInput(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  onBlur={() => {
+                    const n = parseInt(qtyInput, 10);
+                    if (!isNaN(n) && n >= 1 && n !== selection.quantity) {
+                      onSetQuantity?.(n);
+                    } else {
+                      setQtyInput(String(selection.quantity));
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      (e.target as HTMLInputElement).blur();
+                    } else if (e.key === 'Escape') {
+                      setQtyInput(String(selection.quantity));
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  className="w-10 px-1 py-0.5 text-sm font-medium text-center text-gray-700 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-gray-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
                 <button
                   onClick={() => onQuantityChange(1)}
                   className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-500 transition-colors"
@@ -187,16 +232,100 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
               </div>
             )}
 
-            <button
-              onClick={onRemove}
-              className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+              {canDelete && (
+                <button
+                  onClick={onRemove}
+                  className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
-        )}
+          {subtitle && (
+            <p className="text-xs text-gray-500 italic mt-0.5 break-words">{subtitle}</p>
+          )}
+          {isTree && !readOnly && onTreeSalesChange && (
+            <div className="mt-3 flex items-center gap-2" onClick={event => event.stopPropagation()}>
+              <label className="text-xs font-medium text-gray-600 whitespace-nowrap" htmlFor={`tree-height-${selection.id}`}>Tree height</label>
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                <input
+                  id={`tree-height-${selection.id}`}
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={treeDetails.heightCm ?? ''}
+                  onChange={event => {
+                    const value = event.target.value === '' ? undefined : Number(event.target.value);
+                    onTreeSalesChange({ heightCm: value });
+                  }}
+                  className="w-24 rounded border border-gray-200 px-2 py-1 text-xs text-right text-gray-700 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  placeholder="Height"
+                  aria-label="Tree height in centimetres"
+                />
+                <span className="text-xs text-gray-500">cm</span>
+              </div>
+            </div>
+          )}
+          {isTree && readOnly && treeDetails.heightCm !== undefined && (
+            <p className="mt-2 text-xs text-gray-500">Tree height: {treeDetails.heightCm} cm</p>
+          )}
+          {isShrub && !readOnly && (
+            <div className="mt-3 grid grid-cols-[minmax(0,1fr)_96px] gap-2" onClick={event => event.stopPropagation()}>
+              <select
+                value={shrubDetails.form}
+                onChange={event => onShrubSalesChange?.({ ...shrubDetails, form: event.target.value as ShrubSalesDetails['form'] })}
+                className="min-w-0 rounded border border-gray-200 px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                aria-label="Shrub form"
+              >
+                <option value="">Shrub form</option>
+                <option value="wave">Wave</option>
+                <option value="hedge">Hedge</option>
+              </select>
+              <input
+                type="number"
+                min={0}
+                step={0.1}
+                value={shrubDetails.linearMeters ?? ''}
+                onChange={event => {
+                  const value = event.target.value === '' ? undefined : Number(event.target.value);
+                  onShrubSalesChange?.({ ...shrubDetails, linearMeters: value });
+                }}
+                className="w-full rounded border border-gray-200 px-2 py-1 text-xs text-right text-gray-700 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                placeholder="Linear m"
+                aria-label="Linear meters"
+              />
+            </div>
+          )}
+          {isShrub && readOnly && (shrubDetails.form || shrubDetails.linearMeters !== undefined) && (
+            <p className="mt-2 text-xs text-gray-500">
+              {shrubDetails.form === 'wave' ? 'Wave' : shrubDetails.form === 'hedge' ? 'Hedge' : 'Shrub'}
+              {shrubDetails.linearMeters !== undefined ? ` · ${shrubDetails.linearMeters} linear m` : ''}
+            </p>
+          )}
+          {isTree && !readOnly && onPruningFormChange && (
+            <div className="mt-3" onClick={event => event.stopPropagation()}>
+              <PruningFormPicker
+                botanicalName={selection.plant?.botanical_name || ''}
+                value={selection.pruning_form}
+                onChange={onPruningFormChange}
+                onOpenChange={setShowPruningFormMenu}
+                disabled={readOnly}
+              />
+            </div>
+          )}
+          {isTree && readOnly && selection.pruning_form && (
+            <div className="mt-2" onClick={event => event.stopPropagation()}>
+              <PruningFormBadge
+                botanicalName={selection.plant?.botanical_name || ''}
+                value={selection.pruning_form}
+                size="sm"
+              />
+            </div>
+          )}
+        </div>
 
-        {readOnly && !selection.is_tile_combination && (
+        {readOnly && !selection.is_tile_combination && !(selection.plant_id && selection.plant?.category_perennial) && (
           <span className="text-xs text-gray-400 shrink-0">×{selection.quantity}</span>
         )}
       </div>
@@ -230,6 +359,10 @@ interface ZoneColumnProps {
   onDrop: (selectionId: string) => void;
   onRemoveSelection: (id: string) => void;
   onQuantityChange: (id: string, current: number, delta: number) => void;
+  onSetQuantity: (id: string, quantity: number) => void;
+  onShrubSalesChange: (id: string, details: ShrubSalesDetails) => void;
+  onTreeSalesChange: (id: string, details: TreeSalesDetails) => void;
+  onPruningFormChange: (id: string, form: string | null) => void;
   onMoveToZone: (selectionId: string, zoneId: string | null) => void;
   onDuplicateToZone: (selectionId: string, zoneId: string) => void;
   dragRef: React.MutableRefObject<DragState | null>;
@@ -237,18 +370,24 @@ interface ZoneColumnProps {
   setDraggingId: (id: string | null) => void;
   zoneColorMap: Map<string, string>;
   readOnly?: boolean;
+  canDelete?: boolean;
   onExportPlantBoard?: () => void;
   onExportPlantSelection?: () => void;
   onExportCalendar?: () => void;
   onExportPDF?: () => void;
-  onTreeBenefits?: () => void;
   generatingExport: string | null;
+  zoneAreas: ZoneAreaMap;
+  onAreaChange: (zoneId: string, categoryKey: PlantCategoryKey, areaM2: number | undefined) => void;
+  onZoneDragStart?: () => void;
+  onZoneDrop?: () => void;
+  isZoneDragging?: boolean;
 }
 
 const ZoneColumn: React.FC<ZoneColumnProps> = ({
   zone, color, selections, allZones, isEditingName, onRename, onStartRename, onDelete,
-  onDrop, onRemoveSelection, onQuantityChange, onMoveToZone, onDuplicateToZone, dragRef, draggingId, setDraggingId,
-  zoneColorMap, readOnly = false, onExportPlantBoard, onExportPlantSelection, onExportCalendar, onExportPDF, onTreeBenefits, generatingExport,
+  onDrop, onRemoveSelection, onQuantityChange, onSetQuantity, onShrubSalesChange, onTreeSalesChange, onPruningFormChange, onMoveToZone, onDuplicateToZone, dragRef, draggingId, setDraggingId,
+  zoneColorMap, readOnly = false, canDelete = true, onExportPlantBoard, onExportPlantSelection, onExportCalendar, onExportPDF, generatingExport,
+  zoneAreas, onAreaChange, onZoneDragStart, onZoneDrop, isZoneDragging = false,
 }) => {
   const [dragOver, setDragOver] = useState(false);
   const [editName, setEditName] = useState(zone?.name || '');
@@ -256,7 +395,14 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
 
   const isUnassigned = zone === null;
   const title = isUnassigned ? 'Unassigned' : zone.name;
-  const plantCount = selections.filter(s => s.plant_id).length;
+  const plantSelections = selections.filter(s => s.plant_id);
+  const plantCount = plantSelections.length;
+  const zoneId = zone?.id || 'unassigned';
+
+  const categoryGroups = useMemo(
+    () => groupSelectionsByCategory(plantSelections, 'en'),
+    [plantSelections]
+  );
 
   const handleDragOver = (e: React.DragEvent) => {
     if (readOnly) return;
@@ -286,7 +432,24 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
     >
       {/* Zone header */}
       <div
-        className="flex items-center gap-2 px-4 py-3 rounded-t-xl"
+        draggable={!readOnly && !isUnassigned}
+        onDragStart={(event) => {
+          if (readOnly || isUnassigned) return;
+          event.dataTransfer.effectAllowed = 'move';
+          onZoneDragStart?.();
+        }}
+        onDragEnd={onZoneDrop}
+        onDragOver={(event) => {
+          if (!readOnly && !isUnassigned) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+          }
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          if (!readOnly && !isUnassigned) onZoneDrop?.();
+        }}
+        className={`flex items-center gap-2 px-4 py-3 rounded-t-xl ${!readOnly && !isUnassigned ? 'cursor-grab active:cursor-grabbing' : ''} ${isZoneDragging ? 'opacity-50' : ''}`}
         style={{ backgroundColor: color + '15' }}
       >
         <button
@@ -344,64 +507,51 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
       {/* Export bar */}
       {!isUnassigned && !collapsed && plantCount > 0 && (
         <div
-          className="flex items-center gap-1 px-4 py-2 border-b border-gray-100"
+          className="flex items-center gap-1 px-4 py-2"
           style={{ backgroundColor: color + '08' }}
         >
-          <span className="text-xs text-gray-400 mr-1">Export:</span>
-          {onExportPDF && (
+            {onExportPDF && (
             <button
               onClick={onExportPDF}
               disabled={!!generatingExport}
-              className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+              title="Export PDF"
+              className="p-1.5 rounded flex items-center justify-center transition-colors disabled:opacity-50"
               style={{ backgroundColor: color + '20', color }}
             >
-              {generatingExport === 'pdf' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-              Export PDF
+              {generatingExport === 'pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
             </button>
           )}
           {onExportPlantBoard && (
             <button
               onClick={onExportPlantBoard}
               disabled={!!generatingExport}
-              className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+              title="Plant Board"
+              className="p-1.5 rounded flex items-center justify-center transition-colors disabled:opacity-50"
               style={{ backgroundColor: color + '20', color }}
             >
-              {generatingExport === 'plantboard' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Image className="w-3 h-3" />}
-              Plant Board
+              {generatingExport === 'plantboard' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
             </button>
           )}
           {onExportCalendar && (
             <button
               onClick={onExportCalendar}
               disabled={!!generatingExport}
-              className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+              title="Blooming Calendar"
+              className="p-1.5 rounded flex items-center justify-center transition-colors disabled:opacity-50"
               style={{ backgroundColor: color + '20', color }}
             >
-              {generatingExport === 'calendar' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Calendar className="w-3 h-3" />}
-              Blooming Calendar
+              {generatingExport === 'calendar' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Calendar className="w-3.5 h-3.5" />}
             </button>
           )}
           {onExportPlantSelection && (
             <button
               onClick={onExportPlantSelection}
               disabled={!!generatingExport}
-              className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+              title="Plant Selection"
+              className="p-1.5 rounded flex items-center justify-center transition-colors disabled:opacity-50"
               style={{ backgroundColor: color + '20', color }}
             >
-              {generatingExport === 'plantselection' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Layers className="w-3 h-3" />}
-              Plant Selection
-            </button>
-          )}
-          {onTreeBenefits && (
-            <button
-              onClick={onTreeBenefits}
-              disabled={!!generatingExport}
-              title="Tree Benefits (i-Tree Eco)"
-              className="px-2 py-0.5 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
-              style={{ backgroundColor: color + '20', color }}
-            >
-              <TreePine className="w-3 h-3" />
-              Tree Benefits
+              {generatingExport === 'plantselection' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Layers className="w-3.5 h-3.5" />}
             </button>
           )}
         </div>
@@ -409,7 +559,7 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
 
       {/* Cards */}
       {!collapsed && (
-        <div className="flex-1 p-3 space-y-2 min-h-[80px]">
+        <div className="flex-1 p-3 space-y-3 min-h-[80px]">
           {selections.length === 0 && (
             <div
               className="h-16 border-2 border-dashed rounded-lg flex items-center justify-center text-xs transition-colors"
@@ -418,23 +568,98 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
               {readOnly ? 'Empty' : 'Drop plants here'}
             </div>
           )}
-          {selections.map(sel => (
-            <SelectionCard
-              key={sel.id}
-              selection={sel}
-              zones={allZones}
-              onRemove={() => onRemoveSelection(sel.id)}
-              onQuantityChange={(delta) => onQuantityChange(sel.id, sel.quantity, delta)}
-              onMoveToZone={(zoneId) => onMoveToZone(sel.id, zoneId)}
-              onDuplicateToZone={(zoneId) => onDuplicateToZone(sel.id, zoneId)}
-              dragRef={dragRef}
-              isDragging={draggingId === sel.id}
-              onDragStart={() => setDraggingId(sel.id)}
-              onDragEnd={() => setDraggingId(null)}
-              zoneColorMap={zoneColorMap}
-              readOnly={readOnly}
-            />
-          ))}
+
+          {/* Plant selections grouped by category */}
+          {categoryGroups.length > 0 && (
+            <div className="space-y-3">
+              {categoryGroups.map(group => {
+              const areaVal = zoneAreas[zoneId]?.[group.categoryKey];
+              const allowsArea = group.categoryKey !== 'tree';
+              return (
+                <div key={group.categoryKey} className="rounded-lg border border-gray-100 overflow-visible">
+                  <div
+                    className="flex items-center justify-between gap-2 px-3 py-1.5"
+                    style={{ backgroundColor: color + '0a' }}
+                  >
+                    <span className="text-xs font-semibold text-gray-700">
+                      {group.categoryLabel}
+                      <span className="ml-1.5 text-gray-400 font-normal">({group.plantCount})</span>
+                    </span>
+                    {allowsArea && !readOnly && (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={areaVal ?? ''}
+                          placeholder="m²"
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                            onAreaChange(zoneId, group.categoryKey, val);
+                          }}
+                          className="w-16 px-1.5 py-0.5 text-xs text-right border border-gray-200 rounded focus:outline-none focus:ring-1"
+                          style={{ '--tw-ring-color': color } as React.CSSProperties}
+                        />
+                        <span className="text-xs text-gray-400">m²</span>
+                      </div>
+                    )}
+                    {allowsArea && readOnly && areaVal !== undefined && (
+                      <span className="text-xs text-gray-500">{areaVal.toFixed(1)} m²</span>
+                    )}
+                  </div>
+                  <div className="p-2 space-y-2 bg-white">
+                    {group.selections.map(sel => (
+                      <SelectionCard
+                        key={sel.id}
+                        selection={sel}
+                        zones={allZones}
+                        onRemove={() => onRemoveSelection(sel.id)}
+                        onQuantityChange={(delta) => onQuantityChange(sel.id, sel.quantity, delta)}
+                        onSetQuantity={(q) => onSetQuantity(sel.id, q)}
+                        onShrubSalesChange={(details) => onShrubSalesChange(sel.id, details)}
+                        onTreeSalesChange={(details) => onTreeSalesChange(sel.id, details)}
+                        onPruningFormChange={(form) => onPruningFormChange(sel.id, form)}
+                        onMoveToZone={(zoneId2) => onMoveToZone(sel.id, zoneId2)}
+                        onDuplicateToZone={(zoneId2) => onDuplicateToZone(sel.id, zoneId2)}
+                        dragRef={dragRef}
+                        isDragging={draggingId === sel.id}
+                        onDragStart={() => setDraggingId(sel.id)}
+                        onDragEnd={() => setDraggingId(null)}
+                        zoneColorMap={zoneColorMap}
+                        readOnly={readOnly}
+                        canDelete={canDelete}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+              })}
+            </div>
+          )}
+
+          {/* Stone selections (not grouped) */}
+          {selections.filter(s => s.stone_id && !s.parent_selection_id).length > 0 && (
+            <div className="space-y-2">
+              {selections.filter(s => s.stone_id && !s.parent_selection_id).map(sel => (
+                <SelectionCard
+                  key={sel.id}
+                  selection={sel}
+                  zones={allZones}
+                  onRemove={() => onRemoveSelection(sel.id)}
+                  onQuantityChange={(delta) => onQuantityChange(sel.id, sel.quantity, delta)}
+                  onSetQuantity={(q) => onSetQuantity(sel.id, q)}
+                  onMoveToZone={(zoneId2) => onMoveToZone(sel.id, zoneId2)}
+                  onDuplicateToZone={(zoneId2) => onDuplicateToZone(sel.id, zoneId2)}
+                  dragRef={dragRef}
+                  isDragging={draggingId === sel.id}
+                  onDragStart={() => setDraggingId(sel.id)}
+                  onDragEnd={() => setDraggingId(null)}
+                  zoneColorMap={zoneColorMap}
+                  readOnly={readOnly}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -444,15 +669,16 @@ const ZoneColumn: React.FC<ZoneColumnProps> = ({
 // ── Main Page ─────────────────────────────────────────────────────────────
 
 export const SelectionsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const {
     selections, projects, sharedProjects, zones, currentProject,
     currentProjectPermission, loading,
-    removeSelection, removeCombination, updateSelectionQuantity, clearAllSelections,
-    createProject, updateProject, deleteProject, setCurrentProject,
+    removeSelection, removeCombination, updateSelectionQuantity, updateShrubSalesDetails, updateTreeSalesDetails, updatePruningForm, clearAllSelections,
+    createProject, updateProject, deleteProject, setCurrentProject, reorderZones,
     saveCurrentSelectionsToProject, loadProjectSelections, refreshSelections,
     createZone, updateZone, deleteZone, moveSelectionToZone, duplicateSelectionToZone,
   } = useSelections();
-  const { isAdmin } = useAuth();
 
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [generatingMoodboard, setGeneratingMoodboard] = useState(false);
@@ -466,8 +692,11 @@ export const SelectionsPage: React.FC = () => {
   const [showSaveToProjectModal, setShowSaveToProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
-  const [editingProject, setEditingProject] = useState<{ id: string; name: string; description: string } | null>(null);
+  const [newProjectFolderUrl, setNewProjectFolderUrl] = useState('');
+  const [editingProject, setEditingProject] = useState<{ id: string; name: string; description: string; folder_url: string } | null>(null);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showMoodboardImageCountModal, setShowMoodboardImageCountModal] = useState(false);
+  const [moodboardImageCount, setMoodboardImageCount] = useState<2 | 3>(2);
   const [shareModalProjectId, setShareModalProjectId] = useState<string | null>(null);
   const [pendingExport, setPendingExport] = useState<{
     type: 'pdf' | 'moodboard' | 'calendar' | 'plantselection';
@@ -477,28 +706,32 @@ export const SelectionsPage: React.FC = () => {
   const [newZoneName, setNewZoneName] = useState('');
   const [showNewZoneInput, setShowNewZoneInput] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [draggingZoneId, setDraggingZoneId] = useState<string | null>(null);
+  const [zoneAreas, setZoneAreas] = useState<ZoneAreaMap>(() => loadZoneAreas());
+  const [generatingCalculation, setGeneratingCalculation] = useState(false);
 
   const dragRef = useRef<DragState | null>(null);
+  const planUploaderRef = useRef<ProjectPlanUploaderHandle>(null);
+
+  const handleAreaChange = (zoneId: string, categoryKey: PlantCategoryKey, areaM2: number | undefined) => {
+    setZoneAreas(prev => {
+      const next = setZoneAreaForCategory(prev, zoneId, categoryKey, areaM2);
+      saveZoneAreas(next);
+      return next;
+    });
+  };
 
   const isReadOnly = currentProjectPermission === 'view';
   const canEdit = currentProjectPermission !== 'view';
-  const isOwner = currentProjectPermission === 'owner' || currentProjectPermission === null;
+  const canDelete = canEdit;
+  const _isOwner = currentProjectPermission === 'owner' || currentProjectPermission === null;
+  void _isOwner;
 
   const zoneColorMap = new Map<string, string>(
     zones.map((z, i) => [z.id, getZoneColor(i)])
   );
 
   const plantSelections = selections.filter(s => s.plant_id);
-  const navigate = useNavigate();
-  const treeSelectionCount = countTreeSelections(selections);
-
-  // Hand the trees of the current project (or one zone) over to the Tree Benefits calculator
-  const openTreeBenefits = (zoneId?: string) => {
-    const source = zoneId ? selections.filter(s => s.zone_id === zoneId) : selections;
-    const zoneName = zoneId ? zones.find(z => z.id === zoneId)?.name : undefined;
-    const handover = buildHandover(source, currentProject?.name, zoneName);
-    navigate(TREE_BENEFITS_PATH, { state: { handover } });
-  };
   const tileCombinations = selections.filter(s => s.is_tile_combination && s.stone_id && !s.parent_selection_id);
   const regularStoneSelections = selections.filter(s => s.stone_id && !s.is_tile_combination);
 
@@ -509,12 +742,28 @@ export const SelectionsPage: React.FC = () => {
   // ── Export handlers ──────────────────────────────────────────────────────
   const triggerExport = (type: typeof pendingExport) => {
     setPendingExport(type);
+    if (type?.type === 'moodboard') {
+      setShowMoodboardImageCountModal(true);
+    } else {
+      setShowLanguageModal(true);
+    }
+  };
+
+  const handleMoodboardImageCount = (count: 2 | 3) => {
+    setMoodboardImageCount(count);
+    setShowMoodboardImageCountModal(false);
     setShowLanguageModal(true);
   };
 
-  const getExportSelections = (zoneId?: string) => {
-    if (zoneId) return selections.filter(s => s.plant_id && s.zone_id === zoneId);
-    return selections.filter(s => s.plant_id);
+  const getExportSelections = (zoneId?: string): UserSelection[] => {
+    const exportSelections = zoneId
+      ? selections.filter(s => s.plant_id && s.zone_id === zoneId)
+      : selections.filter(s => s.plant_id);
+
+    return exportSelections.map(selection => ({
+      ...selection,
+      zone: selection.zone_id ? zones.find(zone => zone.id === selection.zone_id) : undefined,
+    }));
   };
 
   const handleLanguageSelection = async (language: 'de' | 'en') => {
@@ -542,7 +791,7 @@ export const SelectionsPage: React.FC = () => {
         await generatePDF(pdfSelections, language);
       } else if (type === 'moodboard') {
         setZoneGen?.('plantboard'); setGeneratingMoodboard(true);
-        await generateMoodboardPDF(exportSelections, projectName, language);
+        await generateMoodboardPDF(exportSelections, projectName, language, moodboardImageCount);
       } else if (type === 'calendar') {
         setZoneGen?.('calendar'); setGeneratingCalendar(true);
         await generateBloomingCalendarPDF(exportSelections, projectName, language);
@@ -579,18 +828,35 @@ export const SelectionsPage: React.FC = () => {
     await updateSelectionQuantity(selectionId, newQuantity);
   };
 
+  const handleSetQuantity = async (selectionId: string, quantity: number) => {
+    const newQuantity = Math.max(1, quantity);
+    await updateSelectionQuantity(selectionId, newQuantity);
+  };
+
+  const handleShrubSalesChange = async (selectionId: string, details: ShrubSalesDetails) => {
+    await updateShrubSalesDetails(selectionId, details);
+  };
+
+  const handleTreeSalesChange = async (selectionId: string, details: TreeSalesDetails) => {
+    await updateTreeSalesDetails(selectionId, details);
+  };
+
+  const handlePruningFormChange = async (selectionId: string, form: string | null) => {
+    await updatePruningForm(selectionId, form);
+  };
+
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) return;
-    const project = await createProject(newProjectName, newProjectDescription);
+    const project = await createProject(newProjectName, newProjectDescription, newProjectFolderUrl);
     if (project) {
-      setNewProjectName(''); setNewProjectDescription('');
+      setNewProjectName(''); setNewProjectDescription(''); setNewProjectFolderUrl('');
       setShowNewProjectModal(false);
     }
   };
 
   const handleRenameProject = async () => {
     if (!editingProject || !editingProject.name.trim()) return;
-    await updateProject(editingProject.id, editingProject.name, editingProject.description);
+    await updateProject(editingProject.id, editingProject.name, editingProject.description, editingProject.folder_url);
     setEditingProject(null);
     setShowRenameModal(false);
   };
@@ -618,6 +884,12 @@ export const SelectionsPage: React.FC = () => {
 
   const handleDropOnZone = async (selectionId: string, zoneId: string | null) => {
     await moveSelectionToZone(selectionId, zoneId);
+  };
+
+  const handleDeleteZone = async (zone: ProjectZone) => {
+    if (confirm(`Delete zone "${zone.name}"? Items in this zone will become unassigned.`)) {
+      await deleteZone(zone.id);
+    }
   };
 
   const handleRemoveSelection = async (sel: UserSelection) => {
@@ -699,6 +971,18 @@ export const SelectionsPage: React.FC = () => {
                     >
                       {project.name}
                     </button>
+                    {project.folder_url && /^https?:\/\//i.test(project.folder_url) && (
+                      <a
+                        href={project.folder_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="p-1 text-gray-400 hover:text-cyan-600 transition-colors"
+                        title="Open folder"
+                      >
+                        <Link className="w-3.5 h-3.5" />
+                      </a>
+                    )}
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => setShareModalProjectId(project.id)}
@@ -709,7 +993,7 @@ export const SelectionsPage: React.FC = () => {
                       </button>
                       <button
                         onClick={() => {
-                          setEditingProject({ id: project.id, name: project.name, description: project.description || '' });
+                          setEditingProject({ id: project.id, name: project.name, description: project.description || '', folder_url: project.folder_url || '' });
                           setShowRenameModal(true);
                         }}
                         className="p-1 hover:text-cyan-600 transition-colors"
@@ -753,10 +1037,10 @@ export const SelectionsPage: React.FC = () => {
                         >
                           {entry.project.name}
                         </button>
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0 ml-auto">
                           {entry.share.permission === 'view'
-                            ? <Eye className="w-3 h-3 text-gray-400" title="View only" />
-                            : <Edit2 className="w-3 h-3 text-cyan-500" title="Can edit" />
+                            ? <Eye className="w-3 h-3 text-gray-400" />
+                            : <Edit2 className="w-3 h-3 text-cyan-500" />
                           }
                         </div>
                       </div>
@@ -780,7 +1064,7 @@ export const SelectionsPage: React.FC = () => {
             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Zones</h2>
-                {isOwner && (
+                {canEdit && (
                   <button
                     onClick={() => setShowNewZoneInput(v => !v)}
                     className="p-1 text-gray-400 hover:text-cyan-600 transition-colors"
@@ -791,7 +1075,7 @@ export const SelectionsPage: React.FC = () => {
                 )}
               </div>
 
-              {showNewZoneInput && isOwner && (
+              {showNewZoneInput && canEdit && (
                 <div className="flex gap-1.5 mb-3">
                   <input
                     autoFocus
@@ -816,10 +1100,20 @@ export const SelectionsPage: React.FC = () => {
 
               <div className="space-y-1">
                 {zones.map((zone, idx) => (
-                  <div key={zone.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-700">
+                  <div key={zone.id} className="group flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-700">
                     <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: getZoneColor(idx) }} />
                     <span className="flex-1 truncate">{zone.name}</span>
                     <span className="text-xs text-gray-400">{getZoneSelections(zone.id).length}</span>
+                    {canEdit && (
+                      <button
+                        onClick={() => handleDeleteZone(zone)}
+                        className="p-1 rounded text-gray-300 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-all"
+                        title={`Delete ${zone.name}`}
+                        aria-label={`Delete ${zone.name}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 ))}
                 {zones.length === 0 && (
@@ -854,6 +1148,17 @@ export const SelectionsPage: React.FC = () => {
                 </div>
                 {currentProject?.description && (
                   <p className="text-gray-500 text-sm mt-0.5">{currentProject.description}</p>
+                )}
+                {currentProject?.folder_url && /^https?:\/\//i.test(currentProject.folder_url) && (
+                  <a
+                    href={currentProject.folder_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-900 text-sm mt-1"
+                  >
+                    <Link className="w-3.5 h-3.5" />
+                    Open project folder
+                  </a>
                 )}
                 {/* Show owner info for shared projects */}
                 {currentProjectPermission !== 'owner' && currentProjectPermission !== null && currentProject && (
@@ -915,19 +1220,52 @@ export const SelectionsPage: React.FC = () => {
                     Plant Selection
                   </button>
 
-                  {isAdmin && (
-                  <button
-                    onClick={() => openTreeBenefits()}
-                    disabled={treeSelectionCount === 0}
-                    title={treeSelectionCount === 0 ? 'No trees or palms in this selection' : `${treeSelectionCount} tree selections`}
-                    className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                  >
-                    <TreePine className="w-4 h-4" />
-                    Tree Benefits
-                  </button>
-                  )}
+                  {(() => {
+                    const treeCount = countTreeSelections(selections);
+                    return (
+                      <button
+                        onClick={() => {
+                          const h = buildHandover(selections, currentProject?.name);
+                          navigate(TREE_BENEFITS_PATH, { state: { handover: h } });
+                        }}
+                        disabled={treeCount === 0}
+                        className="px-3 py-2 bg-green-700 hover:bg-green-800 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        <TreePine className="w-4 h-4" />
+                        Tree Benefits
+                      </button>
+                    );
+                  })()}
 
-                  {canEdit && (
+                  <button
+                    onClick={async () => {
+                      setGeneratingCalculation(true);
+                        try {
+                          const planImage = await planUploaderRef.current?.capturePlanImage();
+                          await generateCalculationPDF(
+                            selections,
+                            zones,
+                            zoneAreas,
+                            currentProject?.name,
+                            'de',
+                            planImage,
+                            zoneColorMap
+                          );
+                        } catch (err) {
+                          console.error('Calculation export failed:', err);
+                          alert('Failed to generate calculation. Please try again.');
+                        } finally {
+                          setGeneratingCalculation(false);
+                        }
+                      }}
+                      disabled={generatingCalculation || plantSelections.length === 0}
+                      className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {generatingCalculation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
+                      Calculation
+                    </button>
+
+                  {canDelete && (
                     <button
                       onClick={() => setShowClearConfirm(true)}
                       className="px-3 py-2 bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 text-gray-500 hover:text-red-600 rounded-lg text-sm transition-colors flex items-center gap-1.5"
@@ -956,7 +1294,7 @@ export const SelectionsPage: React.FC = () => {
                   <div className="mb-8">
                     <div className="flex items-center gap-3 mb-4">
                       <h2 className="text-base font-semibold text-gray-700">Zones</h2>
-                      {isOwner && (
+                      {canEdit && (
                         <button
                           onClick={() => setShowNewZoneInput(true)}
                           className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-cyan-600 border border-dashed border-gray-300 hover:border-cyan-400 rounded-lg transition-colors"
@@ -967,89 +1305,114 @@ export const SelectionsPage: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-2">
-                      {zones.map((zone, idx) => {
-                        const color = getZoneColor(idx);
-                        const zoneSelections = getZoneSelections(zone.id);
-                        const zonePlants = zoneSelections.filter(s => s.plant_id);
+                    <div className={`grid gap-4 pb-2 ${
+                      zones.length + 1 === 1 ? 'grid-cols-1' :
+                      zones.length + 1 === 2 ? 'grid-cols-2' :
+                      zones.length + 1 === 3 ? 'grid-cols-3' :
+                      'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                    }`}>
+                        {zones.map((zone, idx) => {
+                          const color = getZoneColor(idx);
+                          const zoneSelections = getZoneSelections(zone.id);
+                          const zonePlants = zoneSelections.filter(s => s.plant_id);
 
-                        return (
-                          <ZoneColumn
-                            key={zone.id}
-                            zone={zone}
-                            color={color}
-                            selections={zoneSelections}
-                            allZones={zones}
-                            isEditingName={editingZoneId === zone.id}
-                            onStartRename={() => setEditingZoneId(zone.id)}
-                            onRename={async (name) => {
-                              await updateZone(zone.id, name);
-                              setEditingZoneId(null);
-                            }}
-                            onDelete={() => {
-                              if (confirm(`Delete zone "${zone.name}"? Plants will become unassigned.`)) {
-                                deleteZone(zone.id);
-                              }
-                            }}
-                            onDrop={(selectionId) => handleDropOnZone(selectionId, zone.id)}
-                            onRemoveSelection={(id) => {
-                              const sel = selections.find(s => s.id === id);
-                              if (sel) handleRemoveSelection(sel);
-                            }}
-                            onQuantityChange={handleQuantityChange}
-                            onMoveToZone={moveSelectionToZone}
-                            onDuplicateToZone={duplicateSelectionToZone}
-                            dragRef={dragRef}
-                            draggingId={draggingId}
-                            setDraggingId={setDraggingId}
-                            zoneColorMap={zoneColorMap}
-                            readOnly={isReadOnly}
-                            generatingExport={zoneGenerating?.zoneId === zone.id ? zoneGenerating.type : null}
-                            onExportPlantBoard={zonePlants.length > 0
-                              ? () => triggerExport({ type: 'moodboard', zoneId: zone.id })
-                              : undefined}
-                            onExportPlantSelection={zonePlants.length > 0
-                              ? () => triggerExport({ type: 'plantselection', zoneId: zone.id })
-                              : undefined}
-                            onExportCalendar={zonePlants.length > 0
-                              ? () => triggerExport({ type: 'calendar', zoneId: zone.id })
-                              : undefined}
-                            onExportPDF={zonePlants.length > 0
-                              ? () => triggerExport({ type: 'pdf', zoneId: zone.id })
-                              : undefined}
-                            onTreeBenefits={isAdmin && countTreeSelections(zoneSelections) > 0
-                              ? () => openTreeBenefits(zone.id)
-                              : undefined}
-                          />
-                        );
-                      })}
+                          return (
+                            <ZoneColumn
+                              key={zone.id}
+                              zone={zone}
+                              color={color}
+                              selections={zoneSelections}
+                              allZones={zones}
+                              isEditingName={editingZoneId === zone.id}
+                              onStartRename={() => setEditingZoneId(zone.id)}
+                              onRename={async (name) => {
+                                await updateZone(zone.id, name);
+                                setEditingZoneId(null);
+                              }}
+                              onDelete={() => {
+                                if (confirm(`Delete zone "${zone.name}"? Plants will become unassigned.`)) {
+                                  deleteZone(zone.id);
+                                }
+                              }}
+                              onDrop={(selectionId) => handleDropOnZone(selectionId, zone.id)}
+                              onRemoveSelection={(id) => {
+                                const sel = selections.find(s => s.id === id);
+                                if (sel) handleRemoveSelection(sel);
+                              }}
+                              onQuantityChange={handleQuantityChange}
+                              onSetQuantity={handleSetQuantity}
+                              onShrubSalesChange={handleShrubSalesChange}
+                              onTreeSalesChange={handleTreeSalesChange}
+                              onPruningFormChange={handlePruningFormChange}
+                              onMoveToZone={moveSelectionToZone}
+                              onDuplicateToZone={duplicateSelectionToZone}
+                              dragRef={dragRef}
+                              draggingId={draggingId}
+                              setDraggingId={setDraggingId}
+                              zoneColorMap={zoneColorMap}
+                              readOnly={isReadOnly}
+                              canDelete={canDelete}
+                              generatingExport={zoneGenerating?.zoneId === zone.id ? zoneGenerating.type : null}
+                              zoneAreas={zoneAreas}
+                              onAreaChange={handleAreaChange}
+                              onZoneDragStart={() => setDraggingZoneId(zone.id)}
+                              onZoneDrop={() => {
+                                if (draggingZoneId && draggingZoneId !== zone.id) {
+                                  const targetIndex = zones.findIndex(item => item.id === zone.id);
+                                  void reorderZones(draggingZoneId, targetIndex);
+                                }
+                                setDraggingZoneId(null);
+                              }}
+                              isZoneDragging={draggingZoneId === zone.id}
+                              onExportPlantBoard={zonePlants.length > 0
+                                ? () => triggerExport({ type: 'moodboard', zoneId: zone.id })
+                                : undefined}
+                              onExportPlantSelection={zonePlants.length > 0
+                                ? () => triggerExport({ type: 'plantselection', zoneId: zone.id })
+                                : undefined}
+                              onExportCalendar={zonePlants.length > 0
+                                ? () => triggerExport({ type: 'calendar', zoneId: zone.id })
+                                : undefined}
+                              onExportPDF={zonePlants.length > 0
+                                ? () => triggerExport({ type: 'pdf', zoneId: zone.id })
+                                : undefined}
+                            />
+                          );
+                        })}
 
-                      {/* Unassigned column */}
-                      <ZoneColumn
-                        zone={null}
-                        color="#9ca3af"
-                        selections={unassignedSelections}
-                        allZones={zones}
-                        isEditingName={false}
-                        onStartRename={() => {}}
-                        onRename={() => {}}
-                        onDelete={() => {}}
-                        onDrop={(selectionId) => handleDropOnZone(selectionId, null)}
-                        onRemoveSelection={(id) => {
-                          const sel = selections.find(s => s.id === id);
-                          if (sel) handleRemoveSelection(sel);
-                        }}
-                        onQuantityChange={handleQuantityChange}
-                        onMoveToZone={moveSelectionToZone}
-                        onDuplicateToZone={duplicateSelectionToZone}
-                        dragRef={dragRef}
-                        draggingId={draggingId}
-                        setDraggingId={setDraggingId}
-                        zoneColorMap={zoneColorMap}
-                        readOnly={isReadOnly}
-                        generatingExport={null}
-                      />
-                    </div>
+                        {/* Unassigned column */}
+                        <ZoneColumn
+                          zone={null}
+                          color="#9ca3af"
+                          selections={unassignedSelections}
+                          allZones={zones}
+                          isEditingName={false}
+                          onStartRename={() => {}}
+                          onRename={() => {}}
+                          onDelete={() => {}}
+                          onDrop={(selectionId) => handleDropOnZone(selectionId, null)}
+                          onRemoveSelection={(id) => {
+                            const sel = selections.find(s => s.id === id);
+                            if (sel) handleRemoveSelection(sel);
+                          }}
+                          onQuantityChange={handleQuantityChange}
+                          onSetQuantity={handleSetQuantity}
+                          onShrubSalesChange={handleShrubSalesChange}
+                          onTreeSalesChange={handleTreeSalesChange}
+                          onPruningFormChange={handlePruningFormChange}
+                          onMoveToZone={moveSelectionToZone}
+                          onDuplicateToZone={duplicateSelectionToZone}
+                          dragRef={dragRef}
+                          draggingId={draggingId}
+                          setDraggingId={setDraggingId}
+                          zoneColorMap={zoneColorMap}
+                          readOnly={isReadOnly}
+                          canDelete={canDelete}
+                          generatingExport={null}
+                          zoneAreas={zoneAreas}
+                          onAreaChange={handleAreaChange}
+                        />
+                      </div>
                   </div>
                 )}
 
@@ -1060,7 +1423,7 @@ export const SelectionsPage: React.FC = () => {
                       <div className="mb-6 flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
                         <MapPin className="w-4 h-4 shrink-0" />
                         <span>Organize your selections by creating zones — then drag plants into them.</span>
-                        {isOwner && (
+                        {canEdit && (
                           <button
                             onClick={() => setShowNewZoneInput(true)}
                             className="ml-auto shrink-0 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
@@ -1082,6 +1445,10 @@ export const SelectionsPage: React.FC = () => {
                               zones={zones}
                               onRemove={() => handleRemoveSelection(selection)}
                               onQuantityChange={(delta) => handleQuantityChange(selection.id, selection.quantity, delta)}
+                              onSetQuantity={(q) => handleSetQuantity(selection.id, q)}
+                              onShrubSalesChange={(details) => handleShrubSalesChange(selection.id, details)}
+                              onTreeSalesChange={(details) => handleTreeSalesChange(selection.id, details)}
+                              onPruningFormChange={(form) => handlePruningFormChange(selection.id, form)}
                               onMoveToZone={(zoneId) => moveSelectionToZone(selection.id, zoneId)}
                               onDuplicateToZone={(zoneId) => duplicateSelectionToZone(selection.id, zoneId)}
                               dragRef={dragRef}
@@ -1090,6 +1457,7 @@ export const SelectionsPage: React.FC = () => {
                               onDragEnd={() => setDraggingId(null)}
                               zoneColorMap={zoneColorMap}
                               readOnly={isReadOnly}
+                              canDelete={canDelete}
                             />
                           ))}
                         </div>
@@ -1107,6 +1475,10 @@ export const SelectionsPage: React.FC = () => {
                               zones={zones}
                               onRemove={() => handleRemoveSelection(selection)}
                               onQuantityChange={(delta) => handleQuantityChange(selection.id, selection.quantity, delta)}
+                              onSetQuantity={(q) => handleSetQuantity(selection.id, q)}
+                              onShrubSalesChange={(details) => handleShrubSalesChange(selection.id, details)}
+                              onTreeSalesChange={(details) => handleTreeSalesChange(selection.id, details)}
+                              onPruningFormChange={(form) => handlePruningFormChange(selection.id, form)}
                               onMoveToZone={(zoneId) => moveSelectionToZone(selection.id, zoneId)}
                               onDuplicateToZone={(zoneId) => duplicateSelectionToZone(selection.id, zoneId)}
                               dragRef={dragRef}
@@ -1115,6 +1487,7 @@ export const SelectionsPage: React.FC = () => {
                               onDragEnd={() => setDraggingId(null)}
                               zoneColorMap={zoneColorMap}
                               readOnly={isReadOnly}
+                              canDelete={canDelete}
                             />
                           ))}
                         </div>
@@ -1132,6 +1505,10 @@ export const SelectionsPage: React.FC = () => {
                               zones={zones}
                               onRemove={() => handleRemoveSelection(selection)}
                               onQuantityChange={(delta) => handleQuantityChange(selection.id, selection.quantity, delta)}
+                              onSetQuantity={(q) => handleSetQuantity(selection.id, q)}
+                              onShrubSalesChange={(details) => handleShrubSalesChange(selection.id, details)}
+                              onTreeSalesChange={(details) => handleTreeSalesChange(selection.id, details)}
+                              onPruningFormChange={(form) => handlePruningFormChange(selection.id, form)}
                               onMoveToZone={(zoneId) => moveSelectionToZone(selection.id, zoneId)}
                               onDuplicateToZone={(zoneId) => duplicateSelectionToZone(selection.id, zoneId)}
                               dragRef={dragRef}
@@ -1140,6 +1517,7 @@ export const SelectionsPage: React.FC = () => {
                               onDragEnd={() => setDraggingId(null)}
                               zoneColorMap={zoneColorMap}
                               readOnly={isReadOnly}
+                              canDelete={canDelete}
                             />
                           ))}
                         </div>
@@ -1151,6 +1529,17 @@ export const SelectionsPage: React.FC = () => {
             )}
           </main>
         </div>
+      </div>
+
+      {/* ── PDF Plan Uploader ──────────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <ProjectPlanUploader
+          ref={planUploaderRef}
+          projectId={currentProject?.id || null}
+          zones={zones.map(z => ({ id: z.id, name: z.name }))}
+          readOnly={isReadOnly}
+          canDelete={canDelete}
+        />
       </div>
 
       {/* ── Modals ───────────────────────────────────────────────────────── */}
@@ -1197,9 +1586,19 @@ export const SelectionsPage: React.FC = () => {
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Folder link (optional)</label>
+                <input
+                  type="url"
+                  value={newProjectFolderUrl}
+                  onChange={e => setNewProjectFolderUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                />
+              </div>
             </div>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowNewProjectModal(false); setNewProjectName(''); setNewProjectDescription(''); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">Cancel</button>
+              <button onClick={() => { setShowNewProjectModal(false); setNewProjectName(''); setNewProjectDescription(''); setNewProjectFolderUrl(''); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">Cancel</button>
               <button onClick={handleCreateProject} disabled={!newProjectName.trim()} className="px-4 py-2 text-sm bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors disabled:opacity-50">Create</button>
             </div>
           </div>
@@ -1227,6 +1626,16 @@ export const SelectionsPage: React.FC = () => {
                   onChange={e => setEditingProject({ ...editingProject, description: e.target.value })}
                   rows={3}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Folder link</label>
+                <input
+                  type="url"
+                  value={editingProject.folder_url}
+                  onChange={e => setEditingProject({ ...editingProject, folder_url: e.target.value })}
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
             </div>
@@ -1259,12 +1668,38 @@ export const SelectionsPage: React.FC = () => {
         </div>
       )}
 
+      {showMoodboardImageCountModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Plant Board Export</h2>
+            <p className="text-gray-600 mb-6">How many pictures should be shown for each plant?</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[2, 3].map((count) => (
+                <button
+                  key={count}
+                  onClick={() => handleMoodboardImageCount(count as 2 | 3)}
+                  className="px-4 py-3 border-2 border-gray-300 text-gray-900 rounded-lg hover:border-cyan-600 hover:bg-cyan-50 transition-colors font-medium"
+                >
+                  {count} pictures
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { setShowMoodboardImageCountModal(false); setPendingExport(null); }}
+              className="w-full mt-4 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <LanguageSelectionModal
         isOpen={showLanguageModal}
         onClose={() => { setShowLanguageModal(false); setPendingExport(null); }}
         onSelectLanguage={handleLanguageSelection}
         title={
-          pendingExport?.type === 'pdf' ? 'Pflanzenliste Export'
+          pendingExport?.type === 'pdf' ? 'Plant List Export'
           : pendingExport?.type === 'moodboard' ? 'Plant Board Export'
           : pendingExport?.type === 'calendar' ? 'Blooming Calendar Export'
           : 'Plant Selection Export'
