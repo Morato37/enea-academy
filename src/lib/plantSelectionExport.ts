@@ -1,6 +1,5 @@
 import jsPDF from 'jspdf';
 import { UserSelection, supabase } from './supabase';
-import { getShrubSalesDetails } from './plantCategories';
 
 const loadPlantImage = async (plantId: number): Promise<string | null> => {
   try {
@@ -135,33 +134,6 @@ const loadIcon = async (file: string): Promise<string | null> => {
 
 const preloadAllIcons = () => Promise.all(ICON_DEFS.map(d => loadIcon(d.file)));
 
-// ── Size helper ──────────────────────────────────────────────────────────────
-
-const PERENNIAL_SIZE_MAP: Record<string, { de: string; en: string }> = {
-  short:  { de: 'Klein (30–40 cm)',  en: 'Small (30–40 cm)' },
-  medium: { de: 'Mittel (40–80 cm)',  en: 'Medium (40–80 cm)' },
-  tall:   { de: 'Groß (80–200 cm)',   en: 'Tall (80–200 cm)' },
-};
-
-const formatSize = (
-  plant: NonNullable<UserSelection['plant']>,
-  language: 'de' | 'en'
-): string => {
-  if (plant.perennial_size) {
-    const entry = PERENNIAL_SIZE_MAP[plant.perennial_size];
-    if (entry) return language === 'de' ? entry.de : entry.en;
-    return plant.perennial_size;
-  }
-  const hMin = plant.height_min_cm;
-  const hMax = plant.height_max_cm;
-  if (hMin != null && hMax != null) {
-    return language === 'de' ? `${hMin}–${hMax} cm` : `${hMin}–${hMax} cm`;
-  }
-  if (hMin != null) return `${hMin} cm`;
-  if (hMax != null) return `${hMax} cm`;
-  return '';
-};
-
 // ── Main export ──────────────────────────────────────────────────────────────
 
 export const generatePlantSelectionPDF = async (
@@ -225,7 +197,7 @@ export const generatePlantSelectionPDF = async (
   const ICON_SIZE = 4;          // mm — icons under latin name
   const ICON_GAP = 1.2;
   const ICON_ROW_H = ICON_SIZE + 1.5;
-  const NAME_H = 12;            // common + botanic names + size line
+  const NAME_H = 8;             // common + botanic names
   const CAT_LABEL_H = 5.5;      // extra space above image when a category label is shown
   const CELL_H = imgH + NAME_H + ICON_ROW_H + rowGap;
   const CELL_H_WITH_LABEL = CELL_H + CAT_LABEL_H;
@@ -372,23 +344,9 @@ export const generatePlantSelectionPDF = async (
     doc.setTextColor(110, 110, 110);
     doc.text(doc.splitTextToSize(plant.botanical_name || '', cellW)[0] || '', x, nameY + 3.2);
 
-    // Size line (perennial_size or height range)
-    const sizeText = formatSize(plant, language);
-    const shrubDetails = plant.category_shrub ? getShrubSalesDetails(item.selection.notes) : { form: '', linearMeters: undefined };
-    const shrubText = shrubDetails.form || shrubDetails.linearMeters !== undefined
-      ? `${shrubDetails.form === 'wave' ? 'Wave' : shrubDetails.form === 'hedge' ? 'Hedge' : 'Shrub'}${shrubDetails.linearMeters !== undefined ? ` · ${shrubDetails.linearMeters} linear m` : ''}`
-      : '';
-    const detailText = [sizeText, shrubText].filter(Boolean).join(' · ');
-    if (detailText) {
-      doc.setFontSize(6);
-      doc.setFont('helvetica', 'italic');
-      doc.setTextColor(90, 90, 90);
-      doc.text(doc.splitTextToSize(detailText, cellW)[0], x, nameY + 6.4);
-    }
-
-    // Icons row
+    // Icons row (directly under botanical name)
     const applicableIcons = ICON_DEFS.filter(def => def.check(plant));
-    const iconRowY = nameY + (detailText ? 9.6 : 3.2) + 2.2;
+    const iconRowY = nameY + 3.2 + 2.2;
     applicableIcons.forEach((def, ii) => {
       const iconX = x + ii * (ICON_SIZE + ICON_GAP);
       if (iconX + ICON_SIZE > x + cellW) return;
