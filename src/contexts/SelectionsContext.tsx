@@ -583,12 +583,6 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const source = selections.find(s => s.id === selectionId);
       if (!source) return;
 
-      if (source.plant_id && selections.some(selection =>
-        selection.id !== source.id && selection.plant_id === source.plant_id
-      )) {
-        return;
-      }
-
       const { error } = await supabase.from('user_selections').insert({
         user_id: user.id,
         plant_id: source.plant_id ?? null,
