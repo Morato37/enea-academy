@@ -1,7 +1,6 @@
 import jsPDF from 'jspdf';
 import { UserSelection, supabase } from './supabase';
 import { getShrubSalesDetails } from './plantCategories';
-import { getPruningSketchForPdf, fitSketch, pruningFormExportText, PdfSketch } from './pruningFormPdf';
 
 const loadPlantImage = async (plantId: number): Promise<string | null> => {
   try {
@@ -136,30 +135,6 @@ const loadIcon = async (file: string): Promise<string | null> => {
 
 const preloadAllIcons = () => Promise.all(ICON_DEFS.map(d => loadIcon(d.file)));
 
-// ── Category helpers ─────────────────────────────────────────────────────────
-
-type CategoryLabels = {
-  trees: string; shrubs: string; grasses: string; perennials: string;
-  bulbs: string; ferns: string; climbing: string;
-};
-
-const CATEGORY_ORDER: (keyof CategoryLabels)[] = [
-  'trees', 'shrubs', 'grasses', 'perennials', 'bulbs', 'ferns', 'climbing',
-];
-
-const assignCategory = (
-  plant: NonNullable<UserSelection['plant']>,
-  labels: CategoryLabels
-): string => {
-  if (plant.category_tree) return labels.trees;
-  if (plant.category_shrub) return labels.shrubs;
-  if (plant.category_grass) return labels.grasses;
-  if (plant.category_bulb) return labels.bulbs;
-  if (plant.category_fern) return labels.ferns;
-  if (plant.category_climbing_plant) return labels.climbing;
-  return labels.perennials;
-};
-
 // ── Size helper ──────────────────────────────────────────────────────────────
 
 const PERENNIAL_SIZE_MAP: Record<string, { de: string; en: string }> = {
@@ -194,18 +169,16 @@ export const generatePlantSelectionPDF = async (
   _projectName?: string,
   language: 'de' | 'en' = 'de'
 ): Promise<void> => {
-  const labels: CategoryLabels = language === 'de'
-    ? { trees: 'Bäume', shrubs: 'Sträucher', grasses: 'Gräser', perennials: 'Stauden', bulbs: 'Zwiebeln', ferns: 'Farne', climbing: 'Kletterpflanzen' }
-    : { trees: 'Trees', shrubs: 'Shrubs', grasses: 'Grasses', perennials: 'Perennials', bulbs: 'Bulbs', ferns: 'Ferns', climbing: 'Climbing Plants' };
-
   const mixLabels = new Map<string, string>();
   const grouped = new Map<string, NonNullable<UserSelection['plant']>[]>();
+  const exportedPlantIds = new Set<number>();
   selections.forEach(selection => {
-    if (!selection.plant) return;
+    if (!selection.plant || exportedPlantIds.has(selection.plant.id)) return;
+    exportedPlantIds.add(selection.plant.id);
     const mixKey = selection.zone_id || '__unassigned__';
     mixLabels.set(mixKey, selection.zone?.name || (language === 'de' ? 'Ohne Mix' : 'Unassigned'));
     const plants = grouped.get(mixKey) || [];
-    if (!plants.some(plant => plant.id === selection.plant!.id)) plants.push(selection.plant);
+    plants.push(selection.plant);
     grouped.set(mixKey, plants);
   });
 
@@ -426,28 +399,6 @@ export const generatePlantSelectionPDF = async (
         if (iconData) doc.addImage(iconData, def.file.match(/\.jpe?g$/i) ? 'JPEG' : 'PNG', iconX, iconRowY, ICON_SIZE, ICON_SIZE);
       }
     });
-
-    // Pruning form sketch (for trees with a selected form)
-    if (plant.category_tree && item.selection.pruning_form) {
-      try {
-        const sketch: PdfSketch | null = await getPruningSketchForPdf(plant.botanical_name, item.selection.pruning_form);
-        if (sketch) {
-          const sketchMaxW = cellW * 0.45;
-          const sketchMaxH = imgH * 0.35;
-          const fit = fitSketch(sketch, sketchMaxW, sketchMaxH);
-          const sketchX = x + cellW - fit.w - 1.5;
-          const sketchY = imgY + 1.5;
-          doc.addImage(sketch.dataUrl, 'PNG', sketchX + fit.dx, sketchY + fit.dy, fit.w, fit.h);
-          const formLabel = pruningFormExportText(item.selection.pruning_form, language === 'de' ? 'de' : 'en');
-          if (formLabel) {
-            doc.setFontSize(5.5);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(80, 80, 80);
-            doc.text(formLabel, sketchX, sketchY + fit.h + 3);
-          }
-        }
-      } catch { /* keep cell as-is */ }
-    }
 
     advanceCell(rowOffset);
   }
