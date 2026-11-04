@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Mail, Lock, Loader2 } from 'lucide-react';
 
@@ -9,6 +9,21 @@ export const LoginForm: React.FC = () => {
   const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const [error, setError] = useState('');
   const { signIn, signInWithAzure } = useAuth();
+
+  useEffect(() => {
+    const params = new URLSearchParams(`${window.location.search}&${window.location.hash.replace(/^#/, '')}`);
+    const errorCode = params.get('error_code');
+
+    if (errorCode === 'signup_disabled') {
+      setError('Dieses Enea-Konto ist noch nicht für die Academy freigeschaltet. Bitte versuche es später erneut.');
+    } else if (params.get('error') === 'access_denied') {
+      setError(params.get('error_description') || 'Die Anmeldung mit Microsoft 365 konnte nicht abgeschlossen werden.');
+    }
+
+    if (errorCode) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
