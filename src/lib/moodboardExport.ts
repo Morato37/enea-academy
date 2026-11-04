@@ -199,8 +199,12 @@ export const generateMoodboardPDF = async (
   const maxRowH = cellH + rowSpacing + catLabelH;
   const maxRows = Math.max(1, Math.floor(availH / maxRowH));
 
-  // Determine how many columns we need to fit all plants in maxRows
-  let cols = Math.max(1, Math.ceil(flat.length / maxRows));
+  // Fill the full A0 width row by row before extending the page.
+  const baseCols = Math.max(1, Math.floor((BASE_W - margin * 2 + colGap) / (imgW + colGap)));
+  const baseCapacity = baseCols * maxRows;
+  const cols = flat.length <= baseCapacity
+    ? baseCols
+    : Math.max(baseCols, Math.ceil(flat.length / maxRows));
 
   const neededW = margin * 2 + cols * imgW + (cols - 1) * colGap;
   const pageW = Math.max(BASE_W, neededW);
