@@ -1,0 +1,51 @@
+Ich möchte aus einer Projekt-Selektion ein Moodboard als PDF exportieren. Die Bilder kommen aus der Bildersuche, die dieselbe Supabase-Datenbank wie die Academy nutzt. Die Logik und die Oberfläche sind schon fertig und liegen im Projekt:
+
+- src/lib/moodboard/  (types.ts, layouts.ts, fill.ts, pdf.ts, index.ts)
+- src/components/Moodboard/  (MoodboardExportDialog.tsx, MoodboardPreview.tsx, index.ts)
+- public/moodboard/enea-logo.png und public/moodboard/enea-mark.png
+
+Diese Dateien bitte NICHT umschreiben. Einzige Ausnahme: die Tag-Listen in layouts.ts (Punkt 3). Aufgaben:
+
+1. Bilder aus der Bildersuche laden
+   Finde in der Datenbank die Tabellen der Bildersuche: die Bilder, ihre Tags und die Verknüpfung Bild -> Pflanze.
+   Lege die Datei src/lib/moodboard/imageSource.ts an mit
+     export async function loadMoodboardImages(plantIds: (string | number)[]): Promise<MoodboardImage[]>
+   Sie liefert pro Bild: id, url (öffentliche URL, bei Supabase Storage über getPublicUrl), plantId, tags (Tag-Namen als string[]), width und height falls gespeichert, sonst null.
+   Ist ein Bild nicht direkt mit einer Pflanze verknüpft, sondern nur über einen Tag mit dem botanischen Namen, dann über diesen Tag zuordnen.
+   Nur lesen, keine Tabellen oder Policies ändern. Bei vielen Bildern seitenweise laden (Supabase liefert höchstens 1000 Zeilen pro Abfrage).
+
+2. Pflanzen einer Spalte zuordnen
+   Für das Moodboard "Pflanzenauswahl" braucht jede Pflanze eine Gruppe (Typ PlantGroup in types.ts):
+   - 'baeume': Bäume und Palmen
+   - 'straeucher': Sträucher
+   - 'graeser_stauden': Gräser, Stauden, Farne, Zwiebelpflanzen
+   - 'kletter_boden': Kletterpflanzen und Bodendecker
+   - null: passt nirgends
+   Leite die Gruppe aus den Kategorie-Feldern der Pflanze ab (z. B. category_tree, category_palm usw., echte Spaltennamen prüfen). Bei mehreren Kategorien gilt die erste passende in der Reihenfolge oben.
+
+3. Tags prüfen
+   Schau nach, welche Tags in der Bildersuche wirklich vorkommen für
+   - Jahreszeiten (Frühling, Sommer, Herbst, Winter),
+   - Gartenszenen / Situationen,
+   - Detailaufnahmen (Blüte, Blatt, Rinde ...).
+   Ergänze fehlende Schreibweisen in SEASON_TAGS, SCENE_TAGS und DETAIL_TAGS in src/lib/moodboard/layouts.ts. Nur ergänzen, nichts löschen. Schreibweise klein, ä/ö/ü als ae/oe/ue.
+
+4. Button auf der Selektionsseite
+   Füge auf der Seite einer Projekt-Selektion neben den bestehenden Export-Buttons einen Button "Moodboard" ein. Er öffnet:
+     <MoodboardExportDialog
+       open={moodboardOpen}
+       onClose={() => setMoodboardOpen(false)}
+       projectName={Name des Projekts bzw. der Selektion}
+       plants={Pflanzen der Selektion als MoodboardPlant[]: id, botanicalName, commonName, group}
+       loadImages={loadMoodboardImages}
+     />
+   Import: import { MoodboardExportDialog } from '../components/Moodboard' (Pfad anpassen).
+   Kommt dieselbe Pflanze mehrmals in der Selektion vor, nur einmal übergeben.
+
+5. Abhängigkeit
+   Der PDF-Export nutzt jspdf. Ist jspdf schon installiert, nichts tun. Sonst jspdf installieren.
+
+6. Sonst nichts ändern
+   Keine Umbenennungen, kein Umbau bestehender Komponenten, keine Änderungen an der Datenbank.
+
+Zum Schluss: Nenne die Tabellen und Spalten, die du für die Bildersuche verwendet hast, und die Tags, die du in Punkt 3 ergänzt hast.

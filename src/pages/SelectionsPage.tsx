@@ -25,6 +25,9 @@ import {
   ZoneAreaMap, PlantCategoryKey, getShrubSalesDetails, getTreeSalesDetails, ShrubSalesDetails, TreeSalesDetails,
 } from '../lib/plantCategories';
 import { PruningFormPicker, PruningFormBadge } from '../components/PruningForm';
+import { MoodboardExportDialog } from '../components/Moodboard';
+import { loadMoodboardImages } from '../lib/moodboard/imageSource';
+import type { MoodboardPlant, PlantGroup } from '../lib/moodboard/types';
 
 // ── Drag state shared via refs ──────────────────────────────────────────────
 interface DragState {
@@ -51,6 +54,14 @@ const ZONE_COLORS = [
 ];
 
 const getZoneColor = (index: number) => ZONE_COLORS[index % ZONE_COLORS.length];
+
+const getMoodboardGroup = (plant: NonNullable<UserSelection['plant']>): PlantGroup | null => {
+  if (plant.category_tree || plant.category_palm) return 'baeume';
+  if (plant.category_shrub) return 'straeucher';
+  if (plant.category_grass || plant.category_perennial || plant.category_fern || plant.category_bulb) return 'graeser_stauden';
+  if (plant.category_climbing_plant || plant.usage_ground_cover) return 'kletter_boden';
+  return null;
+};
 
 // ── SelectionCard ─────────────────────────────────────────────────────────
 
@@ -681,7 +692,7 @@ export const SelectionsPage: React.FC = () => {
   } = useSelections();
 
   const [generatingPDF, setGeneratingPDF] = useState(false);
-  const [generatingMoodboard, setGeneratingMoodboard] = useState(false);
+  const [, setGeneratingMoodboard] = useState(false);
   const [generatingCalendar, setGeneratingCalendar] = useState(false);
   const [generatingPlantSelection, setGeneratingPlantSelection] = useState(false);
   const [zoneGenerating, setZoneGenerating] = useState<{ zoneId: string; type: string } | null>(null);
@@ -709,6 +720,7 @@ export const SelectionsPage: React.FC = () => {
   const [draggingZoneId, setDraggingZoneId] = useState<string | null>(null);
   const [zoneAreas, setZoneAreas] = useState<ZoneAreaMap>(() => loadZoneAreas());
   const [generatingCalculation, setGeneratingCalculation] = useState(false);
+  const [moodboardOpen, setMoodboardOpen] = useState(false);
 
   const dragRef = useRef<DragState | null>(null);
   const planUploaderRef = useRef<ProjectPlanUploaderHandle>(null);
@@ -732,6 +744,20 @@ export const SelectionsPage: React.FC = () => {
   );
 
   const plantSelections = selections.filter(s => s.plant_id);
+  const moodboardPlants = useMemo<MoodboardPlant[]>(() => {
+    const seen = new Set<string>();
+    return plantSelections.flatMap(selection => {
+      const plant = selection.plant;
+      if (!plant || seen.has(String(plant.id))) return [];
+      seen.add(String(plant.id));
+      return [{
+        id: plant.id,
+        botanicalName: plant.botanical_name || plant.common_name_en || String(plant.id),
+        commonName: plant.common_name_de || plant.common_name_en,
+        group: getMoodboardGroup(plant),
+      }];
+    });
+  }, [plantSelections]);
   const tileCombinations = selections.filter(s => s.is_tile_combination && s.stone_id && !s.parent_selection_id);
   const regularStoneSelections = selections.filter(s => s.stone_id && !s.is_tile_combination);
 
@@ -1193,14 +1219,16 @@ export const SelectionsPage: React.FC = () => {
                     Export PDF
                   </button>
 
-                  <button
-                    onClick={() => triggerExport({ type: 'moodboard' })}
-                    disabled={generatingMoodboard || plantSelections.length === 0}
-                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                  >
-                    {generatingMoodboard ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4" />}
-                    Plant Board
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setMoodboardOpen(true)}
+                      disabled={plantSelections.length === 0}
+                      className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      <Image className="w-4 h-4" />
+                      Moodboard
+                    </button>
+                  )}
 
                   <button
                     onClick={() => triggerExport({ type: 'calendar' })}
@@ -1364,7 +1392,7 @@ export const SelectionsPage: React.FC = () => {
                                 setDraggingZoneId(null);
                               }}
                               isZoneDragging={draggingZoneId === zone.id}
-                              onExportPlantBoard={zonePlants.length > 0
+                              onExportPlantBoard={isAdmin && zonePlants.length > 0
                                 ? () => triggerExport({ type: 'moodboard', zoneId: zone.id })
                                 : undefined}
                               onExportPlantSelection={zonePlants.length > 0
@@ -1541,6 +1569,16 @@ export const SelectionsPage: React.FC = () => {
           canDelete={canDelete}
         />
       </div>
+
+      {isAdmin && (
+        <MoodboardExportDialog
+          open={moodboardOpen}
+          onClose={() => setMoodboardOpen(false)}
+          projectName={currentProject?.name || 'Aktuelle Selektion'}
+          plants={moodboardPlants}
+          loadImages={loadMoodboardImages}
+        />
+      )}
 
       {/* ── Modals ───────────────────────────────────────────────────────── */}
 

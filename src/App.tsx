@@ -4,7 +4,9 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SelectionsProvider } from './contexts/SelectionsContext';
 import { ViewStateProvider } from './contexts/ViewStateProvider';
 import { LoginForm } from './components/Auth/LoginForm';
+import { AdminLoginForm } from './components/Auth/AdminLoginForm';
 import { Header } from './components/Layout/Header';
+import { AdminRoute } from './components/Layout/AdminRoute';
 import { ProtectedRoute } from './components/Layout/ProtectedRoute';
 import { HomePage } from './pages/HomePage';
 import { PlantsPage } from './pages/PlantsPage';
@@ -33,6 +35,33 @@ const AppContent: React.FC = () => {
     <Routes>
       <Route path="/stone/:id" element={<PublicStoneDetail />} />
       <Route path="/login" element={<LoginForm />} />
+      <Route
+        path="/admin"
+        element={user ? (
+          <div className="min-h-screen">
+            <Header />
+            <AdminRoute><AdminPage /></AdminRoute>
+          </div>
+        ) : <AdminLoginForm />}
+      />
+      <Route
+        path="/admin/plant/:id"
+        element={user ? (
+          <div className="min-h-screen">
+            <Header />
+            <AdminRoute><PlantDetailPage /></AdminRoute>
+          </div>
+        ) : <AdminLoginForm />}
+      />
+      <Route
+        path="/admin/stone/:id"
+        element={user ? (
+          <div className="min-h-screen">
+            <Header />
+            <AdminRoute><StoneDetailPage /></AdminRoute>
+          </div>
+        ) : <AdminLoginForm />}
+      />
       <Route path="*" element={
         user ? (
           <div className="min-h-screen">
@@ -106,25 +135,25 @@ const AppContent: React.FC = () => {
               <Route
                 path="/admin"
                 element={
-                  <ProtectedRoute>
+                  <AdminRoute>
                     <AdminPage />
-                  </ProtectedRoute>
+                  </AdminRoute>
                 }
               />
               <Route
                 path="/admin/plant/:id"
                 element={
-                  <ProtectedRoute>
+                  <AdminRoute>
                     <PlantDetailPage />
-                  </ProtectedRoute>
+                  </AdminRoute>
                 }
               />
               <Route
                 path="/admin/stone/:id"
                 element={
-                  <ProtectedRoute>
+                  <AdminRoute>
                     <StoneDetailPage />
-                  </ProtectedRoute>
+                  </AdminRoute>
                 }
               />
               <Route

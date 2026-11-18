@@ -244,22 +244,54 @@ export const PlantDetailPage: React.FC = () => {
       if (imgError) throw imgError;
 
       if (images && images.length > 0) {
-        const newImages = images.map(img => ({
-          plant_id: newPlant.id,
-          image_url: img.image_url,
-          display_order: img.display_order,
-          is_primary: img.is_primary,
-        }));
-        const { error: insertError } = await supabase
-          .from('plant_images')
-          .insert(newImages);
-        if (insertError) throw insertError;
+        let newPrimaryUrl: string | null = null;
 
-        const primary = images.find(img => img.is_primary);
-        if (primary) {
+        for (const img of images) {
+          try {
+            const response = await fetch(img.image_url);
+            if (!response.ok) throw new Error(`Failed to download image: ${response.status}`);
+            const blob = await response.blob();
+
+            const ext = img.image_url.split('.').pop()?.split('?')[0]?.toLowerCase() || 'jpg';
+            const newFileName = `plant-${newPlant.id}-${Date.now()}-${crypto.randomUUID()}.${ext}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from('plant-images')
+              .upload(newFileName, blob, {
+                contentType: blob.type || 'image/jpeg',
+                cacheControl: '31536000',
+                upsert: false,
+              });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl: newPublicUrl } } = supabase.storage
+              .from('plant-images')
+              .getPublicUrl(newFileName);
+
+            const { error: insertError } = await supabase
+              .from('plant_images')
+              .insert({
+                plant_id: newPlant.id,
+                image_url: newPublicUrl,
+                display_order: img.display_order,
+                is_primary: img.is_primary,
+              });
+
+            if (insertError) throw insertError;
+
+            if (img.is_primary) {
+              newPrimaryUrl = newPublicUrl;
+            }
+          } catch (err) {
+            console.error('Failed to copy image during duplication:', err);
+          }
+        }
+
+        if (newPrimaryUrl) {
           await supabase
             .from('plants_flat')
-            .update({ image_url: primary.image_url })
+            .update({ image_url: newPrimaryUrl })
             .eq('id', newPlant.id);
         }
       }

@@ -8,8 +8,6 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   mustChangePassword: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signInWithAzure: () => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
@@ -30,6 +28,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+
+  const syncUserProfileName = async (currentUser: User) => {
+    const metadata = currentUser.user_metadata ?? {};
+    const fullName = [metadata.full_name, metadata.name, metadata.display_name]
+      .find((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      ?.trim();
+
+    if (!fullName) return;
+
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ full_name: fullName })
+      .eq('id', currentUser.id)
+      .or('full_name.is.null,full_name.eq.');
+
+    if (error) console.error('Error syncing user profile name:', error);
+  };
 
   const checkUserProfile = async (userId: string) => {
     try {
@@ -53,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
+        syncUserProfileName(session.user);
         checkUserProfile(session.user.id);
       } else {
         setIsAdmin(false);
@@ -64,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
+        syncUserProfileName(session.user);
         checkUserProfile(session.user.id);
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           const loginTime = session.user.last_sign_in_at ?? new Date().toISOString();
@@ -82,22 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    return { error };
-  };
-
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
-  };
 
   const signInWithAzure = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -130,8 +131,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     isAdmin,
     mustChangePassword,
-    signUp,
-    signIn,
     signInWithAzure,
     signOut,
     refreshUserProfile,

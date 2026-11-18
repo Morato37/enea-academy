@@ -11,13 +11,15 @@ import {
   plantFromDb,
   DEFAULT_OPTIONS,
   DEFAULT_CLIMATE,
+  MSHORT_DE,
+  MSHORT_EN,
   type BluehkalenderOptions,
   type BluehkalenderClimate,
   type CalendarPlant,
   type MonthEntry,
 } from '../lib/bluehkalender/bluehkalender-renderer';
 
-const MSHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MSHORT = (lang: 'de' | 'en') => lang === 'en' ? MSHORT_EN : MSHORT_DE;
 
 interface CalendarRow {
   id: string;
@@ -531,7 +533,16 @@ export const BloomCalendarEditorPage: React.FC = () => {
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-cyan-500 focus:outline-none" />
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap gap-4">
+        <div className="mt-3 flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-1 mr-2">
+            <span className="text-xs text-gray-500 mr-1">Language</span>
+            {(['de','en'] as const).map(lang => (
+              <button key={lang} onClick={() => setOptions(prev => ({ ...prev, language: lang }))}
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${options.language === lang ? 'bg-cyan-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {lang.toUpperCase()}
+              </button>
+            ))}
+          </div>
           {([
             ['showLogo', 'Show Enea logo'],
             ['showPlantList', 'Show plant list in circle'],
@@ -661,7 +672,7 @@ export const BloomCalendarEditorPage: React.FC = () => {
                 <th className="py-2 px-1 text-left w-8"></th>
                 <th className="py-2 px-2 text-left">Name</th>
                 <th className="py-2 px-2 text-left">Botanical</th>
-                {MSHORT.map(m => <th key={m} className="py-2 px-1 text-center w-8">{m}</th>)}
+                {MSHORT(options.language).map((m, i) => <th key={i} className="py-2 px-1 text-center w-8">{m}</th>)}
                 <th className="py-2 px-2 text-center">Bloom</th>
                 <th className="py-2 px-2 text-center">Foliage</th>
                 <th className="py-2 px-1"></th>
@@ -682,7 +693,7 @@ export const BloomCalendarEditorPage: React.FC = () => {
                     <td className="py-2 px-2 text-gray-500 italic text-xs">{mp?.bot || '—'}</td>
                     {displayM.map((c, mi) => (
                       <td key={mi} className="py-1 px-1 text-center">
-                        <button onClick={() => cycleMonth(r.id, mi)} className="w-6 h-6 rounded-sm border border-gray-200" style={monthCellStyle(c, bloom, leaf)} title={MSHORT[mi]} />
+                        <button onClick={() => cycleMonth(r.id, mi)} className="w-6 h-6 rounded-sm border border-gray-200" style={monthCellStyle(c, bloom, leaf)} title={MSHORT(options.language)[mi]} />
                       </td>
                     ))}
                     <td className="py-2 px-2 text-center">
@@ -749,7 +760,7 @@ export const BloomCalendarEditorPage: React.FC = () => {
             <thead>
               <tr className="text-gray-500">
                 <th className="py-1 px-2 text-left"></th>
-                {MSHORT.map(m => <th key={m} className="py-1 px-2 text-center">{m}</th>)}
+                {MSHORT(options.language).map((m, i) => <th key={i} className="py-1 px-2 text-center">{m}</th>)}
               </tr>
             </thead>
             <tbody>

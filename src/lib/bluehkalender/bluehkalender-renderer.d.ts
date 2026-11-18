@@ -1,6 +1,7 @@
 /** Type definitions for bluehkalender-renderer.js */
 
 export interface BluehkalenderOptions {
+  language: 'de' | 'en';
   title: string;
   centerText: string;
   showLogo: boolean;
@@ -42,7 +43,11 @@ export interface BluehkalenderData {
 export const DEFAULT_OPTIONS: BluehkalenderOptions;
 export const DEFAULT_CLIMATE: BluehkalenderClimate;
 export const MONTHS: string[];
-export const TRAITS: { key: string; icon: string; de: string; month?: string; re: RegExp }[];
+export const MONTHS_DE: string[];
+export const MONTHS_EN: string[];
+export const MSHORT_DE: string[];
+export const MSHORT_EN: string[];
+export const TRAITS: { key: string; icon: string; de: string; en?: string; month?: string; re: RegExp }[];
 export const POSTER_WIDTH: number;
 export const POSTER_HEIGHT: number;
 

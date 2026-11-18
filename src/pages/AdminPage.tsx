@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import {
   Leaf, Mountain, MapPin, Users, Upload, FileText, Ticket, Ruler, Library,
-  ArrowLeft,
+  Search, ArrowLeft,
 } from 'lucide-react';
 import { PlantList } from '../components/Admin/PlantList';
 import { StoneList } from '../components/Admin/StoneList';
@@ -14,11 +14,12 @@ import PDFUploader from '../components/Admin/PDFUploader';
 import { TicketManagement } from '../components/Admin/TicketManagement';
 import { TreeSizeClassesEditor } from '../components/Admin/TreeSizeClassesEditor';
 import { LibraryManagement } from '../components/Admin/LibraryManagement';
+import { ImageDiagnostics } from '../components/Admin/ImageDiagnostics';
 import { supabase } from '../lib/supabase';
 
 type AdminTool =
   | 'plants' | 'stones' | 'zones' | 'users'
-  | 'bulk-upload' | 'pdfs' | 'tickets' | 'tree-sizes' | 'library';
+  | 'bulk-upload' | 'image-diagnostics' | 'pdfs' | 'tickets' | 'tree-sizes' | 'library';
 
 interface ToolTile {
   key: AdminTool;
@@ -101,6 +102,16 @@ const TOOLS: ToolTile[] = [
     bgColor: 'bg-blue-50',
     hoverBg: 'hover:bg-blue-100',
     ring: 'hover:ring-blue-300',
+  },
+  {
+    key: 'image-diagnostics',
+    label: 'Image Diagnostics',
+    description: 'Find broken links, shared images, and missing plant pictures',
+    icon: Search,
+    color: 'text-cyan-600',
+    bgColor: 'bg-cyan-50',
+    hoverBg: 'hover:bg-cyan-100',
+    ring: 'hover:ring-cyan-300',
   },
   {
     key: 'pdfs',
@@ -202,6 +213,8 @@ export const AdminPage: React.FC = () => {
             <PlantList />
           ) : activeTab === 'bulk-upload' ? (
             <BulkImageUploader />
+          ) : activeTab === 'image-diagnostics' ? (
+            <ImageDiagnostics />
           ) : activeTab === 'stones' ? (
             <StoneList />
           ) : activeTab === 'zones' ? (

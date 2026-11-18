@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Upload, CheckCircle, XCircle, Download, Image as ImageIcon, RefreshCw } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, Download, Image as ImageIcon, RefreshCw, Copy } from 'lucide-react';
 import JSZip from 'jszip';
 
 interface UploadResult {
@@ -40,7 +40,7 @@ export const BulkImageUploader: React.FC = () => {
             const fileName = parts[parts.length - 1];
 
             // Check if it's an image file
-            if (/\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) {
+            if (/\.(jpg|jpeg|png|webp)$/i.test(fileName)) {
               if (!folders.has(plantId)) {
                 folders.set(plantId, []);
               }
@@ -64,13 +64,7 @@ export const BulkImageUploader: React.FC = () => {
         try {
           const uploadedUrls: string[] = [];
 
-          // Delete existing images for this plant to avoid duplicates
-          await supabase
-            .from('plant_images')
-            .delete()
-            .eq('plant_id', parseInt(plantId));
-
-          // Upload up to 10 images for this plant
+          // Upload up to 10 images before replacing existing records
           const maxImages = Math.min(imageFiles.length, 10);
 
           for (let j = 0; j < maxImages; j++) {
@@ -79,22 +73,27 @@ export const BulkImageUploader: React.FC = () => {
 
             const fileName = imageFile.name.split('/').pop()!;
 
-            // Check file size (100MB limit per file)
+            // The storage bucket accepts images up to 5MB per file.
             const fileSizeMB = arrayBuffer.byteLength / (1024 * 1024);
-            if (fileSizeMB > 100) {
-              throw new Error(`Image '${fileName}' is too large (${fileSizeMB.toFixed(1)}MB). Maximum size is 100MB.`);
+            if (fileSizeMB > 5) {
+              throw new Error(`Image '${fileName}' is too large (${fileSizeMB.toFixed(1)}MB). Maximum size is 5MB.`);
             }
 
             const ext = fileName.split('.').pop()?.toLowerCase() || 'jpg';
-            const storageFileName = `${plantId}_${j + 1}.${ext}`;
-            const rawBlob = new Blob([arrayBuffer]);
+            const contentType = ext === 'png'
+              ? 'image/png'
+              : ext === 'webp'
+                ? 'image/webp'
+                : 'image/jpeg';
+            const storageFileName = `${plantId}_${j + 1}_${crypto.randomUUID()}.${ext}`;
+            const rawBlob = new Blob([arrayBuffer], { type: contentType });
 
             const { error: uploadError } = await supabase.storage
               .from('plant-images')
               .upload(storageFileName, rawBlob, {
-                contentType: imageFile.name.endsWith('.png') ? 'image/png' : 'image/jpeg',
+                contentType,
                 cacheControl: '31536000',
-                upsert: true
+                upsert: false
               });
 
             if (uploadError) {
@@ -110,8 +109,14 @@ export const BulkImageUploader: React.FC = () => {
             setProgress(prev => ({ ...prev, currentPlantImages: prev.currentPlantImages + 1 }));
           }
 
-          // Insert all images into plant_images table
+          // Replace existing database records only after all uploads succeeded
           if (uploadedUrls.length > 0) {
+            const { error: deleteError } = await supabase
+              .from('plant_images')
+              .delete()
+              .eq('plant_id', parseInt(plantId));
+            if (deleteError) throw new Error(`Failed to replace existing images: ${deleteError.message}`);
+
             const imageRecords = uploadedUrls.map((url, index) => ({
               plant_id: parseInt(plantId),
               image_url: url,
@@ -253,6 +258,117 @@ export const BulkImageUploader: React.FC = () => {
     }
   };
 
+  const [fixingShared, setFixingShared] = useState(false);
+
+  const fixSharedImages = async () => {
+    if (!confirm('This will detect images shared between multiple plants and give each plant its own independent copy. Continue?')) return;
+
+    setFixingShared(true);
+    try {
+      const { data: imageRecords, error: imageRecordsError } = await supabase
+        .from('plant_images')
+        .select('id, plant_id, image_url, display_order, is_primary');
+
+      if (imageRecordsError) throw imageRecordsError;
+
+      const records = imageRecords || [];
+
+      // Group by image_url to find shared files
+      const urlGroups = new Map<string, typeof records>();
+      for (const record of records) {
+        const existing = urlGroups.get(record.image_url);
+        if (existing) {
+          existing.push(record);
+        } else {
+          urlGroups.set(record.image_url, [record]);
+        }
+      }
+
+      // Find URLs shared by multiple plants
+      const sharedGroups: Array<{ url: string; records: typeof records }> = [];
+      for (const [url, groupRecords] of urlGroups) {
+        const uniquePlantIds = new Set(groupRecords.map(r => r.plant_id));
+        if (uniquePlantIds.size > 1) {
+          sharedGroups.push({ url, records: groupRecords });
+        }
+      }
+
+      if (sharedGroups.length === 0) {
+        alert('No shared images found. All plants already have independent image files.');
+        return;
+      }
+
+      let fixedCount = 0;
+      let failedCount = 0;
+
+      for (const group of sharedGroups) {
+        // Keep the first plant's reference, copy the file for all other plants
+        const sortedRecords = [...group.records].sort((a, b) => a.plant_id - b.plant_id);
+        const recordsToFix = sortedRecords.slice(1);
+
+        try {
+          const response = await fetch(group.url);
+          if (!response.ok) {
+            console.error(`Cannot download shared image: ${group.url}`);
+            failedCount += recordsToFix.length;
+            continue;
+          }
+          const blob = await response.blob();
+          const ext = group.url.split('.').pop()?.split('?')[0]?.toLowerCase() || 'jpg';
+
+          for (const record of recordsToFix) {
+            try {
+              const newFileName = `plant-${record.plant_id}-${Date.now()}-${crypto.randomUUID()}.${ext}`;
+              const { error: uploadError } = await supabase.storage
+                .from('plant-images')
+                .upload(newFileName, blob, {
+                  contentType: blob.type || 'image/jpeg',
+                  cacheControl: '31536000',
+                  upsert: false,
+                });
+
+              if (uploadError) throw uploadError;
+
+              const { data: { publicUrl: newPublicUrl } } = supabase.storage
+                .from('plant-images')
+                .getPublicUrl(newFileName);
+
+              const { error: updateError } = await supabase
+                .from('plant_images')
+                .update({ image_url: newPublicUrl })
+                .eq('id', record.id);
+
+              if (updateError) throw updateError;
+
+              // Update plants_flat image_url if this was the primary image
+              if (record.is_primary) {
+                await supabase
+                  .from('plants_flat')
+                  .update({ image_url: newPublicUrl })
+                  .eq('id', record.plant_id);
+              }
+
+              fixedCount++;
+            } catch (err) {
+              console.error(`Failed to fix shared image for plant ${record.plant_id}:`, err);
+              failedCount++;
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to process shared URL ${group.url}:`, err);
+          failedCount += recordsToFix.length;
+        }
+      }
+
+      alert(`Shared image fix complete: ${fixedCount} images copied to independent files, ${failedCount} failed.`);
+    } catch (err) {
+      console.error('Error fixing shared images:', err);
+      alert('Failed to fix shared images. Check console for details.');
+    } finally {
+      setFixingShared(false);
+    }
+  };
+
   const successCount = results.filter(r => r.success).length;
   const errorCount = results.filter(r => !r.success).length;
   const totalImagesUploaded = results.reduce((sum, r) => sum + (r.imageCount || 0), 0);
@@ -293,10 +409,10 @@ export const BulkImageUploader: React.FC = () => {
           </p>
           <div className="mt-2 space-y-1">
             <p className="text-xs text-gray-600">
-              <span className="font-medium">Limits:</span> Up to 10 images per plant, 100MB per image
+              <span className="font-medium">Limits:</span> Up to 10 images per plant, 5MB per image
             </p>
             <p className="text-xs text-gray-600">
-              <span className="font-medium">Supported formats:</span> JPG, JPEG, PNG, GIF, WEBP (all converted to PNG automatically)
+              <span className="font-medium">Supported formats:</span> JPG, JPEG, PNG and WEBP
             </p>
           </div>
         </div>
@@ -312,6 +428,19 @@ export const BulkImageUploader: React.FC = () => {
         >
           <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
           {syncing ? 'Repairing...' : 'Repair Image Links'}
+        </button>
+        <button
+          onClick={fixSharedImages}
+          disabled={fixingShared || syncing || uploading}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ml-2 ${
+            fixingShared || syncing || uploading
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-amber-600 text-white hover:bg-amber-700'
+          }`}
+          title="Detect images shared between multiple plants and give each its own independent copy"
+        >
+          <Copy className={`w-4 h-4 ${fixingShared ? 'animate-spin' : ''}`} />
+          {fixingShared ? 'Fixing...' : 'Fix Shared Images'}
         </button>
       </div>
 

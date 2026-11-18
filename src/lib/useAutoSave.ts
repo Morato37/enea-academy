@@ -14,13 +14,26 @@ export function useAutoSave<T>(
   const latestDataRef = useRef<T>(data);
   const isFirstRender = useRef(true);
   const isSavingRef = useRef(false);
+  const pendingSaveRef = useRef(false);
 
   const saveNow = useCallback(async (d: T) => {
-    if (isSavingRef.current) return;
+    if (isSavingRef.current) {
+      // Mark that another save is needed after this one finishes
+      pendingSaveRef.current = true;
+      return;
+    }
     isSavingRef.current = true;
+    pendingSaveRef.current = false;
     setStatus('saving');
     try {
       await saveFn(d);
+      // If more changes arrived while we were saving, save again immediately
+      if (pendingSaveRef.current) {
+        pendingSaveRef.current = false;
+        isSavingRef.current = false;
+        await saveNow(latestDataRef.current);
+        return;
+      }
       setStatus('saved');
       setTimeout(() => setStatus('idle'), 2500);
     } catch {
@@ -35,7 +48,7 @@ export function useAutoSave<T>(
 
     if (!enabled) return;
 
-    // Skip the initial mount
+    // Skip the initial mount and the transition from loading→loaded
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
@@ -52,6 +65,15 @@ export function useAutoSave<T>(
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [data, enabled, debounceMs, saveNow]);
+
+  // Reset the first-render guard when enabled switches false→true (e.g. after load)
+  const prevEnabledRef = useRef(enabled);
+  useEffect(() => {
+    if (!prevEnabledRef.current && enabled) {
+      isFirstRender.current = true;
+    }
+    prevEnabledRef.current = enabled;
+  }, [enabled]);
 
   const flushSave = useCallback(() => {
     if (timerRef.current) {

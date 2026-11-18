@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Book, Search, Library, Calendar, User, X, Clock, CheckCircle2, Loader2 } from 'lucide-react';
@@ -48,11 +47,7 @@ const isOverdue = (dueDate: string): boolean => {
 };
 
 export const LibraryPage: React.FC = () => {
-  const { user, isAdmin } = useAuth();
-
-  if (!isAdmin) {
-    return <Navigate to="/" replace />;
-  }
+  const { user } = useAuth();
   const [books, setBooks] = useState<LibraryBook[]>([]);
   const [reservations, setReservations] = useState<LibraryReservation[]>([]);
   const [myReservations, setMyReservations] = useState<LibraryReservation[]>([]);

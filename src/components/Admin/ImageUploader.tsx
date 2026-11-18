@@ -186,11 +186,31 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
       if (error) throw error;
 
-      // Delete from storage
-      const fileName = imageUrl.split('/').pop();
-      if (fileName) {
-        const bucket = type === 'plant' ? 'plant-images' : 'stone-images';
-        await supabase.storage.from(bucket).remove([fileName]);
+      // Check if any other image record (across all plants/stones) still uses this same file URL
+      const allImageTables = type === 'plant'
+        ? ['plant_images']
+        : ['stone_images'];
+      let referenceCount = 0;
+      for (const t of allImageTables) {
+        const { count, error: countError } = await supabase
+          .from(t)
+          .select('id', { count: 'exact', head: true })
+          .eq('image_url', imageUrl);
+        if (countError) {
+          console.error('Error checking image references:', countError);
+          referenceCount += 1;
+        } else {
+          referenceCount += count || 0;
+        }
+      }
+
+      // Only delete from storage if no other record references this file
+      if (referenceCount === 0) {
+        const fileName = imageUrl.split('/').pop();
+        if (fileName) {
+          const bucket = type === 'plant' ? 'plant-images' : 'stone-images';
+          await supabase.storage.from(bucket).remove([fileName]);
+        }
       }
 
       // If we deleted the primary image, set a new primary

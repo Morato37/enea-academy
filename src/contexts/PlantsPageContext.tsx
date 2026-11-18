@@ -97,15 +97,28 @@ export const PlantsPageProvider: React.FC<{ children: ReactNode }> = ({ children
     }
 
     try {
-      const plantsResult = await supabase
-        .from('plants_flat')
-        .select('*, plant_images(plant_id, image_url, is_primary, display_order)')
-        .order('botanical_name');
+      const pageSize = 500;
+      const plantsData: Plant[] = [];
+      let offset = 0;
 
-      if (plantsResult.error) throw plantsResult.error;
+      while (true) {
+        const plantsResult = await supabase
+          .from('plants_flat')
+          .select('*, plant_images(plant_id, image_url, is_primary, display_order)')
+          .order('botanical_name')
+          .order('id')
+          .range(offset, offset + pageSize - 1);
 
-      const plantsData = plantsResult.data || [];
-      setPlants(plantsData as Plant[]);
+        if (plantsResult.error) throw plantsResult.error;
+
+        const page = (plantsResult.data || []) as Plant[];
+        plantsData.push(...page);
+
+        if (page.length < pageSize) break;
+        offset += pageSize;
+      }
+
+      setPlants(plantsData);
 
       const map = new Map<number, string[]>();
       for (const plant of plantsData) {

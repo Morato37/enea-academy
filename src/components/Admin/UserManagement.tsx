@@ -257,6 +257,17 @@ export const UserManagement: React.FC = () => {
     };
   };
 
+  const getDisplayName = (profile: UserProfile): string => {
+    if (profile.full_name?.trim()) return profile.full_name;
+
+    const localPart = profile.email.split('@')[0].replace(/[._-]+/g, ' ').trim();
+    return localPart
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ') || profile.email;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-500/20 text-green-400 border-green-500/30';
@@ -464,7 +475,7 @@ export const UserManagement: React.FC = () => {
                 <tr key={user.id} className="hover:bg-zinc-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div>
-                      <div className="font-medium text-white">{user.full_name || 'Unknown'}</div>
+                      <div className="font-medium text-white">{getDisplayName(user)}</div>
                       <div className="text-sm text-gray-400">{user.email}</div>
                     </div>
                   </td>
@@ -511,7 +522,7 @@ export const UserManagement: React.FC = () => {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => handleRegenerateOTP(user.id, user.email, user.full_name || 'Unknown')}
+                        onClick={() => handleRegenerateOTP(user.id, user.email, getDisplayName(user))}
                         disabled={regeneratingOTP === user.id}
                         className="inline-flex items-center gap-2 px-3 py-1 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >

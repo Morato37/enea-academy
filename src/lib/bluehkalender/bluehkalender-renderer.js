@@ -16,10 +16,12 @@
 let plants = [];
 let climate = null;
 let O = {};
-export const DEFAULT_OPTIONS = { title:'', centerText:'PFLANZKONZEPT\nFÜR DAS\nGANZE JAHR', showLogo:true, showPlantList:false,
+export const DEFAULT_OPTIONS = { language:'de', title:'', centerText:'PFLANZKONZEPT\nFÜR DAS\nGANZE JAHR', showLogo:true, showPlantList:false,
   showMonths:true, showFauna:false, showSide:false, showClimate:false };
-const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-const MSHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MSHORT_DE = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const MSHORT_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const SAGE = '#d2dccd';
 const LOGO = null;
 
@@ -54,7 +56,7 @@ function monthColors(){
   for(let m=0;m<12;m++){
     const bl=[], lf=[];
     plants.forEach(p=>{ const c=p.m[m]; if(!c) return; (c[0]==='b'?bl:lf).push(c[1]); if(c[2]) (isLeafHex(c[2])?lf:bl).push(c[2]); });
-    outer.push(avg(bl) || avg(lf) || hex2rgb(SAGE));
+    outer.push(avg(bl) || hex2rgb(SAGE));
     inner.push(avg(lf) || hex2rgb(SAGE));
   }
   return {outer, inner};
@@ -101,7 +103,7 @@ function renderBand(R, Rin, cols, seed, scale){
     const px=dx/scale, py=dy/scale;
     const aEdge = Math.max(0,Math.min(1,Rs-rr+.5))*Math.max(0,Math.min(1,rr-Rins+.5));
     const phi = Math.atan2(dy,dx)*180/Math.PI;
-    let u = (phi+90)/30 + 7;
+    let u = (phi+90)/30;
     u += (fbm(px*.006+seed, py*.006, seed, 4)-.5)*1.1;
     let sr=0,sg=0,sb=0,sw=0;
     const k0=Math.floor(u);
@@ -185,7 +187,8 @@ function drawPoster(target, scale){
   // Monatsnamen
   if(O.showMonths){
     ctx.fillStyle='#55605c';
-    MONTHS.forEach((name,m)=>{
+    const months = O.language==='en' ? MONTHS_EN : MONTHS_DE;
+    months.forEach((name,m)=>{
       const th=(-90+m*30)*Math.PI/180;
       drawCurved(ctx, name, cx, cy, R*.905, th, R*.046, R*.006);
     });
@@ -260,20 +263,20 @@ Object.entries(ICON_PATHS).forEach(([k, src]) => { const im = new Image(); im.sr
 
 // ---- Traits ----
 const TRAITS = [
-  {key:'bee',       icon:'bee',       de:'Bienen, Hummeln, Schwebfliegen', month:'bloom', re:/bees?\b|bumble|hover\s*-?fl|bienen?|hummel|schwebflieg|insect|insekt/i},
-  {key:'butterfly', icon:'butterfly', de:'Schmetterlinge',                 month:'bloom', re:/butterfl|moth|schmetterling|falter/i},
-  {key:'bird',      icon:'bird',      de:'Vögel',                          month:'any',   re:/bird|vögel|vogel/i},
-  {key:'edible',    icon:'apple',     de:'Essbar / Früchte',               re:/edible|fruit|berr|essbar|obst|frucht|früchte|beere/i},
-  {key:'medicinal', icon:'medicinal', de:'Heilpflanze',                    re:/medicin|herbal|heilpflanz|heilkraut|arznei/i},
-  {key:'native',    icon:'native',    de:'Einheimisch',                    re:/native|indigen|einheimisch|heimisch/i},
-  {key:'wellness',  icon:'wellness',  de:'Wellness / Duft',                re:/wellness|fragran|scent|aroma|duft|therap/i},
-  {key:'climate',   icon:'climate',   de:'Klimaresistent',                 re:/climate|drought|heat|klima|trocken|hitze/i},
+  {key:'bee',       icon:'bee',       de:'Bienen, Hummeln, Schwebfliegen', en:'Bees, bumblebees, hoverflies', month:'bloom', re:/bees?\b|bumble|hover\s*-?fl|bienen?|hummel|schwebflieg|insect|insekt/i},
+  {key:'butterfly', icon:'butterfly', de:'Schmetterlinge',                 en:'Butterflies',                 month:'bloom', re:/butterfl|moth|schmetterling|falter/i},
+  {key:'bird',      icon:'bird',      de:'Vögel',                          en:'Birds',                       month:'any',   re:/bird|vögel|vogel/i},
+  {key:'edible',    icon:'apple',     de:'Essbar / Früchte',               en:'Edible / Fruit',              re:/edible|fruit|berr|essbar|obst|frucht|früchte|beere/i},
+  {key:'medicinal', icon:'medicinal', de:'Heilpflanze',                    en:'Medicinal herb',              re:/medicin|herbal|heilpflanz|heilkraut|arznei/i},
+  {key:'native',    icon:'native',    de:'Einheimisch',                    en:'Native',                      re:/native|indigen|einheimisch|heimisch/i},
+  {key:'wellness',  icon:'wellness',  de:'Wellness / Duft',                en:'Wellness / Fragrance',        re:/wellness|fragran|scent|aroma|duft|therap/i},
+  {key:'climate',   icon:'climate',   de:'Klimaresistent',                 en:'Climate-resilient',           re:/climate|drought|heat|klima|trocken|hitze/i},
 ];
 const CLIM = [
-  {key:'snow',  icon:'snow',  de:'Frost'},
-  {key:'sun',   icon:'sun',   de:'Warm'},
-  {key:'water', icon:'water', de:'Nass'},
-  {key:'wind',  icon:'wind',  de:'Windig'},
+  {key:'snow',  icon:'snow',  de:'Frost', en:'Frost'},
+  {key:'sun',   icon:'sun',   de:'Warm',  en:'Warm'},
+  {key:'water', icon:'water', de:'Nass',  en:'Wet'},
+  {key:'wind',  icon:'wind',  de:'Windig',en:'Windy'},
 ];
 const DEFAULT_CLIMATE = {
   loc:'Maienfeld GR',
@@ -321,7 +324,7 @@ function drawSide(ctx, R, usedMonthTraits, usedClim, showPoll, showClim){
   let y=H*.1;
   const list=plants.filter(p=>p.en||p.bot);
   if(list.length){
-    head('Pflanzen',y); y+=R*.1;
+    head(O.language==='en'?'Plants':'Pflanzen',y); y+=R*.1;
     const rowH=Math.min(R*.15, (H*.46)/list.length), fs=Math.min(R*.042,rowH*.34), isz=Math.min(R*.075,rowH*.5);
     list.forEach(p=>{
       const tr = showPoll ? plantTraits(p) : [];
@@ -334,17 +337,20 @@ function drawSide(ctx, R, usedMonthTraits, usedClim, showPoll, showClim){
     });
     y+=R*.06;
   }
-  const items = [['flower','Blüte (äusserer Ring)'],['tree','Laub (innerer Ring)']];
+  const L = O.language==='en';
+  const items = [['flower', L?'Bloom (outer ring)':'Blüte (äusserer Ring)'],['tree', L?'Foliage (inner ring)':'Laub (innerer Ring)']];
   if(showPoll){
-    usedMonthTraits.forEach(t=>items.push([t.icon,t.de]));
-    TRAITS.filter(t=>!t.month && plants.some(p=>plantTraits(p).includes(t))).forEach(t=>items.push([t.icon,t.de]));
+    usedMonthTraits.forEach(t=>items.push([t.icon, L?(t.en||t.de):t.de]));
+    TRAITS.filter(t=>!t.month && plants.some(p=>plantTraits(p).includes(t))).forEach(t=>items.push([t.icon, L?(t.en||t.de):t.de]));
   }
-  head('Legende',y); y+=R*.1;
+  head(L?'Legend':'Legende',y); y+=R*.1;
   const lh=R*.095, fs2=R*.04;
   items.forEach(([k,t])=>{ icon(ctx,k,x0+R*.04,y,R*.07); ctx.fillStyle=ink; ctx.font=`300 ${fs2}px "Josefin Sans", sans-serif`; ctx.fillText(t,x0+R*.12,y+fs2*.08); y+=lh; });
   if(showClim && usedClim.length){
-    y+=R*.05; head('Klima '+climate.loc,y); y+=R*.1;
-    const th=climate.th, lbl={snow:`Frost (Tiefstwert ≤ ${th.frost} °C)`, sun:`Warm (Höchstwert ≥ ${th.warm} °C)`, water:`Nass (≥ ${th.wet} mm)`, wind:`Windig (≥ ${th.windy} Tage über 10 km/h)`};
+    y+=R*.05; head((L?'Climate ':'Klima ')+climate.loc,y); y+=R*.1;
+    const th=climate.th, lbl=L
+      ? {snow:`Frost (min ≤ ${th.frost} °C)`, sun:`Warm (max ≥ ${th.warm} °C)`, water:`Wet (≥ ${th.wet} mm)`, wind:`Windy (≥ ${th.windy} days > 10 km/h)`}
+      : {snow:`Frost (Tiefstwert ≤ ${th.frost} °C)`, sun:`Warm (Höchstwert ≥ ${th.warm} °C)`, water:`Nass (≥ ${th.wet} mm)`, wind:`Windig (≥ ${th.windy} Tage über 10 km/h)`};
     usedClim.forEach(c=>{ icon(ctx,c.icon,x0+R*.04,y,R*.07); ctx.fillStyle=ink; ctx.font=`300 ${fs2}px "Josefin Sans", sans-serif`; ctx.fillText(lbl[c.key],x0+R*.12,y+fs2*.08); y+=lh; });
   }
   ctx.restore();
@@ -355,7 +361,8 @@ function hueOf(r,g,b){
   let h = mx===r ? ((g-b)/d)%6 : mx===g ? (b-r)/d+2 : (r-g)/d+4;
   return (h*60+360)%360;
 }
-export { DEFAULT_CLIMATE, MONTHS, TRAITS, W as POSTER_WIDTH, H as POSTER_HEIGHT };
+const MONTHS = MONTHS_DE;
+export { DEFAULT_CLIMATE, MONTHS, MONTHS_DE, MONTHS_EN, MSHORT_DE, MSHORT_EN, TRAITS, W as POSTER_WIDTH, H as POSTER_HEIGHT };
 
 export function renderBluehkalender(target, data = {}, scale = 1){
   if (!target) throw new Error('Ein Canvas-Ziel ist erforderlich.');

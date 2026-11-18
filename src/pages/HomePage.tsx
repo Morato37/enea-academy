@@ -129,9 +129,6 @@ export const HomePage: React.FC = () => {
             <p className="text-gray-700 mb-3">
               Browse our project database for plants, materials, and moods.
             </p>
-            <p className="text-xs text-red-500 font-medium">
-              Login with the same credentials as the Academy.
-            </p>
           </a>
 
         </div>

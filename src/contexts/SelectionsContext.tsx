@@ -89,31 +89,40 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const { data: sharesData, error: sharesError } = await supabase
         .from('project_shares')
-        .select('id, project_id, owner_id, shared_with_user_id, permission, created_at, project:projects(*)')
+        .select('id, project_id, owner_id, shared_with_user_id, permission, created_at')
         .eq('shared_with_user_id', user.id);
       if (sharesError) throw sharesError;
 
       if (sharesData && sharesData.length > 0) {
-        const ownerIds = [...new Set(sharesData.map((s: any) => s.owner_id as string))];
-        const { data: ownerProfiles } = await supabase
-          .from('user_profiles')
-          .select('id, email, full_name')
-          .in('id', ownerIds);
+        const projectIds = [...new Set(sharesData.map((share: any) => share.project_id as string))];
+        const ownerIds = [...new Set(sharesData.map((share: any) => share.owner_id as string))];
+        const [{ data: sharedProjectData, error: sharedProjectsError }, { data: ownerProfiles }] = await Promise.all([
+          supabase.from('projects').select('*').in('id', projectIds),
+          supabase.from('user_profiles').select('id, email, full_name').in('id', ownerIds),
+        ]);
+        if (sharedProjectsError) throw sharedProjectsError;
 
+        const sharedProjectMap = new Map(
+          (sharedProjectData || []).map(project => [project.id, project as Project])
+        );
         const entries: SharedProjectEntry[] = sharesData
-          .filter((s: any) => s.project)
-          .map((s: any) => ({
-            share: {
-              id: s.id,
-              project_id: s.project_id,
-              owner_id: s.owner_id,
-              shared_with_user_id: s.shared_with_user_id,
-              permission: s.permission,
-              created_at: s.created_at,
-            } as ProjectShare,
-            project: s.project as Project,
-            owner_profile: ownerProfiles?.find((p: any) => p.id === s.owner_id),
-          }));
+          .map((share: any) => {
+            const project = sharedProjectMap.get(share.project_id);
+            if (!project) return null;
+            return {
+              share: {
+                id: share.id,
+                project_id: share.project_id,
+                owner_id: share.owner_id,
+                shared_with_user_id: share.shared_with_user_id,
+                permission: share.permission,
+                created_at: share.created_at,
+              } as ProjectShare,
+              project,
+              owner_profile: ownerProfiles?.find((profile: any) => profile.id === share.owner_id),
+            };
+          })
+          .filter((entry): entry is SharedProjectEntry => entry !== null);
         setSharedProjects(entries);
       } else {
         setSharedProjects([]);
