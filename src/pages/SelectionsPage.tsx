@@ -1153,7 +1153,7 @@ export const SelectionsPage: React.FC = () => {
           <main className="flex-1 min-w-0">
             {/* Header */}
             <div className="flex items-start justify-between mb-6 gap-4">
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-bold text-gray-900">
                     {currentProject ? currentProject.name : 'Current Selection'}
@@ -1200,7 +1200,7 @@ export const SelectionsPage: React.FC = () => {
               </div>
 
               {!hasNoSelections && (
-                <div className="flex flex-wrap gap-2 shrink-0">
+                <div className="flex flex-1 min-w-0 flex-wrap justify-end gap-2">
                   <button
                     onClick={handleRefresh}
                     disabled={refreshing}
