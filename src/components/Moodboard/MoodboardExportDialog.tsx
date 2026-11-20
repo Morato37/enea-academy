@@ -246,7 +246,7 @@ export function MoodboardExportDialog({ open, onClose, projectName, plants, load
                       {alternatives.length === 0 && <p className="text-gray-600">Keine weiteren passenden Bilder.</p>}
                       <div className="grid max-h-[60vh] grid-cols-2 gap-2 overflow-y-auto">
                         {alternatives.map(({ image, plant }) => (
-                          <button key={image.id} onClick={() => choose(image, plant)}
+                          <button key={`${image.id}-${plant.id}`} onClick={() => choose(image, plant)}
                             title={image.path ?? image.url}
                             className={`overflow-hidden rounded border text-left ${image.id === currentImageId ? 'ring-2 ring-emerald-600' : 'hover:border-emerald-600'}`}>
                             <img src={image.url} alt={plant.botanicalName} loading="lazy" className="aspect-[4/3] w-full object-cover" />

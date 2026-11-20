@@ -178,7 +178,9 @@ export function matchImageToPlant(
 
   // 3a. "PLANTS/_SEASONALITY/Winter/Ginkgo/": curated season picture of the genus
   if (info.curatedSeasonFolder && folderGenus === name.genus && !folderSaysOtherSpecies) {
-    return { source: 'saisonordner', relevance: 0.75 };
+    // Shows the genus, not necessarily this species (e.g. "Autumn/Acer" for every maple), so it ranks
+    // below species matches. Useful because the season is curated.
+    return { source: 'gattung', relevance: 0.4 };
   }
   // 3b. "Plants Seasonality/<English common name>/"
   if (commonNameEn && info.seasonalityFolder && normalizeName(info.seasonalityFolder) === normalizeName(commonNameEn)) {
