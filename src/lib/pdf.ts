@@ -25,6 +25,8 @@ export interface MoodboardPdfOptions {
   fileName?: string;
   /** Called after each picture so the UI can show progress. */
   onProgress?: (done: number, total: number) => void;
+  /** Called for each picture that could not be loaded (its slot stays grey in the PDF). */
+  onImageError?: (url: string, error: unknown) => void;
 }
 
 const GREY_SLOT: [number, number, number] = [244, 244, 244];
@@ -40,9 +42,43 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+/**
+ * Dropbox links do not always allow the cross-origin access the canvas needs. In that case the
+ * picture is fetched again through the image search's Edge Function "proxy-image-download"
+ * (same Supabase project), which adds the CORS headers.
+ */
+async function loadImageForCanvas(src: string): Promise<{ img: HTMLImageElement; release: () => void }> {
+  try {
+    return { img: await loadImage(src), release: () => {} };
+  } catch (directError) {
+    const base = import.meta.env.VITE_SUPABASE_URL;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!base || !key || !/dropbox(usercontent)?\.com/.test(src)) throw directError;
+    const res = await fetch(`${base}/functions/v1/proxy-image-download?url=${encodeURIComponent(src)}`, {
+      headers: { Authorization: `Bearer ${key}`, apikey: key },
+    });
+    if (!res.ok) throw new Error(`Bild konnte nicht geladen werden (direkt und über Proxy, HTTP ${res.status}): ${src}`);
+    const objectUrl = URL.createObjectURL(await res.blob());
+    try {
+      return { img: await loadImage(objectUrl), release: () => URL.revokeObjectURL(objectUrl) };
+    } catch (err) {
+      URL.revokeObjectURL(objectUrl);
+      throw err;
+    }
+  }
+}
+
 /** Crops like CSS object-fit: cover to the slot's shape and returns a JPEG data URL. */
 async function coverCrop(src: string, wMm: number, hMm: number, dpi: number): Promise<string> {
-  const img = await loadImage(src);
+  const { img, release } = await loadImageForCanvas(src);
+  try {
+    return drawCover(img, wMm, hMm, dpi);
+  } finally {
+    release();
+  }
+}
+
+function drawCover(img: HTMLImageElement, wMm: number, hMm: number, dpi: number): string {
   const outW = Math.max(1, Math.round((wMm / 25.4) * dpi));
   const outH = Math.max(1, Math.round((hMm / 25.4) * dpi));
   const slotRatio = wMm / hMm;
@@ -150,6 +186,7 @@ export async function exportMoodboardPdf(pages: MoodboardPage[], options: Moodbo
         doc.addImage(data, 'JPEG', x, y, w, h, undefined, 'FAST');
       } catch (err) {
         console.warn(err);
+        options.onImageError?.(a.image.url, err);
       }
       done++;
       options.onProgress?.(done, total);

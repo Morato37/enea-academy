@@ -25,6 +25,14 @@ export interface MoodboardImage {
   /** Pixel size if known; used to put portrait pictures into tall slots. */
   width?: number | null;
   height?: number | null;
+  /** 0..1, how sure we are the picture shows the plant (curated folder ≈ 1, AI tag ≈ 0.3). Higher is used first. */
+  relevance?: number;
+  /** Where the plant match came from: species folder, file name, seasonality folder, tag or genus only. */
+  matchSource?: 'ordner' | 'dateiname' | 'saisonordner' | 'tag' | 'gattung';
+  /** true = season from folder/file name/curated tag, false = guessed from AI tags. */
+  seasonCertain?: boolean;
+  /** Dropbox path, shown in the picture picker. */
+  path?: string;
 }
 
 export interface MoodboardSlot {

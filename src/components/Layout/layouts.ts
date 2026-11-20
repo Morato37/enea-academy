@@ -21,9 +21,14 @@ export const PAPER: Record<PaperFormat, { w: number; h: number; scale: number }>
 export const SCENE_TAGS = [
   'garten', 'gartensituation', 'gartenszene', 'situation', 'anwendung', 'referenz', 'atmosphaere', 'stimmung',
   'bepflanzung', 'landschaft', 'park', 'weg', 'terrasse', 'innenhof', 'garden', 'garden scene', 'landscape',
+  // most frequent scene tags in the image search
+  'enea garden', 'garden design', 'garden path', 'scenery', 'natural landscape', 'landscape architecture', 'garden bed',
+  'garden beds', 'planting', 'japanese garden', 'garden atmosphere', 'floral landscape', 'garden layout', 'tranquil scene',
 ] as const;
 export const DETAIL_TAGS = [
   'detail', 'bluete', 'bluetenstand', 'blatt', 'blaetter', 'frucht', 'rinde', 'nahaufnahme', 'textur', 'zweig', 'flower', 'leaf', 'close-up',
+  // most frequent detail tags in the image search
+  'close up', 'macro', 'bark', 'texture', 'blossom', 'leaves', 'petals', 'foliage detail', 'flower head', 'seed head', 'berries', 'fruit',
 ] as const;
 
 const COL = [8.5, 79.0, 149.5, 220.0];
