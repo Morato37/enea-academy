@@ -54,18 +54,25 @@ function shuffle<T>(list: T[], seed: number): T[] {
   return out;
 }
 
+/** Weight of the relevance term: a curated folder picture beats an AI-tag picture that only has the preferred tag. */
+const RELEVANCE_WEIGHT = 1.5;
+/** Maximum random penalty added per picture when mixing (seed ≠ 0). */
+const MIX_NOISE = 0.9;
+
 /**
- * How badly a picture fits a slot (0 = perfect): shape difference plus a penalty when the picture
- * has none of the slot's preferred tags (garden scene for big slots, detail for small ones).
+ * How badly a picture fits a slot (0 = perfect): shape difference, a penalty when the picture
+ * has none of the slot's preferred tags (garden scene for big slots, detail for small ones),
+ * and a penalty for uncertain pictures (see MoodboardImage.relevance).
  */
 export function slotPenalty(image: MoodboardImage, slot: MoodboardSlot): number {
   const shape = !image.width || !image.height
     ? 0.5
     : Math.abs(Math.log(image.width / image.height) - Math.log(slot.w / slot.h));
-  if (!slot.prefer?.length) return shape;
+  const uncertainty = (1 - (image.relevance ?? 1)) * RELEVANCE_WEIGHT;
+  if (!slot.prefer?.length) return shape + uncertainty;
   const tags = new Set(image.tags.map(normalizeTag));
   const hit = slot.prefer.some(t => tags.has(normalizeTag(t)));
-  return shape + (hit ? 0 : 0.8);
+  return shape + (hit ? 0 : 0.8) + uncertainty;
 }
 
 /**
@@ -105,7 +112,11 @@ function fillPage(
         );
         if (!candidates.length) continue;
         const ordered = shuffle(candidates, seed ? seed + slot.id.length + ci : 0);
-        const best = ordered.reduce((a, b) => (slotPenalty(b, slot) < slotPenalty(a, slot) ? b : a));
+        // "Neu mischen": random noise so that similarly good pictures take turns,
+        // while clearly better ones (curated folder vs. AI tag) still win most of the time.
+        const noise = seed ? rng(seed * 31 + slot.id.length * 7 + ci + tries) : null;
+        const scored = ordered.map(img => ({ img, penalty: slotPenalty(img, slot) + (noise ? noise() * MIX_NOISE : 0) }));
+        const best = scored.reduce((a, b) => (b.penalty < a.penalty ? b : a)).img;
         used.add(best.id);
         placed = { slotId: slot.id, image: best, plant };
         turn = (turn + tries + 1) % pool.length;
