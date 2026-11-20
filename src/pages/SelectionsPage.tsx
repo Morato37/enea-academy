@@ -7,7 +7,7 @@ import {
   CreditCard as Edit2, RefreshCw, Image, Calendar,
   MapPin, X, Check, ChevronDown, ChevronRight,
   GripVertical, Layers, Share2, Users, Eye, Lock, Calculator,
-  TreePine, Link
+  TreePine, Link, LayoutGrid
 } from 'lucide-react';
 import { generatePDF } from '../lib/pdfExport';
 import { generateMoodboardPDF } from '../lib/moodboardExport';
@@ -692,7 +692,7 @@ export const SelectionsPage: React.FC = () => {
   } = useSelections();
 
   const [generatingPDF, setGeneratingPDF] = useState(false);
-  const [, setGeneratingMoodboard] = useState(false);
+  const [generatingMoodboard, setGeneratingMoodboard] = useState(false);
   const [generatingCalendar, setGeneratingCalendar] = useState(false);
   const [generatingPlantSelection, setGeneratingPlantSelection] = useState(false);
   const [zoneGenerating, setZoneGenerating] = useState<{ zoneId: string; type: string } | null>(null);
@@ -1219,13 +1219,22 @@ export const SelectionsPage: React.FC = () => {
                     Export PDF
                   </button>
 
+                  <button
+                    onClick={() => triggerExport({ type: 'moodboard' })}
+                    disabled={generatingMoodboard || plantSelections.length === 0}
+                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {generatingMoodboard ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4" />}
+                    Plant Board
+                  </button>
+
                   {isAdmin && (
                     <button
                       onClick={() => setMoodboardOpen(true)}
                       disabled={plantSelections.length === 0}
-                      className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-3 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
                     >
-                      <Image className="w-4 h-4" />
+                      <LayoutGrid className="w-4 h-4" />
                       Moodboard
                     </button>
                   )}
