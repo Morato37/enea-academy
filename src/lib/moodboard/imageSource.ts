@@ -29,6 +29,8 @@ const PAGE_SIZE = 1000;
 /** Patterns per request; keeps the URL short. */
 const PATTERNS_PER_REQUEST = 12;
 const TAGS_PER_REQUEST = 60;
+/** Parallel single requests when a combined request is rejected. */
+const FALLBACK_CONCURRENCY = 6;
 const COLUMNS = 'id, dropbox_path, dropbox_shared_link, tags';
 
 type PlantRow = {
@@ -85,32 +87,94 @@ function likeValue(...parts: string[]): string {
   return `%${parts.map(p => p.replace(/[^\p{L}\p{N} ]/gu, '_')).join('%')}%`;
 }
 
+type RowFilter =
+  | { kind: 'paths'; patterns: string[] }  // several ILIKE patterns in one or=() request
+  | { kind: 'path'; pattern: string }      // one ILIKE pattern
+  | { kind: 'tags'; tags: string[] }       // tags overlap the list
+  | { kind: 'tag'; tag: string };          // tags contain this tag
+
+/** Problems of the last loadMoodboardImages() call (failed requests that were skipped). */
+let lastIssues: string[] = [];
+export function lastMoodboardLoadIssues(): string[] {
+  return [...lastIssues];
+}
+
+/** Readable text for Supabase/PostgREST errors (they are plain objects, not Error instances). */
+export function describeError(error: unknown): string {
+  if (!error) return 'Unbekannter Fehler';
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object') {
+    const e = error as { message?: string; details?: string; hint?: string; code?: string };
+    return [e.code, e.message, e.details, e.hint].filter(Boolean).join(' – ') || JSON.stringify(error);
+  }
+  return String(error);
+}
+
+function applyFilter(filter: RowFilter) {
+  const query = supabase.from('dropbox_images_index').select(COLUMNS);
+  switch (filter.kind) {
+    // Values in double quotes, so spaces and other characters cannot break the or=() syntax.
+    case 'paths': return query.or(filter.patterns.map(p => `dropbox_path.ilike."${p}"`).join(','));
+    case 'path': return query.ilike('dropbox_path', filter.pattern);
+    case 'tags': return query.overlaps('tags', `{${filter.tags.map(t => `"${t.replace(/["\\]/g, '')}"`).join(',')}}`);
+    case 'tag': return query.contains('tags', [filter.tag]);
+  }
+}
+
 /** Runs one filtered request page by page (Supabase returns at most 1000 rows per request). */
-async function fetchAll(filter: { or: string } | { tags: string[] }): Promise<DropboxImageRow[]> {
+async function fetchAll(filter: RowFilter): Promise<DropboxImageRow[]> {
   const rows: DropboxImageRow[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
-    let query = supabase.from('dropbox_images_index').select(COLUMNS);
-    // Array literal with quoted elements, so tags with spaces or commas stay one element.
-    query = 'or' in filter
-      ? query.or(filter.or)
-      : query.overlaps('tags', `{${filter.tags.map(t => `"${t.replace(/["\\]/g, '')}"`).join(',')}}`);
-    const { data, error } = await query.order('id').range(from, from + PAGE_SIZE - 1);
+    const { data, error } = await applyFilter(filter).order('id').range(from, from + PAGE_SIZE - 1);
     if (error) throw error;
     rows.push(...((data || []) as DropboxImageRow[]));
     if (!data || data.length < PAGE_SIZE) return rows;
   }
 }
 
+/** Runs tasks with at most `limit` requests at the same time. */
+async function inBatches<T, R>(items: T[], limit: number, run: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += limit) results.push(...await Promise.all(items.slice(i, i + limit).map(run)));
+  return results;
+}
+
+/** Single requests as fallback: a failing one is skipped and reported, the rest still count. */
+async function fetchEach(filters: RowFilter[]): Promise<DropboxImageRow[]> {
+  const results = await inBatches(filters, FALLBACK_CONCURRENCY, async filter => {
+    try {
+      return await fetchAll(filter);
+    } catch (error) {
+      lastIssues.push(describeError(error));
+      console.warn('Moodboard: Abfrage übersprungen', filter, error);
+      return [];
+    }
+  });
+  return results.flat();
+}
+
+/** Combined request first; if the server rejects it, the same patterns one by one. */
+async function fetchCombined(combined: RowFilter, single: RowFilter[]): Promise<DropboxImageRow[]> {
+  try {
+    return await fetchAll(combined);
+  } catch (error) {
+    console.warn('Moodboard: Sammelabfrage abgelehnt, frage einzeln ab', describeError(error));
+    return fetchEach(single);
+  }
+}
+
 async function rowsForPathPatterns(patterns: string[]): Promise<DropboxImageRow[]> {
-  const unique = [...new Set(patterns)];
-  const requests = chunk(unique, PATTERNS_PER_REQUEST).map(group =>
-    fetchAll({ or: group.map(p => `dropbox_path.ilike.${p}`).join(',') }));
-  return (await Promise.all(requests)).flat();
+  const groups = chunk([...new Set(patterns)], PATTERNS_PER_REQUEST);
+  const results = await Promise.all(groups.map(group =>
+    fetchCombined({ kind: 'paths', patterns: group }, group.map(pattern => ({ kind: 'path', pattern }) as RowFilter))));
+  return results.flat();
 }
 
 async function rowsForTags(tags: string[]): Promise<DropboxImageRow[]> {
-  const unique = [...new Set(tags)];
-  return (await Promise.all(chunk(unique, TAGS_PER_REQUEST).map(group => fetchAll({ tags: group })))).flat();
+  const groups = chunk([...new Set(tags)], TAGS_PER_REQUEST);
+  const results = await Promise.all(groups.map(group =>
+    fetchCombined({ kind: 'tags', tags: group }, group.map(tag => ({ kind: 'tag', tag }) as RowFilter))));
+  return results.flat();
 }
 
 function addMatches(rows: DropboxImageRow[], plants: Plant[], byPlant: Map<string, Map<string, MoodboardImage>>) {
@@ -143,6 +207,7 @@ function addMatches(rows: DropboxImageRow[], plants: Plant[], byPlant: Map<strin
 }
 
 export async function loadMoodboardImages(plantIds: (string | number)[]): Promise<MoodboardImage[]> {
+  lastIssues = [];
   const ids = [...new Set(plantIds.map(String))];
   if (!ids.length) return [];
 

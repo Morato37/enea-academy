@@ -3,6 +3,7 @@ import { exportMoodboardPdf } from '../../lib/moodboard/pdf';
 import { generateMoodboard, replaceSlot, slotAlternatives, validateSelection } from '../../lib/moodboard/fill';
 import { LAYOUTS, MOODBOARD_TYPES, type PaperFormat } from '../../lib/moodboard/layouts';
 import type { MoodboardImage, MoodboardPage, MoodboardPlant, MoodboardType } from '../../lib/moodboard/types';
+import { describeError, lastMoodboardLoadIssues } from '../../lib/moodboard/imageSource';
 import { MoodboardPreview } from './MoodboardPreview';
 
 export interface MoodboardExportDialogProps {
@@ -52,6 +53,7 @@ export function MoodboardExportDialog({ open, onClose, projectName, plants, load
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadNotice, setLoadNotice] = useState<string | null>(null);
   const [format, setFormat] = useState<PaperFormat>('a3');
   const [header, setHeader] = useState({ project: projectName, concept: 'Konzeptpräsentation', area: LAYOUTS.saison.subtitle });
   const [exporting, setExporting] = useState<{ done: number; total: number } | null>(null);
@@ -62,12 +64,18 @@ export function MoodboardExportDialog({ open, onClose, projectName, plants, load
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setLoadNotice(null);
     setPages([]);
     setExportNote(null);
     setHeader(h => ({ ...h, project: projectName }));
     loadImages(plants.map(p => p.id))
-      .then(result => { if (!cancelled) setImages(result); })
-      .catch(err => { console.error(err); if (!cancelled) setError('Bilder konnten nicht geladen werden.'); })
+      .then(result => {
+        if (cancelled) return;
+        setImages(result);
+        const issues = lastMoodboardLoadIssues();
+        setLoadNotice(issues.length ? `${issues.length} Abfrage(n) der Bildersuche fehlgeschlagen, es fehlen evtl. Bilder: ${issues[0]}` : null);
+      })
+      .catch(err => { console.error(err); if (!cancelled) setError(`Bilder konnten nicht geladen werden: ${describeError(err)}`); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [open, projectName, plants, loadImages]);
@@ -145,6 +153,7 @@ export function MoodboardExportDialog({ open, onClose, projectName, plants, load
         <div className="overflow-y-auto p-5">
           {loading && <p className="text-sm text-gray-600">Bilder werden aus der Bildersuche geladen …</p>}
           {error && <p className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+          {loadNotice && <p className="mb-3 rounded bg-amber-50 p-3 text-sm text-amber-800">{loadNotice}</p>}
 
           {!loading && pages.length === 0 && (
             <>
