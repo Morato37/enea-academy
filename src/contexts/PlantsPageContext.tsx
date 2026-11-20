@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase, Plant } from '../lib/supabase';
 import { PlantFilterState } from '../components/Filters/PlantFilters';
 
+/** Refresh data when the tab was in the background longer than this. */
+const REFRESH_AFTER_HIDDEN_MS = 5 * 60 * 1000;
+
 interface PlantsPageContextType {
   plants: Plant[];
   filteredPlants: Plant[];
@@ -68,21 +71,20 @@ export const PlantsPageProvider: React.FC<{ children: ReactNode }> = ({ children
   useEffect(() => {
     fetchPlants();
 
+    // Coming back to the tab: refresh quietly in the background, and only if the tab was hidden
+    // for a while. Before, every tab switch reloaded everything (focus and visibility both fired).
+    let hiddenAt: number | null = null;
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchPlants(true);
+      if (document.hidden) {
+        hiddenAt = Date.now();
+        return;
       }
+      if (hiddenAt !== null && Date.now() - hiddenAt > REFRESH_AFTER_HIDDEN_MS) fetchPlants(true);
+      hiddenAt = null;
     };
-
-    const handleFocus = () => fetchPlants(true);
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   useEffect(() => {

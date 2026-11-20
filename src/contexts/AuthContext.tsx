@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { PasswordChangeModal } from '../components/Auth/PasswordChangeModal';
@@ -64,36 +64,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Id of the user currently in state. Supabase reports the session again when the tab comes back
+  // to the foreground (SIGNED_IN / TOKEN_REFRESHED) with a new user object for the same person.
+  // Replacing `user` then would make every page that depends on it reload its data.
+  const currentUserId = useRef<string | null>(null);
+
+  /** Applies a session; returns true if the signed-in person changed. */
+  const applySessionUser = (sessionUser: User | null, forceUpdate = false): boolean => {
+    const nextId = sessionUser?.id ?? null;
+    if (nextId === currentUserId.current) {
+      if (forceUpdate) setUser(sessionUser); // e.g. USER_UPDATED: same person, new metadata
+      return false;
+    }
+    currentUserId.current = nextId;
+    setUser(sessionUser);
+    if (sessionUser) {
+      syncUserProfileName(sessionUser);
+      checkUserProfile(sessionUser.id);
+    } else {
+      setIsAdmin(false);
+      setMustChangePassword(false);
+    }
+    return true;
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        syncUserProfileName(session.user);
-        checkUserProfile(session.user.id);
-      } else {
-        setIsAdmin(false);
-        setMustChangePassword(false);
-      }
+      applySessionUser(session?.user ?? null);
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        syncUserProfileName(session.user);
-        checkUserProfile(session.user.id);
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          const loginTime = session.user.last_sign_in_at ?? new Date().toISOString();
-          (async () => {
-            await supabase
-              .from('user_profiles')
-              .update({ last_login: loginTime })
-              .eq('id', session.user.id);
-          })();
-        }
-      } else {
-        setIsAdmin(false);
-        setMustChangePassword(false);
+      const changed = applySessionUser(session?.user ?? null, event === 'USER_UPDATED');
+      // Only a real sign-in counts as login, not the session check when the tab is focused again.
+      if (changed && session?.user && event === 'SIGNED_IN') {
+        const loginTime = session.user.last_sign_in_at ?? new Date().toISOString();
+        (async () => {
+          await supabase
+            .from('user_profiles')
+            .update({ last_login: loginTime })
+            .eq('id', session.user.id);
+        })();
       }
     });
 

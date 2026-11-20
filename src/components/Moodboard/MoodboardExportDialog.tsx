@@ -59,6 +59,12 @@ export function MoodboardExportDialog({ open, onClose, projectName, plants, load
   const [exporting, setExporting] = useState<{ done: number; total: number } | null>(null);
   const [exportNote, setExportNote] = useState<string | null>(null);
 
+  // The selection page passes a new `plants` array on every render (e.g. when the tab comes back to
+  // the foreground). Only a real change of the plant list may reload the pictures and reset the board.
+  const plantKey = useMemo(() => plants.map(p => key(p.id)).join(','), [plants]);
+
+  useEffect(() => { setHeader(h => ({ ...h, project: projectName })); }, [projectName]);
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -67,8 +73,7 @@ export function MoodboardExportDialog({ open, onClose, projectName, plants, load
     setLoadNotice(null);
     setPages([]);
     setExportNote(null);
-    setHeader(h => ({ ...h, project: projectName }));
-    loadImages(plants.map(p => p.id))
+    loadImages(plantKey ? plantKey.split(',') : [])
       .then(result => {
         if (cancelled) return;
         setImages(result);
@@ -78,9 +83,9 @@ export function MoodboardExportDialog({ open, onClose, projectName, plants, load
       .catch(err => { console.error(err); if (!cancelled) setError(`Bilder konnten nicht geladen werden: ${describeError(err)}`); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [open, projectName, plants, loadImages]);
+  }, [open, plantKey, loadImages]);
 
-  useEffect(() => { if (open) setChosen(new Set(plants.map(p => key(p.id)))); }, [open, plants]);
+  useEffect(() => { if (open) setChosen(new Set(plantKey ? plantKey.split(',') : [])); }, [open, plantKey]);
 
   const selected = useMemo(() => plants.filter(p => chosen.has(key(p.id))), [plants, chosen]);
   const warnings = useMemo(() => validateSelection(type, selected, images, onePagePerPlant), [type, selected, images, onePagePerPlant]);

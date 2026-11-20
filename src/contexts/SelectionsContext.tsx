@@ -208,7 +208,8 @@ export const SelectionsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     fetchProjects();
     fetchSelections(currentProject?.id);
     fetchZones(currentProject?.id);
-  }, [user, currentProject?.id]);
+    // user?.id, not user: the same person must not trigger a reload (see AuthContext).
+  }, [user?.id, currentProject?.id]);
 
   const addPlantSelection = async (plantId: number, quantity: number = 1, pruningForm?: string | null) => {
     if (!user) return;

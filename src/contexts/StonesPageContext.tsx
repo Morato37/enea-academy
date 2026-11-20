@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase, Stone } from '../lib/supabase';
 import { StoneFilterState } from '../components/Filters/StoneFilters';
 
+/** Refresh data when the tab was in the background longer than this. */
+const REFRESH_AFTER_HIDDEN_MS = 5 * 60 * 1000;
+
 interface StonesPageContextType {
   stones: Stone[];
   filteredStones: Stone[];
@@ -55,19 +58,20 @@ export const StonesPageProvider: React.FC<{ children: ReactNode }> = ({ children
   useEffect(() => {
     fetchStones();
 
+    // Coming back to the tab: refresh quietly in the background, and only if the tab was hidden
+    // for a while. Before, every tab switch reloaded everything (focus and visibility both fired).
+    let hiddenAt: number | null = null;
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchStones();
+      if (document.hidden) {
+        hiddenAt = Date.now();
+        return;
       }
+      if (hiddenAt !== null && Date.now() - hiddenAt > REFRESH_AFTER_HIDDEN_MS) fetchStones(true);
+      hiddenAt = null;
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', () => fetchStones());
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', () => fetchStones());
-    };
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   useEffect(() => {
