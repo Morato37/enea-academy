@@ -29,7 +29,7 @@ export function columns(T: TFn, lang: Lang, p: SiteParams, hasClass: boolean): C
     { k: 'hDbh', u: 'cm' }, { k: 'hH', u: 'm' }, { k: 'hGround', u: 'm²' }, { k: 'hLA', u: 'm²' }, { k: 'hLAI' },
     { k: 'hC', u: 'kg', g: 'gCarbon' }, { k: 'hSeq', u: 'kg/' + a }, { k: 'hO2', u: 'kg/' + a },
     { k: 'CO', raw: true, g: 'gAirG' }, { k: 'O₃', raw: true }, { k: 'NO₂', raw: true }, { k: 'SO₂', raw: true }, { k: 'PM₂.₅', raw: true },
-    { k: 'hRun', u: 'm³/' + a, g: 'gWater' }, { k: 'hVal', u: 'CHF/' + a, g: 'gValue' },
+    { k: 'hIntercept', u: 'm³/' + a, g: 'gWater' }, { k: 'hRun', u: 'm³/' + a }, { k: 'hVal', u: 'CHF/' + a, g: 'gValue' },
   );
   for (const y of horizons(p)) base.push({ k: 'pDbh', u: 'cm', gRaw: T('gProjT', y) }, { k: 'pC', u: 'kg' }, { k: 'pChf', u: 'CHF/' + a }, { k: 'pCum', u: 'CHF' });
   base.push({ k: 'hFlags', t: true, kind: 'flags' });
@@ -44,7 +44,7 @@ export function rowValues(r: TreeResult, T: TFn, lang: Lang, p: SiteParams, hasC
   const v: string[] = [r.species, r.id ?? '', T(r.sp.ev ? 'ev' : 'dec')];
   if (hasClass) v.push(r.sizeClass ? T(r.sizeClass) : '');
   v.push(f(r.dbh), f(r.height), f(r.ground), f(r.la), f(r.lai, 2), f(r.C), f(r.seq, 2), f(r.o2, 2),
-    f(r.pol.CO, 2), f(r.pol.O3), f(r.pol.NO2), f(r.pol.SO2), f(r.pol.PM, 2), f(r.runoff, 2), f(r.chf, 2));
+    f(r.pol.CO, 2), f(r.pol.O3), f(r.pol.NO2), f(r.pol.SO2), f(r.pol.PM, 2), f(r.intercept, 2), f(r.runoff, 2), f(r.chf, 2));
   for (const y of horizons(p)) { const q = r.proj[y]; v.push(f(q.dbh, 1), f(q.C), f(q.chf, 2), f(q.cum)); }
   v.push(r.flags.map(k => T(k)).join('; '));
   return v;
@@ -56,7 +56,7 @@ export function totalValues(rows: TreeResult[], T: TFn, lang: Lang, p: SiteParam
   const f = (v: number, d = 1) => fmt(lang, v, d);
   const v: string[] = [T('sum', rows.length), '', ''];
   if (hasClass) v.push('');
-  v.push('', '', f(s.ground), f(s.la), '', f(s.C), f(s.seq, 2), f(s.o2, 2), f(s.CO, 2), f(s.O3), f(s.NO2), f(s.SO2), f(s.PM, 2), f(s.runoff, 2), f(s.chf, 2));
+  v.push('', '', f(s.ground), f(s.la), '', f(s.C), f(s.seq, 2), f(s.o2, 2), f(s.CO, 2), f(s.O3), f(s.NO2), f(s.SO2), f(s.PM, 2), f(s.intercept, 2), f(s.runoff, 2), f(s.chf, 2));
   for (const y of horizons(p)) { const q = s.proj[y]; v.push('', f(q.C), f(q.chf, 2), f(q.cum)); }
   v.push('');
   return v;

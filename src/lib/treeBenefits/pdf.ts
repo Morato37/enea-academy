@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable, { UserOptions, CellHookData } from 'jspdf-autotable';
 import { ChartConfiguration } from 'chart.js';
-import { horizons, totals, seriesTotal, polSumOf, O2_PER_PERSON, LANDUSE_OPTIONS, SURFACE_OPTIONS } from './calc';
+import { horizons, totals, seriesTotal, polSumOf, O2_PER_PERSON, LANDUSE_OPTIONS } from './calc';
 import { HEX, chartToImage, projectionChartConfig, oxygenChartConfig } from './charts';
 import { makeT, pdfStrings, locale } from './i18n';
 import { Lang, SiteParams, SiteInfo, TreeResult, TreeInput, SizeClassKey, SizeClassStandard } from './types';
@@ -65,7 +65,7 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
   const kpis: [string, string, string][] = [
     [Pt.trees, String(n), `${skipped.length} ${T('kSkip')}`], [Pt.storage, pf(s.C), Pt.storageU], [Pt.seq, pf(s.seq, 1), Pt.seqU],
     [Pt.o2, pf(s.o2, 1), `${Pt.o2U} · ${T('kO2S', pf(s.o2 / O2_PER_PERSON, 1)).replace('≈', '~')}`],
-    [Pt.pol, pf(polSum), Pt.polU], [Pt.run, pf(s.runoff, 1), Pt.runU], [Pt.value, 'CHF ' + pf(s.chf), Pt.valueU],
+    [Pt.pol, pf(polSum), Pt.polU], [Pt.run, pf(s.runoff, 1), `${Pt.runU} · ${Pt.intercept} ${pf(s.intercept)} m³`], [Pt.value, 'CHF ' + pf(s.chf), Pt.valueU],
   ];
   const bw = (CW - 3 * 4) / 4, bh = 21;
   kpis.forEach((k, i) => {
@@ -82,7 +82,7 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
   y = sectionTitle(T('projTitle'), y);
   const col = (k: string): string[] => {
     const todayV = k === 'dbh' ? pf(s.dbhSum / n, 1) : k === 'C' ? pf(s.C) : k === 'seq' ? pf(s.seq, 1) : k === 'o2' ? pf(s.o2, 1) : k === 'pers' ? pf(s.o2 / O2_PER_PERSON, 1)
-      : k === 'polSum' ? pf(s.polSum) : k === 'runoff' ? pf(s.runoff, 1) : k === 'ground' ? pf(s.ground) : k === 'chf' ? pf(s.chf) : '–';
+      : k === 'polSum' ? pf(s.polSum) : k === 'runoff' ? pf(s.runoff, 1) : k === 'intercept' ? pf(s.intercept) : k === 'ground' ? pf(s.ground) : k === 'chf' ? pf(s.chf) : '–';
     return [todayV, ...HZ.map(h => {
       const q = s.proj[h] as unknown as Record<string, number>;
       return k === 'dbh' ? pf(q.dbh / n, 1) : k === 'pers' ? pf(q.o2 / O2_PER_PERSON, 1) : k === 'cum' ? pf(q.cum) : (k === 'seq' || k === 'runoff' || k === 'o2') ? pf(q[k], 1) : pf(q[k]);
@@ -95,6 +95,7 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
     [`${Pt.o2} kg/${a}`, ...col('o2')],
     [de ? 'Atembedarf Personen (300 kg O2/a)' : 'People supplied (300 kg O2/yr)', ...col('pers')],
     [`${Pt.pol} g/${a}`, ...col('polSum')],
+    [`${Pt.intercept} m³/${a}`, ...col('intercept')],
     [`${Pt.run} m³/${a}`, ...col('runoff')],
     [`${Pt.value} CHF/${a}`, ...col('chf')],
     [`${T('pCum')} CHF`, '–', ...HZ.map(h => pf(s.proj[h].cum))],
@@ -225,11 +226,11 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
   // ---- Last page: parameters & notes
   doc.addPage('a4', 'portrait');
   hdrBand(Pt.params, T('title'));
-  const luKey = LANDUSE_OPTIONS.find(o => o.value === p.landuse)?.key, sfKey = SURFACE_OPTIONS.find(o => o.value === p.surface)?.key;
+  const luKey = LANDUSE_OPTIONS.find(o => o.value === p.landuse)?.key;
   const prm: [string, string][] = [
     [Pt.pAir, ''], ['O3', pf(p.cO3, 1)], ['NO2', pf(p.cNO2, 1)], ['SO2', pf(p.cSO2, 1)], ['PM2.5', pf(p.cPM, 1)], ['CO', pf(p.cCO)],
     [Pt.pClim, ''], [Pt.precip, pf(p.precip)], [Pt.raindays, pf(p.raindays)], [Pt.ffd, pf(p.ffd)], [Pt.leafon, pf(p.leafon)],
-    [Pt.pSite, ''], [Pt.landuse, (luKey ? T(luKey) : '') + ' (' + p.landuse + ' cm/a)'], [Pt.surface, (sfKey ? T(sfKey) : '') + ' (' + p.surface + ')'],
+    [Pt.pSite, ''], [Pt.landuse, (luKey ? T(luKey) : '') + ' (' + p.landuse + ' cm/a)'], [Pt.runoffShare, pf(p.runoffShare * 100, 1) + ' %'],
     [Pt.pPrice, ''], ['CO2', pf(p.pCO2)], ['O3', pf(p.pO3)], ['NO2', pf(p.pNO2)], ['SO2', pf(p.pSO2)], ['PM2.5', pf(p.pPM)], ['CO', pf(p.pCO)], [Pt.runoffP, pf(p.pRun, 2)],
   ];
   if (hasClass && input.sizeClasses) {

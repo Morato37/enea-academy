@@ -3,7 +3,7 @@ import { Loader2, MapPin, Search } from 'lucide-react';
 import { TFn } from '../../lib/treeBenefits/i18n';
 import { SiteParams } from '../../lib/treeBenefits/types';
 import { PRESETS } from '../../lib/treeBenefits/presets';
-import { LANDUSE_OPTIONS, SURFACE_OPTIONS, MAX_HORIZON } from '../../lib/treeBenefits/calc';
+import { LANDUSE_OPTIONS, MAX_HORIZON } from '../../lib/treeBenefits/calc';
 
 export interface GeoStatus { text: string; err: boolean }
 
@@ -110,12 +110,8 @@ export const SiteParamsPanel: React.FC<Props> = ({ T, params, onParamChange, pre
             {LANDUSE_OPTIONS.map(o => <option key={o.key} value={o.value}>{T(o.key)}</option>)}
           </select>
         </label>
-        <label className="grid grid-cols-[1fr_100px] items-center gap-2 text-sm text-gray-700">
-          <span>{T('surface')}</span>
-          <select value={params.surface} onChange={e => onParamChange('surface', parseFloat(e.target.value))} className="w-full rounded border border-gray-300 bg-gray-50 px-1 py-1 text-sm focus:border-[#E4F0E6]0 focus:outline-none">
-            {SURFACE_OPTIONS.map(o => <option key={o.key} value={o.value}>{T(o.key)}</option>)}
-          </select>
-        </label>
+        <NumField label={T('runoffShare')} unit="%" value={Math.round(params.runoffShare * 1000) / 10} step={0.1} min={0} max={100}
+          onChange={v => onParamChange('runoffShare', v / 100)} />
       </Group>
       <Group title={T('gProj')} defaultOpen>
         <NumField label={T('yA')} unit={T('years')} value={params.y1} step={1} min={1} max={MAX_HORIZON} onChange={set('y1')} />
