@@ -1,6 +1,6 @@
 import { CHOJ, lookupSpecies, hmaxOf } from './species';
 import {
-  SiteParams, SpeciesInfo, Services, TreeInput, TreeResult, FlagKey, ProjSnapshot,
+  SiteParams, SpeciesInfo, SpeciesCal, Services, TreeInput, TreeResult, FlagKey, ProjSnapshot,
   Totals, ProjTotals, SeriesPoint, Pollutants, DbhUnit,
 } from './types';
 import { applyDbhUnit } from './parse';
@@ -10,7 +10,7 @@ import { utdAllometry } from './crownAllometry';
 export const DEFAULT_PARAMS: SiteParams = {
   cO3: 50, cNO2: 15, cSO2: 1.5, cPM: 9, cCO: 250,
   precip: 1400, raindays: 140, ffd: 190, leafon: 195,
-  landuse: 0.61, runoffShare: 0.0247,
+  landuse: 0.61, runoffShare: 0.0247, polFactor: 1.45,
   y1: 1, y2: 10, y3: 25,
   pCO2: 130, pO3: 3000, pNO2: 25000, pSO2: 15000, pPM: 250000, pCO: 1000, pRun: 2,
 };
@@ -55,10 +55,17 @@ export function horizons(p: SiteParams): number[] {
  */
 const C_CAL: [number, number] = [0.475, -0.173];
 
-/** Total carbon (kg) from DBH: Chojnacky biomass × roots 1.26 × urban factor 0.8 × C fraction 0.5, calibrated to i-Tree. */
-export function carbonKg(dbh: number, grp: string): number {
+/** Per-species factor exp(a + b · ln(DBH / 30)); DBH held to the fitted range 10–100 cm. */
+export const calFactor = (ab: [number, number] | undefined, dbh: number): number =>
+  ab ? Math.exp(ab[0] + ab[1] * Math.log(Math.min(100, Math.max(10, dbh)) / 30)) : 1;
+
+/**
+ * Total carbon (kg) from DBH: Chojnacky biomass × roots 1.26 × urban factor 0.8 × C fraction 0.5,
+ * calibrated to i-Tree, with the species correction when there is one.
+ */
+export function carbonKg(dbh: number, grp: string, cal?: SpeciesCal): number {
   const [b0, b1] = CHOJ[grp];
-  return Math.exp(b0 + C_CAL[0] + (b1 + C_CAL[1]) * Math.log(dbh)) * 1.26 * 0.8 * 0.5;
+  return Math.exp(b0 + C_CAL[0] + (b1 + C_CAL[1]) * Math.log(dbh)) * 1.26 * 0.8 * 0.5 * calFactor(cal?.c, dbh);
 }
 
 /** Palm carbon (kg) from height (Frangi & Lugo 1985). */
@@ -85,42 +92,47 @@ export function leafArea(H: number, D: number, S: number): { la: number; ground:
 }
 
 /**
- * Deposition velocities per crown ground area at LAI 4 (m/s). Literature values (Nowak et al. 2006/2013)
- * scaled by the median ratio to i-Tree MyTree over 13 Swiss sites (docs/validation):
- * O3 0.35×1.54, NO2 0.20×1.83, SO2 0.30×1.18, PM2.5 0.05×4.2, CO 0.003×0.70 cm/s.
+ * Deposition velocities per m² leaf area (m/s), like i-Tree Eco, which computes the flux per unit leaf
+ * area. Literature values per canopy area at LAI 4 (Nowak et al. 2006/2013; O3 0.35, NO2 0.20, SO2 0.30,
+ * PM2.5 0.05, CO 0.003 cm/s) ÷ 4, scaled per pollutant (O3 ×1.45, NO2 ×1.74, SO2 ×1.10, PM2.5 ×3.96,
+ * CO ×0.66) so that the median of the Swiss presets matches i-Tree MyTree (docs/validation); the
+ * remaining difference per location is SiteParams.polFactor.
  */
-export const VD: Pollutants = { O3: 0.0054, NO2: 0.0037, SO2: 0.0035, PM: 0.0021, CO: 0.000021 };
+export const VD: Pollutants = { O3: 0.00127, NO2: 0.000872, SO2: 0.000825, PM: 0.000495, CO: 0.00000495 };
 
 /**
  * Diameter growth factor by i-Tree growth rate class (slow / moderate / fast), applied to the base
  * growth of the growing environment. Fitted on the MyTree reference trees (docs/validation).
  */
 export const GROWTH_FACTOR: Record<'S' | 'M' | 'F', number> = { S: 1.15, M: 1.55, F: 1.75 };
-const growthFactor = (sp: SpeciesInfo): number => GROWTH_FACTOR[sp.gr ?? 'M'];
+const growthFactor = (sp: SpeciesInfo): number => GROWTH_FACTOR[sp.gr ?? 'M'] * (sp.cal?.g ?? 1);
 
 export const vitality = (d: number): number => d <= 10 ? 1 : d <= 25 ? 0.76 : d <= 50 ? 0.42 : d <= 75 ? 0.15 : 0;
 
-/** Annual services for one set of dimensions (dbh cm, crown height cH m, crown diameter D m). */
+/**
+ * Annual services for one set of dimensions (dbh cm, crown height cH m, crown diameter D m).
+ * crownFactor scales an estimated crown (ground and leaf area, same leaf area index) to the size
+ * i-Tree uses for the species (species calibration; 1 for measured crowns).
+ */
 export function services(
   dbh: number, cH: number, D: number, sp: SpeciesInfo, missing: number, dieback: number,
-  growthOverride: number | null, h: number, p: SiteParams, leafAreaOverride: number | null = null
+  growthOverride: number | null, h: number, p: SiteParams, leafAreaOverride: number | null = null, crownFactor = 1
 ): Services {
   const est = leafArea(cH, D, sp.S);
-  const ground = est.ground;
+  const ground = est.ground * crownFactor;
   // leaf area from the Urban Tree Database when the crown itself was estimated from it
-  const laRaw = leafAreaOverride != null ? leafAreaOverride : est.la;
+  const laRaw = (leafAreaOverride != null ? leafAreaOverride : est.la) * crownFactor;
   const method = leafAreaOverride != null ? 'utd' as const : est.method;
   const la = laRaw * (1 - missing / 100), lai = la / ground;
-  const C = sp.palm ? carbonPalm(h) : carbonKg(dbh, sp.grp);
+  const C = sp.palm ? carbonPalm(h) : carbonKg(dbh, sp.grp, sp.cal);
   const growth = growthOverride != null ? growthOverride : p.landuse * growthFactor(sp) * (p.ffd / 153) * vitality(dieback);
   const hGrow = 0.3 * vitality(dieback);
-  const seq = sp.palm ? Math.max(0, carbonPalm(h + hGrow) - C) : Math.max(0, carbonKg(dbh + growth, sp.grp) - C);
+  const seq = sp.palm ? Math.max(0, carbonPalm(h + hGrow) - C) : Math.max(0, carbonKg(dbh + growth, sp.grp, sp.cal) - C);
   const o2 = seq * 32 / 12;
-  const laiScale = (1 - Math.exp(-0.5 * lai)) / (1 - Math.exp(-0.5 * 4));
   const yr = 365 * 86400, leafon = p.leafon * 86400, tEff = sp.ev ? yr : (leafon + (yr - leafon) * 0.15);
   const conc: Pollutants = { O3: p.cO3, NO2: p.cNO2, SO2: p.cSO2, PM: p.cPM, CO: p.cCO };
   const pol = {} as Pollutants;
-  (Object.keys(VD) as (keyof Pollutants)[]).forEach(k => { pol[k] = VD[k] * conc[k] * 1e-6 * ground * laiScale * tEff; });
+  (Object.keys(VD) as (keyof Pollutants)[]).forEach(k => { pol[k] = VD[k] * conc[k] * 1e-6 * la * tEff * p.polFactor; });
   const Pmm = p.precip, N = Math.max(1, p.raindays), pbar = Pmm / N;
   const inter = (l: number) => { const S = 0.2 * l + 0.1; return S * (1 - Math.exp(-pbar / S)) * INTERCEPT_FACTOR; };
   const fLeaf = sp.ev ? 1 : Math.min(1, p.leafon / 365);
@@ -162,7 +174,10 @@ export function calcTree(t: TreeInput, p: SiteParams): TreeResult {
   const missing = t.missing == null || Number.isNaN(t.missing) ? 0 : t.missing;
   const dieback = t.dieback == null || Number.isNaN(t.dieback) ? 0 : t.dieback;
   const utdLeafArea = (d: number) => crownFromUtd ? utd!.predict('la', d) : null;
-  const now = services(dbh, cH, D, sp, missing, dieback, null, h, p, utdLeafArea(dbh));
+  // the species correction to i-Tree's crown size only applies to crowns that were not measured
+  const crownMeasured = wNS > 0 || wEW > 0;
+  const crownFactor = (d: number) => crownMeasured ? 1 : calFactor(sp.cal?.crown, d);
+  const now = services(dbh, cH, D, sp, missing, dieback, null, h, p, utdLeafArea(dbh), crownFactor(dbh));
   if (sp.palm) flags.push('fPalm');
   if (now.method === 'beer') flags.push('fBeer');
   if (dbh > 100 && !sp.palm) flags.push('fDbh');
@@ -193,7 +208,7 @@ export function calcTree(t: TreeInput, p: SiteParams): TreeResult {
       Dy = crownFromUtd ? utd!.predict('cd', d) : D * Math.pow(d / dbh, 0.7);
       cHy = !baseMeasured && utd ? Math.max(0.3, utdCrownHeight(d, hh)) : Math.max(0.3, cH * Math.pow(d / dbh, 0.5));
     }
-    const s = services(d, cHy, Dy, sp, missing, dieback, g, hh, p, utdLeafArea(d));
+    const s = services(d, cHy, Dy, sp, missing, dieback, g, hh, p, utdLeafArea(d), crownFactor(d));
     cum += s.chf;
     const sn = snap(y, s, d, hh, cum);
     series.push(sn);

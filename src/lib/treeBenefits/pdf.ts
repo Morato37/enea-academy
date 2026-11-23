@@ -230,7 +230,7 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
   const prm: [string, string][] = [
     [Pt.pAir, ''], ['O3', pf(p.cO3, 1)], ['NO2', pf(p.cNO2, 1)], ['SO2', pf(p.cSO2, 1)], ['PM2.5', pf(p.cPM, 1)], ['CO', pf(p.cCO)],
     [Pt.pClim, ''], [Pt.precip, pf(p.precip)], [Pt.raindays, pf(p.raindays)], [Pt.ffd, pf(p.ffd)], [Pt.leafon, pf(p.leafon)],
-    [Pt.pSite, ''], [Pt.landuse, (luKey ? T(luKey) : '') + ' (' + p.landuse + ' cm/a)'], [Pt.runoffShare, pf(p.runoffShare * 100, 1) + ' %'],
+    [Pt.pSite, ''], [Pt.landuse, (luKey ? T(luKey) : '') + ' (' + p.landuse + ' cm/a)'], [Pt.runoffShare, pf(p.runoffShare * 100, 1) + ' %'], [Pt.polFactor, pf(p.polFactor, 2) + ' ×'],
     [Pt.pPrice, ''], ['CO2', pf(p.pCO2)], ['O3', pf(p.pO3)], ['NO2', pf(p.pNO2)], ['SO2', pf(p.pSO2)], ['PM2.5', pf(p.pPM)], ['CO', pf(p.pCO)], [Pt.runoffP, pf(p.pRun, 2)],
   ];
   if (hasClass && input.sizeClasses) {

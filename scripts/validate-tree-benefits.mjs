@@ -22,7 +22,7 @@ const GOAL = 0.15;
  * Largest allowed median |deviation| per metric. Lower them when the calculator gets closer to
  * i-Tree; never raise them to make a change pass.
  */
-const BUDGETS = { runoff: 0.3, intercept: 0.3, C: 0.15, seq: 0.2, pol: 0.35 };
+const BUDGETS = { runoff: 0.15, intercept: 0.15, C: 0.15, seq: 0.15, pol: 0.15 };
 const LABELS = { runoff: 'Vermiedener Abfluss', intercept: 'Regenrückhalt', C: 'Kohlenstoffspeicher', seq: 'Sequestrierung', pol: 'Schadstoffentzug' };
 
 const entry = `
@@ -49,8 +49,11 @@ const presetFor = loc => {
 };
 
 const dir = join(root, 'docs/validation');
-const trees = Object.assign({}, ...readdirSync(dir).filter(f => /^itree-mytree-.*\.json$/.test(f))
-  .map(f => JSON.parse(readFileSync(join(dir, f), 'utf8')).trees));
+// academy runs are the basis of the species calibration, the other files were not used for it
+const groupOf = f => (/academy/.test(f) ? 'academy' : 'ref');
+const GROUPS = { ref: 'Referenzbäume (nicht für die Artkalibrierung verwendet)', academy: 'Academy-Arten (Grundlage der Artkalibrierung)' };
+const trees = Object.assign({}, ...readdirSync(dir).filter(f => /^itree-mytree-.*\.json$/.test(f)).sort()
+  .map(f => Object.fromEntries(Object.entries(JSON.parse(readFileSync(join(dir, f), 'utf8')).trees).map(([id, t]) => [id, { ...t, group: groupOf(f) }]))));
 
 const rows = [];
 for (const [id, t] of Object.entries(trees)) {
@@ -62,7 +65,7 @@ for (const [id, t] of Object.entries(trees)) {
   const polEA = r.pol.CO + r.pol.O3 + r.pol.NO2 + r.pol.SO2 + r.pol.PM;
   const polIT = t.CO + t.O3 + t.NO2 + t.SO2 + t.PM;
   rows.push({
-    id, species: t.species, dbh: t.dbh, site: preset.name,
+    id, species: t.species, dbh: t.dbh, site: preset.name, group: t.group,
     dev: {
       runoff: r.runoff * 1000 / t.runoffL - 1, intercept: r.intercept * 1000 / t.interceptL - 1,
       C: r.C / t.storageC - 1, seq: r.seq / t.seqC - 1, pol: polEA / polIT - 1,
@@ -74,11 +77,17 @@ const median = v => { const s = [...v].sort((a, b) => a - b); const m = s.length
 const pct = d => `${d >= 0 ? '+' : ''}${Math.round(d * 100)} %`;
 const lamp = d => (Math.abs(d) <= GOAL ? '🟢' : Math.abs(d) <= 2 * GOAL ? '🟡' : '🔴');
 
-const summary = Object.keys(BUDGETS).map(k => {
-  const v = rows.map(r => r.dev[k]);
+const summarize = rs => Object.keys(BUDGETS).map(k => {
+  const v = rs.map(r => r.dev[k]);
   const medAbs = median(v.map(Math.abs));
   return { k, med: median(v), medAbs, within: v.filter(x => Math.abs(x) <= GOAL).length, ok: medAbs <= BUDGETS[k] };
 });
+const summary = summarize(rows);
+const table = (rs, sum) => [
+  '| Kennzahl | Median | Median der Beträge | innerhalb ±15 % | Budget | Status |',
+  '|---|---|---|---|---|---|',
+  ...sum.map(s => `| ${LABELS[s.k]} | ${pct(s.med)} | ${pct(s.medAbs)} | ${s.within}/${rs.length} | ${pct(BUDGETS[s.k])} | ${s.ok ? 'ok' : '**überschritten**'} |`),
+];
 
 const md = [
   '# Baumleistungen: Vergleich mit i-Tree MyTree',
@@ -88,20 +97,26 @@ const md = [
   '',
   '## Zusammenfassung',
   '',
-  '| Kennzahl | Median | Median der Beträge | innerhalb ±15 % | Budget | Status |',
-  '|---|---|---|---|---|---|',
-  ...summary.map(s => `| ${LABELS[s.k]} | ${pct(s.med)} | ${pct(s.medAbs)} | ${s.within}/${rows.length} | ${pct(BUDGETS[s.k])} | ${s.ok ? 'ok' : '**überschritten**'} |`),
+  ...table(rows, summary),
   '',
+  ...Object.entries(GROUPS).flatMap(([g, title]) => {
+    const rs = rows.filter(r => r.group === g);
+    return rs.length ? [`### ${title}`, '', ...table(rs, summarize(rs)), ''] : [];
+  }),
   '## Je Baum',
   '',
   '| Test | Art | DBH cm | Standort | Abfluss | Regenrückhalt | Speicher | Sequestrierung | Schadstoffe |',
   '|---|---|---|---|---|---|---|---|---|',
-  ...rows.map(r => `| ${r.id} | *${r.species}* | ${r.dbh} | ${r.site} | ${['runoff', 'intercept', 'C', 'seq', 'pol'].map(k => `${lamp(r.dev[k])} ${pct(r.dev[k])}`).join(' | ')} |`),
+  ...[...rows].sort((a, b) => (a.group === b.group ? 0 : a.group === 'ref' ? -1 : 1)).map(r => `| ${r.id} | *${r.species}* | ${r.dbh} | ${r.site} | ${['runoff', 'intercept', 'C', 'seq', 'pol'].map(k => `${lamp(r.dev[k])} ${pct(r.dev[k])}`).join(' | ')} |`),
   '',
 ];
 writeFileSync(join(dir, 'report.md'), md.join('\n'));
 
 console.log(`${rows.length} Referenzbäume`);
+for (const [g, title] of Object.entries(GROUPS)) {
+  const rs = rows.filter(r => r.group === g);
+  if (rs.length) console.log(`${title}: ${summarize(rs).map(s => `${s.k} ${pct(s.medAbs)}`).join(', ')}`);
+}
 for (const s of summary) console.log(`${LABELS[s.k].padEnd(20)} Median ${pct(s.med).padStart(7)} | Median der Beträge ${pct(s.medAbs).padStart(6)} | innerhalb ±15 %: ${String(s.within).padStart(2)}/${rows.length} | Budget ${pct(BUDGETS[s.k])} ${s.ok ? 'ok' : 'ÜBERSCHRITTEN'}`);
 console.log('Bericht: docs/validation/report.md');
 if (summary.some(s => !s.ok)) process.exit(1);

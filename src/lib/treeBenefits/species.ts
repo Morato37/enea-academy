@@ -1,5 +1,6 @@
-import { SpeciesInfo } from './types';
+import { SpeciesInfo, SpeciesCal } from './types';
 import { GROWTH_GENUS, GROWTH_SPECIES, GrowthClass } from './growthRates';
+import { CAL_GENUS, CAL_SPECIES } from './speciesCalibration';
 
 /**
  * Biomass coefficients ln B = β₀ + β₁·ln DBH (Chojnacky, Heath & Jenkins 2014),
@@ -113,12 +114,19 @@ export function growthClassOf(name: string): GrowthClass {
   return GROWTH_SPECIES[spKey] || (alt && GROWTH_SPECIES[alt]) || GROWTH_GENUS[g] || 'M';
 }
 
+/** Correction to i-Tree MyTree: species entry, else median of its genus, else none. */
+export function calibrationOf(name: string): SpeciesCal | undefined {
+  const { g, spKey, alt } = normName(name);
+  return CAL_SPECIES[spKey] || (alt ? CAL_SPECIES[alt] : undefined) || CAL_GENUS[g];
+}
+
 export function lookupSpecies(name: string): SpeciesInfo {
   const { g, spKey } = normName(name);
   const gr = growthClassOf(name);
-  if (SPECIES[spKey]) return { ...SPECIES[spKey], gr };
-  if (SPECIES[g]) return { ...SPECIES[g], genus: 1, gr };
-  return { ...DEF_HARD, gr };
+  const cal = calibrationOf(name);
+  if (SPECIES[spKey]) return { ...SPECIES[spKey], gr, cal };
+  if (SPECIES[g]) return { ...SPECIES[g], genus: 1, gr, cal };
+  return { ...DEF_HARD, gr, cal };
 }
 
 export function hmaxOf(name: string): number {
