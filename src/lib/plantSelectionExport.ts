@@ -247,7 +247,7 @@ async function loadPng(url: string, maxWidth = 1400): Promise<{ data: string; ra
 
 type Plant = NonNullable<UserSelection['plant']>;
 interface Cell { plant: Plant; groupLabel?: string }
-/** One zone (area) of the selection: its own pages, the zone name goes into the header. */
+/** Plants that share pages and a header (the area is null for a whole-project export). */
 interface Section { area: string | null; cells: Cell[] }
 
 export const generatePlantSelectionPDF = async (
@@ -255,38 +255,30 @@ export const generatePlantSelectionPDF = async (
   projectName?: string,
   language: 'de' | 'en' = 'de'
 ): Promise<void> => {
-  // Zones in their display order, unassigned last; each plant once per zone.
-  const zones = new Map<string, { name: string | null; order: number; plants: Plant[] }>();
-  selections.forEach(selection => {
-    if (!selection.plant) return;
-    const key = selection.zone_id || '__unassigned__';
-    if (!zones.has(key)) {
-      zones.set(key, {
-        name: selection.zone_id ? selection.zone?.name || null : null,
-        order: selection.zone_id ? selection.zone?.display_order ?? Number.MAX_SAFE_INTEGER - 1 : Number.MAX_SAFE_INTEGER,
-        plants: [],
-      });
-    }
-    const zone = zones.get(key)!;
-    if (!zone.plants.some(p => p.id === selection.plant!.id)) zone.plants.push(selection.plant);
-  });
-  if (!zones.size) return;
+  // One zone (export from a zone's button): the zone name goes into the header, as in the booklet.
+  // Several zones (whole project): all plants together, each once, so the pages are filled;
+  // the header then shows only "Project | Planting concept".
+  const zoneIds = new Set(selections.filter(s => s.plant).map(s => s.zone_id || null));
+  const singleZone = zoneIds.size === 1 ? selections.find(s => s.plant)?.zone_id : null;
+  const area = singleZone ? selections.find(s => s.zone_id === singleZone)?.zone?.name || null : null;
 
-  // Within a zone: plants by group (booklet order), then botanical name; label on each group's first plant.
-  const sections: Section[] = [...zones.values()]
-    .sort((a, b) => a.order - b.order || (a.name || '').localeCompare(b.name || ''))
-    .map(zone => {
-      const sorted = [...zone.plants].sort((a, b) =>
-        groupOf(a) - groupOf(b) || (a.botanical_name || '').localeCompare(b.botanical_name || '', undefined, { numeric: true }));
-      return {
-        area: zone.name,
-        cells: sorted.map((plant, i) => {
-          const g = groupOf(plant);
-          const first = i === 0 || groupOf(sorted[i - 1]) !== g;
-          return { plant, groupLabel: first ? (language === 'de' ? GROUPS[g].de : GROUPS[g].en) : undefined };
-        }),
-      };
-    });
+  const plants: Plant[] = [];
+  selections.forEach(selection => {
+    if (selection.plant && !plants.some(p => p.id === selection.plant!.id)) plants.push(selection.plant);
+  });
+  if (!plants.length) return;
+
+  // Plants by group (booklet order), then botanical name; label on each group's first plant.
+  const sorted = plants.sort((a, b) =>
+    groupOf(a) - groupOf(b) || (a.botanical_name || '').localeCompare(b.botanical_name || '', undefined, { numeric: true }));
+  const sections: Section[] = [{
+    area,
+    cells: sorted.map((plant, i) => {
+      const g = groupOf(plant);
+      const first = i === 0 || groupOf(sorted[i - 1]) !== g;
+      return { plant, groupLabel: first ? (language === 'de' ? GROUPS[g].de : GROUPS[g].en) : undefined };
+    }),
+  }];
 
   const [, logo, mark] = await Promise.all([preloadAllIcons(), loadPng(LOGO_URL), loadPng(MARK_URL)]);
 
@@ -388,8 +380,7 @@ export const generatePlantSelectionPDF = async (
     });
   };
 
-  // Each zone starts on a new page; rows of 6, two rows per page.
-  // A row that is not full (the last one of a zone) is centred, as in the booklet.
+  // Rows of 6, two rows per page. A row that is not full (the last one) is centred, as in the booklet.
   for (const section of sections) {
     for (let start = 0; start < section.cells.length; start += COLS) {
       const rowIndex = (start / COLS) % ROW_TOPS.length;
@@ -402,6 +393,10 @@ export const generatePlantSelectionPDF = async (
     }
   }
 
-  const safe = (projectName || '').replace(/[^\p{L}\p{N}_-]+/gu, '_');
+  // ASCII file name (umlauts written out): some browsers drop non-ASCII download names.
+  const safe = (projectName || '')
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
   doc.save(`PlantSelection_${safe ? `${safe}_` : ''}${new Date().toISOString().split('T')[0]}.pdf`);
 };
