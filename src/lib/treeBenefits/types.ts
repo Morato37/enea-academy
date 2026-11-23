@@ -21,7 +21,11 @@ export interface SiteParams {
   leafon: number;   // leaf-on days for deciduous trees
   // Site conditions
   landuse: number;  // base DBH growth cm/yr (park 0.61, street 0.83, stand 0.38)
-  surface: number;  // runoff coefficient of the ground surface
+  /**
+   * Share of the rain retained by the crown that counts as avoided runoff (0..1). From i-Tree
+   * for the location (canton level): most retained rain would otherwise have infiltrated.
+   */
+  runoffShare: number;
   // Projection horizons (years)
   y1: number;
   y2: number;
@@ -53,6 +57,8 @@ export interface SitePreset {
   raindays: number;
   ffd: number;
   leafon: number;
+  /** i-Tree avoided-runoff share of the canton (see SiteParams.runoffShare). */
+  runoffShare: number;
 }
 
 export interface SpeciesInfo {
@@ -62,6 +68,7 @@ export interface SpeciesInfo {
   palm?: 1;         // palm / non-tree: biomass from height
   dflt?: 1;         // unknown species, default broadleaf used
   genus?: 1;        // matched at genus level only
+  gr?: 'S' | 'M' | 'F'; // i-Tree growth rate class (slow / moderate / fast)
 }
 
 /** One measured or standardised tree, as entered by the user. */
@@ -82,7 +89,7 @@ export interface TreeInput {
 }
 
 export type FlagKey =
-  | 'fUnit' | 'fUnknown' | 'fGenus' | 'fPalm' | 'fBase' | 'fWidth' | 'fBeer' | 'fDbh';
+  | 'fUnit' | 'fUnknown' | 'fGenus' | 'fPalm' | 'fBase' | 'fWidth' | 'fWidthUtd' | 'fBeer' | 'fDbh';
 
 export interface Pollutants {
   O3: number;
@@ -97,12 +104,13 @@ export interface Services {
   ground: number;  // crown ground area m²
   la: number;      // leaf area m²
   lai: number;
-  method: 'reg' | 'beer';
+  method: 'reg' | 'beer' | 'utd';
   C: number;       // carbon storage kg
   seq: number;     // carbon sequestration kg/yr
   o2: number;      // oxygen production kg/yr
   pol: Pollutants; // g/yr
-  runoff: number;  // avoided runoff m³/yr
+  intercept: number; // rain retained by the crown m³/yr
+  runoff: number;  // avoided runoff m³/yr (intercept × runoffShare)
   vC: number;      // CHF/yr
   vAir: number;
   vRun: number;
@@ -120,6 +128,7 @@ export interface ProjSnapshot {
   o2: number;
   chf: number;
   cum: number;
+  intercept: number;
   runoff: number;
   polSum: number;
   pol: Pollutants;
@@ -140,12 +149,12 @@ export interface TreeResult extends TreeInput, Services {
 }
 
 export interface ProjTotals {
-  C: number; seq: number; o2: number; chf: number; cum: number; runoff: number;
+  C: number; seq: number; o2: number; chf: number; cum: number; intercept: number; runoff: number;
   polSum: number; ground: number; la: number; vC: number; vAir: number; vRun: number; dbh: number;
 }
 
 export interface Totals extends Pollutants {
-  ground: number; la: number; C: number; seq: number; o2: number; runoff: number;
+  ground: number; la: number; C: number; seq: number; o2: number; intercept: number; runoff: number;
   vC: number; vAir: number; vRun: number; chf: number;
   polSum: number; dbhSum: number;
   proj: Record<number, ProjTotals>;

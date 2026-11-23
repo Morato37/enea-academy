@@ -38,7 +38,7 @@ export const ResultsSummary: React.FC<Props> = ({ T, lang, totals: s, count, ski
         <Kpi label={T('kSeq')} dot={HEX.o2} value={<>{f(s.seq)}{small(`kg C/${a}`)}</>} sub={`≙ ${f(s.seq * 3.667)} kg CO₂/${a}`} />
         <Kpi label={T('kO2')} dot={HEX.o2} value={<>{f(s.o2)}{small(`kg/${a}`)}</>} sub={T('kO2S', f(s.o2 / O2_PER_PERSON, 1))} />
         <Kpi label={T('kPol')} dot={HEX.air} value={<>{f(s.polSum / 1000, 2)}{small(`kg/${a}`)}</>} sub={`O₃ ${f(s.O3, 0)} · NO₂ ${f(s.NO2, 0)} · PM₂.₅ ${f(s.PM)} g`} />
-        <Kpi label={T('kRun')} dot={HEX.water} value={<>{f(s.runoff, 1)}{small(`m³/${a}`)}</>} sub={T('kRunS', f(s.ground))} />
+        <Kpi label={T('kRun')} dot={HEX.water} value={<>{f(s.runoff, 1)}{small(`m³/${a}`)}</>} sub={T('kRunS', f(s.intercept, 1))} />
         <Kpi label={T('kVal')} highlight value={`CHF ${f(s.chf, 0)}`} sub={T('kValS')} />
       </div>
       <div className="mt-3">

@@ -1,4 +1,5 @@
 import { SpeciesInfo } from './types';
+import { GROWTH_GENUS, GROWTH_SPECIES, GrowthClass } from './growthRates';
 
 /**
  * Biomass coefficients ln B = β₀ + β₁·ln DBH (Chojnacky, Heath & Jenkins 2014),
@@ -47,7 +48,7 @@ Object.assign(SPECIES, {
   'cinnamomum camphora': { S: 0.90, ev: 1, grp: 'misc' }, 'citrus nobilis': { S: 0.90, ev: 1, grp: 'misc' }, 'corylus avellana': { S: 0.88, ev: 0, grp: 'betM' }, 'cupressus sempervirens': { S: 0.90, ev: 1, grp: 'cupH' },
   'fraxinus ornus': { S: 0.83, ev: 0, grp: 'oleaH' }, 'fraxinus oxycarpa': { S: 0.83, ev: 0, grp: 'oleaH' }, 'fraxinus excelsior': { S: 0.83, ev: 0, grp: 'oleaH' }, 'jacaranda mimosifolia': { S: 0.80, ev: 0, grp: 'fab' },
   'laurus nobilis': { S: 0.90, ev: 1, grp: 'misc' }, 'melia azedarach': { S: 0.83, ev: 0, grp: 'misc' }, 'morus alba': { S: 0.85, ev: 0, grp: 'misc' }, 'olea europaea': { S: 0.84, ev: 1, grp: 'oleaH' },
-  'ostrya carpinifolia': { S: 0.85, ev: 0, grp: 'betH' }, 'platanus x acerifolia': { S: 0.89, ev: 0, grp: 'misc' }, 'platanus x hispanica': { S: 0.89, ev: 0, grp: 'misc' }, 'populus alba': { S: 0.84, ev: 0, grp: 'salL' },
+  'ostrya carpinifolia': { S: 0.85, ev: 0, grp: 'betH' }, 'platanus x acerifolia': { S: 0.89, ev: 0, grp: 'misc' }, 'platanus x hispanica': { S: 0.89, ev: 0, grp: 'misc' }, 'platanus x hybrida': { S: 0.89, ev: 0, grp: 'misc' }, 'populus alba': { S: 0.84, ev: 0, grp: 'salL' },
   'populus canescens': { S: 0.84, ev: 0, grp: 'salL' }, 'populus nigra': { S: 0.83, ev: 0, grp: 'salL' }, 'prunus avium': { S: 0.85, ev: 0, grp: 'misc' }, 'prunus serrulata': { S: 0.86, ev: 0, grp: 'misc' },
   'paulownia tomentosa': { S: 0.85, ev: 0, grp: 'misc' }, 'pyrus communis': { S: 0.88, ev: 0, grp: 'misc' }, 'pyrus calleryana': { S: 0.88, ev: 0, grp: 'misc' }, 'quercus cerris': { S: 0.86, ev: 0, grp: 'fagD' },
   'quercus frainetto': { S: 0.86, ev: 0, grp: 'fagD' }, 'quercus petraea': { S: 0.86, ev: 0, grp: 'fagD' }, 'quercus pubescens': { S: 0.85, ev: 0, grp: 'fagD' }, 'quercus robur': { S: 0.86, ev: 0, grp: 'fagD' },
@@ -106,11 +107,18 @@ export function normName(name: string): { g: string; spKey: string; alt: string 
   return { g, spKey, alt: hyb ? toks.slice(0, 2).join(' ') : null };
 }
 
+/** i-Tree growth rate class of a species: species entry, else genus majority, else moderate. */
+export function growthClassOf(name: string): GrowthClass {
+  const { g, spKey, alt } = normName(name);
+  return GROWTH_SPECIES[spKey] || (alt && GROWTH_SPECIES[alt]) || GROWTH_GENUS[g] || 'M';
+}
+
 export function lookupSpecies(name: string): SpeciesInfo {
   const { g, spKey } = normName(name);
-  if (SPECIES[spKey]) return { ...SPECIES[spKey] };
-  if (SPECIES[g]) return { ...SPECIES[g], genus: 1 };
-  return { ...DEF_HARD };
+  const gr = growthClassOf(name);
+  if (SPECIES[spKey]) return { ...SPECIES[spKey], gr };
+  if (SPECIES[g]) return { ...SPECIES[g], genus: 1, gr };
+  return { ...DEF_HARD, gr };
 }
 
 export function hmaxOf(name: string): number {
