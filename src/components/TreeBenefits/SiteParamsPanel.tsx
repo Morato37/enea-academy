@@ -112,6 +112,8 @@ export const SiteParamsPanel: React.FC<Props> = ({ T, params, onParamChange, pre
         </label>
         <NumField label={T('runoffShare')} unit="%" value={Math.round(params.runoffShare * 1000) / 10} step={0.1} min={0} max={100}
           onChange={v => onParamChange('runoffShare', v / 100)} />
+        <NumField label={T('polFactor')} unit="×" value={params.polFactor} step={0.01} min={0}
+          onChange={v => onParamChange('polFactor', v)} />
       </Group>
       <Group title={T('gProj')} defaultOpen>
         <NumField label={T('yA')} unit={T('years')} value={params.y1} step={1} min={1} max={MAX_HORIZON} onChange={set('y1')} />

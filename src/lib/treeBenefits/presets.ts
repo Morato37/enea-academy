@@ -4,22 +4,24 @@ import { SitePreset, SiteParams, Lang } from './types';
  * Site presets: c = annual means µg/m³ (rounded, Ostluft/NABEL ~2023), precip mm/yr,
  * raindays ≥ 1 mm, ffd frost-free days, leafon deciduous leaf-on days,
  * runoffShare = avoided runoff ÷ rain retained by the crown as computed by i-Tree MyTree for the
- * canton (i-Tree uses canton-level location data; read off MyTree results, Nov 2026).
+ * canton (i-Tree uses canton-level location data; read off MyTree results, Nov 2026),
+ * polFactor = i-Tree MyTree pollutant removal ÷ calculator for the same tree at that place (median of
+ * the presets = 1; docs/validation).
  */
 export const PRESETS: SitePreset[] = [
-  { id: 'rapperswil', name: 'Rapperswil-Jona SG', lat: 47.226, lon: 8.818, elev: 409, c: { O3: 50, NO2: 15, SO2: 1.5, PM: 9, CO: 250 }, precip: 1400, raindays: 140, ffd: 190, leafon: 195, runoffShare: 0.0247 },
-  { id: 'zuerich', name: 'Zürich', lat: 47.37, lon: 8.54, elev: 408, c: { O3: 45, NO2: 22, SO2: 2, PM: 10, CO: 300 }, precip: 1100, raindays: 125, ffd: 200, leafon: 200, runoffShare: 0.0585 },
-  { id: 'winterthur', name: 'Winterthur', lat: 47.50, lon: 8.72, elev: 439, c: { O3: 47, NO2: 18, SO2: 1.5, PM: 9, CO: 270 }, precip: 1050, raindays: 125, ffd: 190, leafon: 195, runoffShare: 0.0585 },
-  { id: 'stgallen', name: 'St. Gallen', lat: 47.42, lon: 9.37, elev: 670, c: { O3: 48, NO2: 17, SO2: 1.5, PM: 8, CO: 250 }, precip: 1250, raindays: 140, ffd: 175, leafon: 185, runoffShare: 0.0247 },
-  { id: 'luzern', name: 'Luzern', lat: 47.05, lon: 8.31, elev: 435, c: { O3: 47, NO2: 20, SO2: 1.5, PM: 9, CO: 280 }, precip: 1150, raindays: 130, ffd: 195, leafon: 195, runoffShare: 0.0205 },
-  { id: 'basel', name: 'Basel', lat: 47.56, lon: 7.59, elev: 260, c: { O3: 45, NO2: 22, SO2: 2, PM: 10, CO: 300 }, precip: 850, raindays: 115, ffd: 215, leafon: 205, runoffShare: 0.2403 },
-  { id: 'bern', name: 'Bern', lat: 46.95, lon: 7.45, elev: 540, c: { O3: 45, NO2: 20, SO2: 1.5, PM: 9, CO: 280 }, precip: 1050, raindays: 125, ffd: 185, leafon: 190, runoffShare: 0.0149 },
-  { id: 'chur', name: 'Chur', lat: 46.85, lon: 9.53, elev: 590, c: { O3: 45, NO2: 20, SO2: 1.5, PM: 9, CO: 260 }, precip: 850, raindays: 110, ffd: 190, leafon: 190, runoffShare: 0.0032 },
-  { id: 'lausanne', name: 'Lausanne', lat: 46.52, lon: 6.63, elev: 495, c: { O3: 50, NO2: 22, SO2: 2, PM: 10, CO: 290 }, precip: 1100, raindays: 120, ffd: 205, leafon: 200, runoffShare: 0.0183 },
-  { id: 'genf', name: 'Genève', lat: 46.20, lon: 6.14, elev: 375, c: { O3: 48, NO2: 24, SO2: 2, PM: 11, CO: 300 }, precip: 1000, raindays: 115, ffd: 220, leafon: 205, runoffShare: 0.1191 },
-  { id: 'lugano', name: 'Lugano', lat: 46.00, lon: 8.95, elev: 273, c: { O3: 60, NO2: 25, SO2: 2, PM: 14, CO: 320 }, precip: 1550, raindays: 105, ffd: 240, leafon: 215, runoffShare: 0.0156 },
-  { id: 'davos', name: 'Davos (alpin)', lat: 46.80, lon: 9.84, elev: 1560, c: { O3: 55, NO2: 8, SO2: 1, PM: 5, CO: 200 }, precip: 1050, raindays: 125, ffd: 110, leafon: 140, runoffShare: 0.0032 },
-  { id: 'milano', name: 'Milano (IT)', lat: 45.46, lon: 9.19, elev: 120, c: { O3: 45, NO2: 40, SO2: 3, PM: 20, CO: 400 }, precip: 900, raindays: 80, ffd: 260, leafon: 215, runoffShare: 0.2378 },
+  { id: 'rapperswil', name: 'Rapperswil-Jona SG', lat: 47.226, lon: 8.818, elev: 409, c: { O3: 50, NO2: 15, SO2: 1.5, PM: 9, CO: 250 }, precip: 1400, raindays: 140, ffd: 190, leafon: 195, runoffShare: 0.0247, polFactor: 1.45 },
+  { id: 'zuerich', name: 'Zürich', lat: 47.37, lon: 8.54, elev: 408, c: { O3: 45, NO2: 22, SO2: 2, PM: 10, CO: 300 }, precip: 1100, raindays: 125, ffd: 200, leafon: 200, runoffShare: 0.0585, polFactor: 0.86 },
+  { id: 'winterthur', name: 'Winterthur', lat: 47.50, lon: 8.72, elev: 439, c: { O3: 47, NO2: 18, SO2: 1.5, PM: 9, CO: 270 }, precip: 1050, raindays: 125, ffd: 190, leafon: 195, runoffShare: 0.0585, polFactor: 0.9 },
+  { id: 'stgallen', name: 'St. Gallen', lat: 47.42, lon: 9.37, elev: 670, c: { O3: 48, NO2: 17, SO2: 1.5, PM: 8, CO: 250 }, precip: 1250, raindays: 140, ffd: 175, leafon: 185, runoffShare: 0.0247, polFactor: 1.63 },
+  { id: 'luzern', name: 'Luzern', lat: 47.05, lon: 8.31, elev: 435, c: { O3: 47, NO2: 20, SO2: 1.5, PM: 9, CO: 280 }, precip: 1150, raindays: 130, ffd: 195, leafon: 195, runoffShare: 0.0205, polFactor: 0.85 },
+  { id: 'basel', name: 'Basel', lat: 47.56, lon: 7.59, elev: 260, c: { O3: 45, NO2: 22, SO2: 2, PM: 10, CO: 300 }, precip: 850, raindays: 115, ffd: 215, leafon: 205, runoffShare: 0.2403, polFactor: 0.73 },
+  { id: 'bern', name: 'Bern', lat: 46.95, lon: 7.45, elev: 540, c: { O3: 45, NO2: 20, SO2: 1.5, PM: 9, CO: 280 }, precip: 1050, raindays: 125, ffd: 185, leafon: 190, runoffShare: 0.0149, polFactor: 1.02 },
+  { id: 'chur', name: 'Chur', lat: 46.85, lon: 9.53, elev: 590, c: { O3: 45, NO2: 20, SO2: 1.5, PM: 9, CO: 260 }, precip: 850, raindays: 110, ffd: 190, leafon: 190, runoffShare: 0.0032, polFactor: 1.41 },
+  { id: 'lausanne', name: 'Lausanne', lat: 46.52, lon: 6.63, elev: 495, c: { O3: 50, NO2: 22, SO2: 2, PM: 10, CO: 290 }, precip: 1100, raindays: 120, ffd: 205, leafon: 200, runoffShare: 0.0183, polFactor: 1.03 },
+  { id: 'genf', name: 'Genève', lat: 46.20, lon: 6.14, elev: 375, c: { O3: 48, NO2: 24, SO2: 2, PM: 11, CO: 300 }, precip: 1000, raindays: 115, ffd: 220, leafon: 205, runoffShare: 0.1191, polFactor: 1 },
+  { id: 'lugano', name: 'Lugano', lat: 46.00, lon: 8.95, elev: 273, c: { O3: 60, NO2: 25, SO2: 2, PM: 14, CO: 320 }, precip: 1550, raindays: 105, ffd: 240, leafon: 215, runoffShare: 0.0156, polFactor: 0.82 },
+  { id: 'davos', name: 'Davos (alpin)', lat: 46.80, lon: 9.84, elev: 1560, c: { O3: 55, NO2: 8, SO2: 1, PM: 5, CO: 200 }, precip: 1050, raindays: 125, ffd: 110, leafon: 140, runoffShare: 0.0032, polFactor: 1.77 },
+  { id: 'milano', name: 'Milano (IT)', lat: 45.46, lon: 9.19, elev: 120, c: { O3: 45, NO2: 40, SO2: 3, PM: 20, CO: 400 }, precip: 900, raindays: 80, ffd: 260, leafon: 215, runoffShare: 0.2378, polFactor: 0.88 },
 ];
 
 export const DEFAULT_PRESET = PRESETS[0];
@@ -36,7 +38,7 @@ export function applyPresetToParams(p: SiteParams, s: SitePreset | LiveSite): Si
   return {
     ...p,
     cO3: s.c.O3, cNO2: s.c.NO2, cSO2: s.c.SO2, cPM: s.c.PM, cCO: s.c.CO,
-    precip: s.precip, raindays: s.raindays, ffd: s.ffd, leafon: s.leafon, runoffShare: s.runoffShare,
+    precip: s.precip, raindays: s.raindays, ffd: s.ffd, leafon: s.leafon, runoffShare: s.runoffShare, polFactor: s.polFactor,
   };
 }
 
@@ -50,6 +52,8 @@ export interface LiveSite {
   leafon: number;
   /** i-Tree avoided-runoff share, taken from the nearest preset */
   runoffShare: number;
+  /** i-Tree pollutant removal correction, taken from the nearest preset */
+  polFactor: number;
   /** 'climate:<preset label>' / 'air:<preset label>' when a service was unavailable and preset values were used */
   fallback: string[];
 }
@@ -96,7 +100,7 @@ export async function liveLookupCoords(lat: number, lon: number, name: string, e
     jsonOrNull(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5,nitrogen_dioxide,sulphur_dioxide,ozone,carbon_monoxide&start_date=2024-01-01&end_date=2024-12-31&timezone=auto`),
   ]);
   const out: LiveSite = {
-    name, elev: Math.round(elevation || near.elev), fallback: [], runoffShare: near.runoffShare,
+    name, elev: Math.round(elevation || near.elev), fallback: [], runoffShare: near.runoffShare, polFactor: near.polFactor,
     c: { ...near.c }, precip: near.precip, raindays: near.raindays, ffd: near.ffd, leafon: near.leafon,
   };
   // climate

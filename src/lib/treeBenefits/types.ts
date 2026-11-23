@@ -26,6 +26,11 @@ export interface SiteParams {
    * for the location (canton level): most retained rain would otherwise have infiltrated.
    */
   runoffShare: number;
+  /**
+   * Correction of the pollutant removal to i-Tree for the location (canton level): i-Tree uses its own
+   * hourly pollution and weather data. 1 = median of the Swiss presets.
+   */
+  polFactor: number;
   // Projection horizons (years)
   y1: number;
   y2: number;
@@ -59,6 +64,8 @@ export interface SitePreset {
   leafon: number;
   /** i-Tree avoided-runoff share of the canton (see SiteParams.runoffShare). */
   runoffShare: number;
+  /** Pollutant removal correction to i-Tree for the canton (see SiteParams.polFactor). */
+  polFactor: number;
 }
 
 export interface SpeciesInfo {
@@ -69,6 +76,17 @@ export interface SpeciesInfo {
   dflt?: 1;         // unknown species, default broadleaf used
   genus?: 1;        // matched at genus level only
   gr?: 'S' | 'M' | 'F'; // i-Tree growth rate class (slow / moderate / fast)
+  cal?: SpeciesCal; // per-species correction to i-Tree MyTree (speciesCalibration.ts)
+}
+
+/**
+ * Per-species correction to i-Tree MyTree. c and crown are [a, b] of the factor exp(a + b · ln(DBH / 30));
+ * g multiplies the diameter growth.
+ */
+export interface SpeciesCal {
+  c?: [number, number];     // carbon storage
+  g?: number;               // diameter growth
+  crown?: [number, number]; // crown area and leaf area (same leaf area index), only when the crown was not measured
 }
 
 /** One measured or standardised tree, as entered by the user. */

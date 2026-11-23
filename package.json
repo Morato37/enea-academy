@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "validate:itree": "node scripts/validate-tree-benefits.mjs"
+    "validate:itree": "node scripts/validate-tree-benefits.mjs",
+    "calibrate:itree": "node scripts/build-species-calibration.mjs"
   },
   "dependencies": {
     "@fontsource/josefin-sans": "^5.3.0",
