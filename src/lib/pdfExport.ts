@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import { UserSelection } from './supabase';
 
+import { withBrandFonts } from './pdfFonts';
 const MONTHS = [
   { key: 'jan', label: 'Jan' },
   { key: 'feb', label: 'Feb' },
@@ -96,6 +97,7 @@ const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
 
 export const generatePDF = async (selections: UserSelection[], language: 'de' | 'en' = 'de'): Promise<void> => {
   const doc = new jsPDF();
+  await withBrandFonts(doc);
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   let yPosition = 20;

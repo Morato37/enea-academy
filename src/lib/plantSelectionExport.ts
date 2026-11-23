@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import { UserSelection, supabase } from './supabase';
 
+import { withBrandFonts } from './pdfFonts';
 const loadPlantImage = async (plantId: number): Promise<string | null> => {
   try {
     const { data, error } = await supabase
@@ -203,6 +204,7 @@ export const generatePlantSelectionPDF = async (
   const CELL_H_WITH_LABEL = CELL_H + CAT_LABEL_H;
 
   const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a3' });
+  await withBrandFonts(doc);
 
   // ── Draw legend ───────────────────────────────────────────────────────────
   const drawLegend = (startY: number) => {
@@ -300,7 +302,11 @@ export const generatePlantSelectionPDF = async (
     // Check if a new page is needed before drawing
     if (rowY + cellTotalH > PAGE_H - margin) nextPage();
 
-    const x = margin + col * (cellW + colGap);
+    // Rows fill left to right. A row that is not full (the last one, or the only one in a small
+    // export) is centred on the page instead of starting at the left margin.
+    const itemsInRow = Math.min(cols, items.length - (idx - col));
+    const rowShiftX = ((cols - itemsInRow) * (cellW + colGap)) / 2;
+    const x = margin + rowShiftX + col * (cellW + colGap);
     // All cells in a label-row shift down by CAT_LABEL_H; only the labeled cell shows text
     const imgY = rowY + (rowOffset ? CAT_LABEL_H : 0);
 

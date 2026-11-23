@@ -15,6 +15,7 @@ import { loadSizeClasses, saveSizeClasses, expandProjectTrees, fetchSpeciesSizeC
 import { loadHandover, saveHandover } from '../lib/treeBenefits/handover';
 import { buildExcelText, copyToClipboard } from '../lib/treeBenefits/columns';
 import { exportTreeBenefitsPdf } from '../lib/treeBenefits/pdf';
+import { preloadBrandFonts } from '../lib/pdfFonts';
 import { DbhUnit, Lang, ProjectHandover, ProjectTreeInput, SiteInfo, SiteParams, SizeClassKey, SizeClassStandard } from '../lib/treeBenefits/types';
 
 type Mode = 'paste' | 'project';
@@ -115,9 +116,10 @@ export const TreeBenefitsPage: React.FC = () => {
     await copyToClipboard(buildExcelText(rows, T, lang, params, hasClass));
     showToast(T('tCopied'));
   };
-  const onPdf = () => {
+  const onPdf = async () => {
     if (!rows.length) return showToast(T('tFirst'));
     showToast(T('pdfBusy'));
+    await preloadBrandFonts();
     try {
       const r = exportTreeBenefitsPdf({
         rows, skipped, params, site, lang,

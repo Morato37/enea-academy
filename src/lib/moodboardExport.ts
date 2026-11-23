@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import { UserSelection, supabase } from './supabase';
 
+import { withBrandFonts } from './pdfFonts';
 const loadPlantImages = async (plantId: number, imageCount: number): Promise<string[]> => {
   try {
     const { data, error } = await supabase
@@ -219,6 +220,7 @@ export const generateMoodboardPDF = async (
     unit: 'mm',
     format: [pageW, PAGE_H],
   });
+  await withBrandFonts(doc);
 
   const titleText = projectName ? `${projectName} — Plant Board` : 'Plant Board';
   doc.setFontSize(20);

@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import { PAGE, PAPER, PaperFormat } from './layouts';
 import { MoodboardPage, MoodboardSlot } from './types';
 
+import { withBrandFonts } from './pdfFonts';
 export interface MoodboardHeader {
   /** e.g. "Rüschlikon, Glasenberg" */
   project: string;
@@ -163,6 +164,7 @@ export async function exportMoodboardPdf(pages: MoodboardPage[], options: Moodbo
   const k = PAPER[format].scale;
   const dpi = options.dpi ?? 200;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format, compress: true });
+  await withBrandFonts(doc);
   const [logo, mark] = await Promise.all([
     pngData(options.logoUrl ?? '/moodboard/enea-logo.png'),
     pngData(options.markUrl ?? '/moodboard/enea-mark.png'),
