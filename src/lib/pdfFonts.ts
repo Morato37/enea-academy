@@ -16,8 +16,12 @@ import mediumUrl from '../assets/fonts/URWGrotesk-Medium.ttf?url';
  *
  * After that, every existing doc.setFont('helvetica', …) / setFont('', …) call is redirected to
  * URW Grotesk, so the generators need no other changes:
- *   normal → Regular, bold → Medium, italic → Regular (the font set has no italic),
- *   light → Light, extralight → ExtraLight (also reachable via setFont(PDF_FONT, 'light')).
+ *   normal → Regular, bold → Medium, light → Light, extralight → ExtraLight
+ *   (light/extralight via setFont(PDF_FONT, 'light')).
+ * The font set has no italic cuts. Italic styles (italic, bolditalic, lightitalic,
+ * extralightitalic) are drawn as an oblique of the upright cut: doc.text() slants the text by
+ * OBLIQUE_ANGLE around its baseline. If real italic files are added later, register them in
+ * FILES/STYLES and remove the style from OBLIQUE_STYLES.
  * If the font files cannot be loaded, the PDF falls back to Helvetica instead of failing.
  */
 
@@ -38,8 +42,15 @@ const STYLES: Record<string, Cut> = {
   italic: 'regular',
   bolditalic: 'medium',
   light: 'light',
+  lightitalic: 'light',
   extralight: 'extralight',
+  extralightitalic: 'extralight',
 };
+
+/** Styles without their own font file: slanted versions of the upright cut. */
+const OBLIQUE_STYLES = new Set(['italic', 'bolditalic', 'lightitalic', 'extralightitalic']);
+const OBLIQUE_ANGLE = 11; // degrees
+const SLANT = Math.tan((OBLIQUE_ANGLE * Math.PI) / 180);
 
 /** Families used by the existing generators; all of them become URW Grotesk. */
 const REPLACED_FAMILIES = new Set(['', 'helvetica', 'arial', 'sans-serif', 'times', 'courier']);
@@ -79,10 +90,11 @@ export function preloadBrandFonts(): Promise<boolean> {
 
 function styleFor(fontStyle?: string, fontWeight?: string | number): string {
   const weight = typeof fontWeight === 'string' ? parseInt(fontWeight, 10) : fontWeight;
-  if (weight && weight <= 200) return 'extralight';
-  if (weight && weight <= 300) return 'light';
   const style = (fontStyle || 'normal').toLowerCase().replace(/[\s_-]/g, '');
-  if (weight && weight >= 500 && (style === 'normal' || style === 'italic')) return style === 'italic' ? 'bolditalic' : 'bold';
+  const italic = style.endsWith('italic') ? 'italic' : '';
+  if (weight && weight <= 200) return `extralight${italic}`;
+  if (weight && weight <= 300) return `light${italic}`;
+  if (weight && weight >= 500 && (style === 'normal' || style === 'italic')) return `bold${italic}`;
   return style in STYLES ? style : 'normal';
 }
 
@@ -103,7 +115,44 @@ export function applyBrandFonts(doc: jsPDF): boolean {
     return originalSetFont(PDF_FONT, styleFor(fontStyle, fontWeight));
   }) as jsPDF['setFont'];
   doc.setFont(PDF_FONT, 'normal');
+  patchObliqueText(doc);
   return true;
+}
+
+type TextFn = (text: string | string[], x: number, y: number, options?: Record<string, unknown>, transform?: unknown) => jsPDF;
+type MatrixCtor = new (a: number, b: number, c: number, d: number, e: number, f: number) => unknown;
+
+/**
+ * doc.text() for oblique styles: each line is drawn with a skew matrix. jsPDF applies the matrix
+ * after the position, which moves the text right by SLANT × (distance from the page bottom);
+ * the x position is corrected by exactly that amount, so x/y and alignment stay as requested.
+ */
+function patchObliqueText(doc: jsPDF) {
+  const originalText = doc.text.bind(doc) as unknown as TextFn;
+  const Matrix = (doc as unknown as { Matrix: MatrixCtor }).Matrix;
+  const patched: TextFn = (text, x, y, options, transform) => {
+    const font = doc.getFont();
+    const plain = font.fontName !== PDF_FONT || !OBLIQUE_STYLES.has(font.fontStyle)
+      || typeof x !== 'number' || typeof y !== 'number' || transform !== undefined
+      || (options !== null && typeof options === 'object' && options.angle !== undefined);
+    if (plain) return originalText(text, x, y, options, transform);
+
+    const opts: Record<string, unknown> = options && typeof options === 'object' ? { ...options } : {};
+    let lines = (Array.isArray(text) ? text : String(text).split(/\r?\n/)).map(String);
+    if (typeof opts.maxWidth === 'number' && opts.maxWidth > 0) {
+      lines = lines.flatMap(line => doc.splitTextToSize(line, opts.maxWidth as number) as string[]);
+    }
+    delete opts.maxWidth;
+    const factor = typeof opts.lineHeightFactor === 'number' ? opts.lineHeightFactor : doc.getLineHeightFactor();
+    const lineHeight = (doc.getFontSize() * factor) / doc.internal.scaleFactor;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    lines.forEach((line, i) => {
+      const lineY = y + i * lineHeight;
+      originalText(line, x - SLANT * (pageHeight - lineY), lineY, { ...opts, angle: new Matrix(1, 0, SLANT, 1, 0, 0) });
+    });
+    return doc;
+  };
+  doc.text = patched as unknown as jsPDF['text'];
 }
 
 /** Loads (if needed) and applies the house font. */

@@ -168,6 +168,35 @@ const preloadAllIcons = async (): Promise<void> => {
   await Promise.all(ICON_DEFS.map(def => loadIcon(def.file)));
 };
 
+const LOGO_RATIO = 2238 / 244; // /public/enea-logo copy.png
+
+/** Loads a PNG and scales it to at most maxWidth px (the logo file is 2238 px wide). */
+async function loadPng(url: string, maxWidth = 1800): Promise<{ data: string; ratio: number } | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise(resolve => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(blob);
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.naturalWidth);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        const ctx = canvas.getContext('2d');
+        if (ctx) { ctx.imageSmoothingQuality = 'high'; ctx.drawImage(img, 0, 0, canvas.width, canvas.height); }
+        URL.revokeObjectURL(objectUrl);
+        resolve({ data: canvas.toDataURL('image/png'), ratio: img.naturalWidth / img.naturalHeight });
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(null); };
+      img.src = objectUrl;
+    });
+  } catch {
+    return null;
+  }
+}
+
 export const generateMoodboardPDF = async (
   selections: UserSelection[],
   projectName?: string,
@@ -183,7 +212,12 @@ export const generateMoodboardPDF = async (
   const PAGE_H = 841;
   const BASE_W = 1189;
   const margin = 20; // 2 cm everywhere
-  const firstTextOffset = 6.422; // 0.6422 cm under upper margin
+  // Header like the enea booklet: "enea landscape design" logo top right, "Project | Plant Board"
+  // below it; "© year enea" bottom right.
+  const LOGO_W = 120;
+  const SUBTITLE_GAP = 7;
+  const headerH = LOGO_W / LOGO_RATIO + SUBTITLE_GAP + 6; // logo + subtitle line + space
+  const footerH = 8;
 
   const colGap = 4;
   const imgGap = 3;
@@ -196,7 +230,7 @@ export const generateMoodboardPDF = async (
   const rowSpacing = 6;
 
   // Available vertical space for rows
-  const availH = PAGE_H - margin * 2 - firstTextOffset - 12; // 12mm for title area
+  const availH = PAGE_H - margin * 2 - headerH - footerH;
   const maxRowH = cellH + rowSpacing + catLabelH;
   const maxRows = Math.max(1, Math.floor(availH / maxRowH));
 
@@ -222,13 +256,24 @@ export const generateMoodboardPDF = async (
   });
   await withBrandFonts(doc);
 
-  const titleText = projectName ? `${projectName} — Plant Board` : 'Plant Board';
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(40, 40, 40);
-  doc.text(titleText, margin, margin + firstTextOffset);
+  const [logo, mark] = await Promise.all([loadPng('/enea-logo%20copy.png'), loadPng('/enea-mark.png')]);
+  const right = pageW - margin;
+  const logoH = LOGO_W / (logo?.ratio ?? LOGO_RATIO);
+  if (logo) doc.addImage(logo.data, 'PNG', right - LOGO_W, margin, LOGO_W, logoH);
+  doc.setFont('helvetica', 'light');
+  doc.setFontSize(16);
+  doc.setTextColor(70, 70, 70);
+  const subtitle = [projectName?.trim(), 'Plant Board'].filter(Boolean).join('  |  ');
+  doc.text(subtitle, right, margin + logoH + SUBTITLE_GAP, { align: 'right' });
 
-  let rowStartY = margin + firstTextOffset + 12;
+  const footerBaseline = PAGE_H - margin + footerH / 2;
+  const markH = 6;
+  const markW = mark ? markH * mark.ratio : 0;
+  if (mark) doc.addImage(mark.data, 'PNG', right - markW, footerBaseline - markH + 0.6, markW, markH);
+  doc.setFontSize(13);
+  doc.text(`© ${new Date().getFullYear()}`, right - markW - (mark ? 2.5 : 0), footerBaseline, { align: 'right' });
+
+  let rowStartY = margin + headerH;
 
   for (let i = 0; i < flat.length; i++) {
     const rowIdx = Math.floor(i / cols);
@@ -243,7 +288,7 @@ export const generateMoodboardPDF = async (
 
     if (flat[i].categoryLabel !== '') {
       doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('helvetica', 'light');
       doc.setTextColor(70, 70, 70);
       doc.text(flat[i].categoryLabel, x, rowStartY + catLabelH - 2);
     }
@@ -256,14 +301,14 @@ export const generateMoodboardPDF = async (
     const botanicName = plant.botanical_name || '';
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'light');
     doc.setTextColor(50, 50, 50);
     const commonLine = doc.splitTextToSize(commonName, imgW)[0] as string || '';
     doc.text(commonLine, x, textTop + 5);
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(90, 90, 90);
+    doc.setFont('helvetica', 'lightitalic');
+    doc.setTextColor(70, 70, 70);
     const botanicLine = doc.splitTextToSize(botanicName, imgW)[0] as string || '';
     doc.text(botanicLine, x, textTop + 5 + 5);
 
