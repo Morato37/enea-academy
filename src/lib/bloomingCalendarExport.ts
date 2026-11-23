@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import { UserSelection } from './supabase';
 
+import { withBrandFonts } from './pdfFonts';
 const MONTHS_DE = [
   { key: 'jan', label: 'Jan' },
   { key: 'feb', label: 'Feb' },
@@ -48,6 +49,7 @@ export const generateBloomingCalendarPDF = async (
   language: 'de' | 'en' = 'de'
 ): Promise<void> => {
   const doc = new jsPDF('landscape', 'mm', 'a3');
+  await withBrandFonts(doc);
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 

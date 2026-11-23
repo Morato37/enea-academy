@@ -7,6 +7,7 @@ import { makeT, pdfStrings, locale } from './i18n';
 import { Lang, SiteParams, SiteInfo, TreeResult, TreeInput, SizeClassKey, SizeClassStandard } from './types';
 import { SIZE_CLASS_KEYS } from './sizeClasses';
 
+import { applyBrandFonts } from '../pdfFonts';
 export interface PdfInput {
   rows: TreeResult[];
   skipped: TreeInput[];
@@ -26,6 +27,7 @@ export function buildTreeBenefitsPdf(input: PdfInput): jsPDF {
   const T = makeT(lang), Pt = pdfStrings(lang);
   const pf = (v: number, d = 0) => Number.isFinite(v) ? v.toLocaleString(locale(lang), { minimumFractionDigits: d, maximumFractionDigits: d }).replace(/['']/g, "'") : '-';
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+  applyBrandFonts(doc); // fonts are preloaded by the caller (preloadBrandFonts)
   const s = totals(rows, p), n = rows.length;
   const W = 210, M = 16, CW = W - 2 * M;
   const de = lang === 'de', a = de ? 'a' : 'yr';

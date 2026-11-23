@@ -10,6 +10,7 @@ import {
 import { pruningFormExportText } from './pruningFormPdf';
 
 
+import { withBrandFonts } from './pdfFonts';
 interface ZoneCalcData {
   zone: ProjectZone | null;
   zoneName: string;
@@ -150,6 +151,7 @@ export const generateCalculationPDF = async (
   let y = margin;
 
   const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+  await withBrandFonts(doc);
 
   const ensureSpace = (needed: number) => {
     if (y + needed > PAGE_H - margin) {
