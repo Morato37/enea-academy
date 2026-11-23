@@ -30,6 +30,8 @@ const PROXIES: Record<string, string> = {
   'platanus x hispanica': 'platanus x acerifolia',
   'platanus hispanica': 'platanus x acerifolia',
   'platanus acerifolia': 'platanus x acerifolia',
+  'platanus x hybrida': 'platanus x acerifolia',
+  'platanus hybrida': 'platanus x acerifolia',
   'aesculus x carnea': 'aesculus hippocastanum',
   'pinus mugo': 'pinus sylvestris',
 };

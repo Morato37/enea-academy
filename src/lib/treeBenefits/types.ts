@@ -68,6 +68,7 @@ export interface SpeciesInfo {
   palm?: 1;         // palm / non-tree: biomass from height
   dflt?: 1;         // unknown species, default broadleaf used
   genus?: 1;        // matched at genus level only
+  gr?: 'S' | 'M' | 'F'; // i-Tree growth rate class (slow / moderate / fast)
 }
 
 /** One measured or standardised tree, as entered by the user. */

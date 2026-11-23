@@ -49,10 +49,16 @@ export function horizons(p: SiteParams): number[] {
   return [...new Set([p.y1, p.y2, p.y3].map(v => Math.min(MAX_HORIZON, Math.max(1, Math.round(v || 0)))))];
 }
 
-/** Total carbon (kg) from DBH: Chojnacky biomass × roots 1.26 × urban factor 0.8 × C fraction 0.5. */
+/**
+ * Correction of the Chojnacky groups to i-Tree's species equations, fitted on 26 MyTree reference
+ * trees (docs/validation): factor exp(0.475) · DBH^−0.173, i.e. +10 % at 15 cm, −18 % at 50 cm.
+ */
+const C_CAL: [number, number] = [0.475, -0.173];
+
+/** Total carbon (kg) from DBH: Chojnacky biomass × roots 1.26 × urban factor 0.8 × C fraction 0.5, calibrated to i-Tree. */
 export function carbonKg(dbh: number, grp: string): number {
   const [b0, b1] = CHOJ[grp];
-  return Math.exp(b0 + b1 * Math.log(dbh)) * 1.26 * 0.8 * 0.5;
+  return Math.exp(b0 + C_CAL[0] + (b1 + C_CAL[1]) * Math.log(dbh)) * 1.26 * 0.8 * 0.5;
 }
 
 /** Palm carbon (kg) from height (Frangi & Lugo 1985). */
@@ -78,6 +84,20 @@ export function leafArea(H: number, D: number, S: number): { la: number; ground:
   return { la, ground, method };
 }
 
+/**
+ * Deposition velocities per crown ground area at LAI 4 (m/s). Literature values (Nowak et al. 2006/2013)
+ * scaled by the median ratio to i-Tree MyTree over 13 Swiss sites (docs/validation):
+ * O3 0.35×1.54, NO2 0.20×1.83, SO2 0.30×1.18, PM2.5 0.05×4.2, CO 0.003×0.70 cm/s.
+ */
+export const VD: Pollutants = { O3: 0.0054, NO2: 0.0037, SO2: 0.0035, PM: 0.0021, CO: 0.000021 };
+
+/**
+ * Diameter growth factor by i-Tree growth rate class (slow / moderate / fast), applied to the base
+ * growth of the growing environment. Fitted on the MyTree reference trees (docs/validation).
+ */
+export const GROWTH_FACTOR: Record<'S' | 'M' | 'F', number> = { S: 1.15, M: 1.55, F: 1.75 };
+const growthFactor = (sp: SpeciesInfo): number => GROWTH_FACTOR[sp.gr ?? 'M'];
+
 export const vitality = (d: number): number => d <= 10 ? 1 : d <= 25 ? 0.76 : d <= 50 ? 0.42 : d <= 75 ? 0.15 : 0;
 
 /** Annual services for one set of dimensions (dbh cm, crown height cH m, crown diameter D m). */
@@ -92,16 +112,15 @@ export function services(
   const method = leafAreaOverride != null ? 'utd' as const : est.method;
   const la = laRaw * (1 - missing / 100), lai = la / ground;
   const C = sp.palm ? carbonPalm(h) : carbonKg(dbh, sp.grp);
-  const growth = growthOverride != null ? growthOverride : p.landuse * (p.ffd / 153) * vitality(dieback);
+  const growth = growthOverride != null ? growthOverride : p.landuse * growthFactor(sp) * (p.ffd / 153) * vitality(dieback);
   const hGrow = 0.3 * vitality(dieback);
   const seq = sp.palm ? Math.max(0, carbonPalm(h + hGrow) - C) : Math.max(0, carbonKg(dbh + growth, sp.grp) - C);
   const o2 = seq * 32 / 12;
   const laiScale = (1 - Math.exp(-0.5 * lai)) / (1 - Math.exp(-0.5 * 4));
   const yr = 365 * 86400, leafon = p.leafon * 86400, tEff = sp.ev ? yr : (leafon + (yr - leafon) * 0.15);
-  const vd: Pollutants = { O3: 0.0035, NO2: 0.0020, SO2: 0.0030, PM: 0.0005, CO: 0.00003 };
   const conc: Pollutants = { O3: p.cO3, NO2: p.cNO2, SO2: p.cSO2, PM: p.cPM, CO: p.cCO };
   const pol = {} as Pollutants;
-  (Object.keys(vd) as (keyof Pollutants)[]).forEach(k => { pol[k] = vd[k] * conc[k] * 1e-6 * ground * laiScale * tEff; });
+  (Object.keys(VD) as (keyof Pollutants)[]).forEach(k => { pol[k] = VD[k] * conc[k] * 1e-6 * ground * laiScale * tEff; });
   const Pmm = p.precip, N = Math.max(1, p.raindays), pbar = Pmm / N;
   const inter = (l: number) => { const S = 0.2 * l + 0.1; return S * (1 - Math.exp(-pbar / S)) * INTERCEPT_FACTOR; };
   const fLeaf = sp.ev ? 1 : Math.min(1, p.leafon / 365);
@@ -150,7 +169,7 @@ export function calcTree(t: TreeInput, p: SiteParams): TreeResult {
 
   // growth projection: DBH grows, height & crown follow by urban allometry, growth damps near max height
   const hmax = hmaxOf(t.species), H = horizons(p), maxY = Math.max(...H);
-  const baseGrowth = p.landuse * (p.ffd / 153) * vitality(dieback);
+  const baseGrowth = p.landuse * growthFactor(sp) * (p.ffd / 153) * vitality(dieback);
   const snap = (y: number, s: Services, d: number, hh: number, cum: number): ProjSnapshot => ({
     y, dbh: d, h: hh, C: s.C, seq: s.seq, o2: s.o2, chf: s.chf, cum, intercept: s.intercept, runoff: s.runoff, polSum: polSumOf(s.pol), pol: s.pol,
     ground: s.ground, la: s.la, vC: s.vC, vAir: s.vAir, vRun: s.vRun,
