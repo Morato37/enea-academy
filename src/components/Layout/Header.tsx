@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, LogOut, Settings, Map, Info, Ticket, TreePine, Flower, Library, ChevronDown, Leaf } from 'lucide-react';
+import { ShoppingCart, LogOut, Settings, Map, Info, Ticket, TreePine, Flower, Library, ChevronDown, Leaf, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSelections } from '../../contexts/SelectionsContext';
+import { useAdminTicketAlerts } from '../../hooks/useAdminTicketAlerts';
 
 export const Header: React.FC = () => {
   const { user, isAdmin, signOut } = useAuth();
@@ -14,6 +15,21 @@ export const Header: React.FC = () => {
   const mobilePlantsMenuRef = useRef<HTMLDivElement>(null);
 
   const selectionCount = selections.length;
+  const { openCount, newTickets, dismiss } = useAdminTicketAlerts(user?.id, isAdmin);
+
+  // Opening the support page counts as "seen": close the new-ticket alerts.
+  useEffect(() => {
+    if (location.pathname === '/tickets') dismiss();
+  }, [location.pathname, dismiss]);
+
+  const openBadge = isAdmin && openCount > 0 ? (
+    <span
+      className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold leading-5 text-white"
+      title={`${openCount} offene${openCount === 1 ? 's' : ''} Ticket${openCount === 1 ? '' : 's'}`}
+    >
+      {openCount}
+    </span>
+  ) : null;
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -146,6 +162,7 @@ export const Header: React.FC = () => {
             >
               <Ticket className="w-4 h-4 mr-1.5" />
               Support
+              {openBadge}
             </Link>
 
             {isAdmin && (
@@ -262,6 +279,7 @@ export const Header: React.FC = () => {
             className={mobileLinkClass(location.pathname === '/tickets')}
           >
             Support
+            {openBadge}
           </Link>
           {isAdmin && (
             <Link
@@ -273,6 +291,29 @@ export const Header: React.FC = () => {
           )}
         </nav>
       </div>
+
+      {newTickets.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-[1300] w-80 rounded-xl border border-gray-200 bg-white p-4 shadow-xl" role="status">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+              <Ticket className="h-4 w-4 text-red-500" />
+              {newTickets.length === 1 ? 'Neues Support-Ticket' : `${newTickets.length} neue Support-Tickets`}
+            </div>
+            <button type="button" onClick={() => dismiss()} className="text-gray-400 hover:text-gray-600" aria-label="Schliessen">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <ul className="mt-2 space-y-1 text-sm text-gray-700">
+            {newTickets.slice(0, 3).map(ticket => (
+              <li key={ticket.id} className="truncate">{ticket.title}</li>
+            ))}
+            {newTickets.length > 3 && <li className="text-gray-400">… und {newTickets.length - 3} weitere</li>}
+          </ul>
+          <Link to="/tickets" className="mt-3 inline-block text-sm font-semibold text-emerald-700 hover:text-emerald-900">
+            Tickets ansehen →
+          </Link>
+        </div>
+      )}
     </header>
   );
 };
