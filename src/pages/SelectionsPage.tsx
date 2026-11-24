@@ -1401,7 +1401,7 @@ export const SelectionsPage: React.FC = () => {
                                 setDraggingZoneId(null);
                               }}
                               isZoneDragging={draggingZoneId === zone.id}
-                              onExportPlantBoard={isAdmin && zonePlants.length > 0
+                              onExportPlantBoard={zonePlants.length > 0
                                 ? () => triggerExport({ type: 'moodboard', zoneId: zone.id })
                                 : undefined}
                               onExportPlantSelection={zonePlants.length > 0
