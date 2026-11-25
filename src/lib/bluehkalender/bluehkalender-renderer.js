@@ -255,7 +255,7 @@ const ICON_PATHS = {
   bee:'/icons/BEE_ICON.png', bird:'/icons/BIRD_ICON.png', butterfly:'/icons/BUTTERFLY_ICON.png',
   apple:'/icons/Apple_grau_1.jpg', native:'/icons/EVERGREEN_ICON.png', flower:'/icons/FLOWER.png',
   garden:'/icons/GARDEN.png', climate:'/icons/image.png', medicinal:'/icons/MEDICINAL.png',
-  snow:'/icons/snowflake_grau_1.jpg', sun:'/icons/SUN.png', tree:'/icons/TREE_2.png',
+  snow:'/icons/snowflake_grau_1.jpg', sun:'/icons/sonnig.png', tree:'/icons/TREE_2.png',
   water:'/icons/WATER_-_BLUE.png', wellness:'/icons/WELLNESS.png', wind:'/icons/WIND.png',
 };
 const ICON = {};
@@ -398,8 +398,30 @@ export function monthEntry(c1, c2){
   return [la ? 'f' : 'b', b, a];
 }
 const T = v => v === true || v === 'true' || v === 1 || v === 't';
+// Herbstfärbung: Die Datenbank kennt pro Monat nur Farben, nicht «Blüte» oder «Laub». Rot/Orange/Braun im Herbst
+// würde deshalb als Blüte gelten. Bei Gehölzen zählt ein warmer Farbton ab September als Laub (innerer Ring),
+// wenn vorher grünes Laub da war und danach ein leerer Monat folgt (Laubfall) oder die Farbe über den Winter bleibt.
+// Immergrüne sind ausgenommen: dort ist ein warmer Farbton im Herbst/Winter eine Blüte (z. B. Kamelie).
+const isWarmHex = h => { const [r,g,b]=hex2rgb(h), hu=hueOf(r,g,b); return hu>=0 && (hu<55 || hu>=340); };
+const hasLeaf = c => !!c && (c[0]==='f' || (!!c[2] && isLeafHex(c[2])));
+const autumnHex = c => { if(!c || c[0]!=='b') return null; const cols=[c[1],c[2]].filter(x=>x && !isLeafHex(x)); return cols.length && cols.every(isWarmHex) ? cols[0] : null; };
+function autumnFoliage(m){
+  if(!m.slice(0,8).some(hasLeaf)) return m;
+  const out = m.slice();
+  for(let i=8;i<12;i++){
+    if(!autumnHex(m[i]) || (i>8 && autumnHex(m[i-1]))) continue;
+    // Lauf darf über den Jahreswechsel reichen (Laub, das braun am Gehölz bleibt, z. B. Hainbuche)
+    let n=1; while(n<12 && autumnHex(m[(i+n)%12])) n++;
+    const wraps = i+n>12;
+    if(!wraps && m[(i+n)%12]) continue;
+    for(let k=0;k<n;k++){ const x=(i+k)%12; out[x] = ['f', autumnHex(m[x])]; }
+  }
+  return out;
+}
 export function plantFromDb(row){
-  const m = MKEYS.map(k => monthEntry(row['color_'+k], row['color2_'+k]));
+  const woody = (T(row.category_tree) || T(row.category_shrub) || T(row.category_climbing_plant)) && !T(row.characteristic_evergreen);
+  const raw = MKEYS.map(k => monthEntry(row['color_'+k], row['color2_'+k]));
+  const m = woody ? autumnFoliage(raw) : raw;
   const traits = [];
   if (['characteristic_bees','characteristic_bumblebees','characteristic_honeybees','characteristic_hoverflies'].some(k => T(row[k]))) traits.push('bee');
   if (T(row.characteristic_butterflies)) traits.push('butterfly');
@@ -408,7 +430,12 @@ export function plantFromDb(row){
   if (T(row.category_medicinal_herbs) || T(row.usage_medicinal_herbs)) traits.push('medicinal');
   if (T(row.category_culinary_plant)) traits.push('edible');
   if (T(row.tree_of_the_future) || T(row.tree_of_the_future_drought)) traits.push('climate');
-  const b = m.find(c => c && c[0]==='b'), f = m.find(c => c && c[0]==='f'), f2 = m.find(c => c && c[2]);
+  // Laubfarbe = das Grün, das die meisten Monate belegt (nicht einfach das erste). Hat die Pflanze keine erkannte
+  // Blüte, aber ein zweites, selteneres Grün (grüne Blüte, z. B. Helleborus), dient dieses als Blütenfarbe im Editor.
+  const greens = new Map();
+  m.forEach(c => { if(!c) return; const g = c[0]==='f' ? c[1] : c[2]; if(g && isLeafHex(g)) greens.set(g, (greens.get(g)||0)+1); });
+  const ranked = [...greens.entries()].sort((a,z) => z[1]-a[1]).map(e => e[0]);
+  const b = m.find(c => c && c[0]==='b'), f = m.find(c => c && c[0]==='f');
   return { id: row.id, bot: row.botanical_name || '', en: row.common_name_de || row.common_name_en || '',
-    bloom: b ? b[1] : '#e8bafa', leaf: f ? f[1] : (f2 ? f2[2] : '#6f9a5a'), traits, m };
+    bloom: b ? b[1] : (ranked[1] || '#e8bafa'), leaf: ranked[0] || (f ? f[1] : '#6f9a5a'), traits, m };
 }
