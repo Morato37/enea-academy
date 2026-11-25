@@ -225,7 +225,7 @@ export const BloomCalendarEditorPage: React.FC = () => {
     searchTimerRef.current = setTimeout(async () => {
       let query = supabase
         .from('plants_flat')
-        .select('id, botanical_name, common_name_de, common_name_en, color_jan, color_feb, color_mar, color_apr, color_may, color_jun, color_jul, color_aug, color_sep, color_oct, color_nov, color_dec, color2_jan, color2_feb, color2_mar, color2_apr, color2_may, color2_jun, color2_jul, color2_aug, color2_sep, color2_oct, color2_nov, color2_dec, characteristic_bees, characteristic_butterflies, characteristic_birds, characteristic_native, category_perennial, category_grass, category_shrub, category_tree, category_climbing_plant, category_fern, category_medicinal_herbs, category_culinary_plant, usage_medicinal_herbs, tree_of_the_future, tree_of_the_future_drought')
+        .select('id, botanical_name, common_name_de, common_name_en, color_jan, color_feb, color_mar, color_apr, color_may, color_jun, color_jul, color_aug, color_sep, color_oct, color_nov, color_dec, color2_jan, color2_feb, color2_mar, color2_apr, color2_may, color2_jun, color2_jul, color2_aug, color2_sep, color2_oct, color2_nov, color2_dec, characteristic_bees, characteristic_butterflies, characteristic_birds, characteristic_native, characteristic_evergreen, category_perennial, category_grass, category_shrub, category_tree, category_climbing_plant, category_fern, category_medicinal_herbs, category_culinary_plant, usage_medicinal_herbs, tree_of_the_future, tree_of_the_future_drought')
         .or(`botanical_name.ilike.%${searchQuery}%,common_name_de.ilike.%${searchQuery}%,common_name_en.ilike.%${searchQuery}%`)
         .limit(30);
 

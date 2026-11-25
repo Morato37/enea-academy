@@ -400,7 +400,8 @@ export function monthEntry(c1, c2){
 const T = v => v === true || v === 'true' || v === 1 || v === 't';
 // Herbstfärbung: Die Datenbank kennt pro Monat nur Farben, nicht «Blüte» oder «Laub». Rot/Orange/Braun im Herbst
 // würde deshalb als Blüte gelten. Bei Gehölzen zählt ein warmer Farbton ab September als Laub (innerer Ring),
-// wenn vorher grünes Laub da war und danach ein leerer Monat folgt (Laubfall).
+// wenn vorher grünes Laub da war und danach ein leerer Monat folgt (Laubfall) oder die Farbe über den Winter bleibt.
+// Immergrüne sind ausgenommen: dort ist ein warmer Farbton im Herbst/Winter eine Blüte (z. B. Kamelie).
 const isWarmHex = h => { const [r,g,b]=hex2rgb(h), hu=hueOf(r,g,b); return hu>=0 && (hu<55 || hu>=340); };
 const hasLeaf = c => !!c && (c[0]==='f' || (!!c[2] && isLeafHex(c[2])));
 const autumnHex = c => { if(!c || c[0]!=='b') return null; const cols=[c[1],c[2]].filter(x=>x && !isLeafHex(x)); return cols.length && cols.every(isWarmHex) ? cols[0] : null; };
@@ -409,14 +410,16 @@ function autumnFoliage(m){
   const out = m.slice();
   for(let i=8;i<12;i++){
     if(!autumnHex(m[i]) || (i>8 && autumnHex(m[i-1]))) continue;
-    let j=i; while(j<11 && autumnHex(m[j+1])) j++;
-    if(m[(j+1)%12]) continue;
-    for(let k=i;k<=j;k++) out[k] = ['f', autumnHex(m[k])];
+    // Lauf darf über den Jahreswechsel reichen (Laub, das braun am Gehölz bleibt, z. B. Hainbuche)
+    let n=1; while(n<12 && autumnHex(m[(i+n)%12])) n++;
+    const wraps = i+n>12;
+    if(!wraps && m[(i+n)%12]) continue;
+    for(let k=0;k<n;k++){ const x=(i+k)%12; out[x] = ['f', autumnHex(m[x])]; }
   }
   return out;
 }
 export function plantFromDb(row){
-  const woody = T(row.category_tree) || T(row.category_shrub) || T(row.category_climbing_plant);
+  const woody = (T(row.category_tree) || T(row.category_shrub) || T(row.category_climbing_plant)) && !T(row.characteristic_evergreen);
   const raw = MKEYS.map(k => monthEntry(row['color_'+k], row['color2_'+k]));
   const m = woody ? autumnFoliage(raw) : raw;
   const traits = [];
