@@ -427,7 +427,12 @@ export function plantFromDb(row){
   if (T(row.category_medicinal_herbs) || T(row.usage_medicinal_herbs)) traits.push('medicinal');
   if (T(row.category_culinary_plant)) traits.push('edible');
   if (T(row.tree_of_the_future) || T(row.tree_of_the_future_drought)) traits.push('climate');
-  const b = m.find(c => c && c[0]==='b'), f = m.find(c => c && c[0]==='f'), f2 = m.find(c => c && c[2]);
+  // Laubfarbe = das Grün, das die meisten Monate belegt (nicht einfach das erste). Hat die Pflanze keine erkannte
+  // Blüte, aber ein zweites, selteneres Grün (grüne Blüte, z. B. Helleborus), dient dieses als Blütenfarbe im Editor.
+  const greens = new Map();
+  m.forEach(c => { if(!c) return; const g = c[0]==='f' ? c[1] : c[2]; if(g && isLeafHex(g)) greens.set(g, (greens.get(g)||0)+1); });
+  const ranked = [...greens.entries()].sort((a,z) => z[1]-a[1]).map(e => e[0]);
+  const b = m.find(c => c && c[0]==='b'), f = m.find(c => c && c[0]==='f');
   return { id: row.id, bot: row.botanical_name || '', en: row.common_name_de || row.common_name_en || '',
-    bloom: b ? b[1] : '#e8bafa', leaf: f ? f[1] : (f2 ? f2[2] : '#6f9a5a'), traits, m };
+    bloom: b ? b[1] : (ranked[1] || '#e8bafa'), leaf: ranked[0] || (f ? f[1] : '#6f9a5a'), traits, m };
 }
