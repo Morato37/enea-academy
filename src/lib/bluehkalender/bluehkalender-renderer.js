@@ -255,7 +255,7 @@ const ICON_PATHS = {
   bee:'/icons/BEE_ICON.png', bird:'/icons/BIRD_ICON.png', butterfly:'/icons/BUTTERFLY_ICON.png',
   apple:'/icons/Apple_grau_1.jpg', native:'/icons/EVERGREEN_ICON.png', flower:'/icons/FLOWER.png',
   garden:'/icons/GARDEN.png', climate:'/icons/image.png', medicinal:'/icons/MEDICINAL.png',
-  snow:'/icons/snowflake_grau_1.jpg', sun:'/icons/SUN.png', tree:'/icons/TREE_2.png',
+  snow:'/icons/snowflake_grau_1.jpg', sun:'/icons/sonnig.png', tree:'/icons/TREE_2.png',
   water:'/icons/WATER_-_BLUE.png', wellness:'/icons/WELLNESS.png', wind:'/icons/WIND.png',
 };
 const ICON = {};
